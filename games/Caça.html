@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Caça-Palavras Minimalista</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@700;800;900&family=Roboto+Mono:wght@700&family=Lora:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cell-size: 36px;
+      --font-size: 20px;
+      --font-family: 'Inter', sans-serif;
+      --app-bg: linear-gradient(135deg, #090d16 0%, #111827 100%);
+      --app-font-color: #cbd5e1;
+      --glass-bg: rgba(15, 23, 42, 0.85);
+      --glass-blur: 12px;
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--app-bg);
+      background-attachment: fixed;
+      color: #f8fafc;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      transition: background 0.3s ease;
+    }
+
+    /* Glassmorphism Classes */
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+    }
+
+    /* Grid Cell Styles */
+    .grid-cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      font-size: var(--font-size);
+      font-family: var(--font-family);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--app-font-color);
+      transition: color 0.15s ease, transform 0.15s ease;
+      z-index: 10;
+    }
+
+    .grid-cell.highlighted-text {
+      color: #ffffff !important;
+      font-weight: 900;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+    }
+
+    #lines-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    @keyframes subtle-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    .pulse-target {
+      animation: subtle-pulse 1.8s infinite ease-in-out;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-between h-screen w-screen p-2 sm:p-4">
+
+  <!-- BARRA SUPERIOR MINIMALISTA -->
+  <header class="w-full max-w-lg flex items-center justify-between px-2.5 py-1.5 glass-panel rounded-2xl relative z-30 shadow-2xl">
+    <div class="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar">
+      <!-- Botão Recarregar / Novo Jogo -->
+      <button id="btn-reload" title="Reiniciar Jogo" class="p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+
+      <!-- Botão Falar Palavra Atual -->
+      <button id="btn-speak" title="Ouvir Palavra" class="p-2 text-cyan-400 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+      </button>
+
+      <!-- Botão Efeitos (som + confete) -->
+      <button id="btn-fx" title="Efeitos sonoros e visuais" class="p-2 text-yellow-300 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+          <path id="fx-slash" class="hidden" stroke-linecap="round" stroke-width="2.5" d="M3 3l18 18" />
+        </svg>
+      </button>
+
+      <!-- Botão Importar Palavras -->
+      <button id="btn-import" title="Importar Palavras" class="p-2 text-emerald-400 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+      </button>
+
+      <!-- Botão Listas Salvas -->
+      <button id="btn-saved-lists" title="Listas Salvas" class="p-2 text-indigo-400 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+        </svg>
+      </button>
+
+      <!-- Botão Estilo de Fonte -->
+      <button id="btn-font-style" title="Estilo de Fonte" class="p-2 text-fuchsia-400 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h8m-8 6h16" />
+        </svg>
+      </button>
+
+      <!-- Botão Personalizar Fundo / Vidro -->
+      <button id="btn-theme" title="Personalizar Cores e Vidro" class="p-2 text-pink-400 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        </svg>
+      </button>
+
+      <!-- Indicador de Progresso -->
+      <span id="progress-indicator" class="ml-1 text-xs font-black tracking-wider text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2 py-1 rounded-lg">
+        0/0
+      </span>
+    </div>
+
+    <!-- Dropdown de Tamanho do Grid -->
+    <div class="relative ml-1">
+      <button id="btn-size-toggle" title="Tamanho do Grid" class="p-2 text-amber-400 bg-slate-800/80 hover:bg-slate-700/80 rounded-xl border border-slate-700/60 active:scale-95 transition flex items-center">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      <div id="size-dropdown" class="hidden absolute right-0 mt-2 w-36 glass-panel rounded-2xl shadow-2xl overflow-hidden z-50">
+        <div class="p-1.5 grid gap-1" id="size-options-container">
+          <!-- Gerado via JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- DISPLAY DA PALAVRA ATIVA -->
+  <section class="w-full max-w-lg my-2 flex flex-col items-center justify-center">
+    <div class="glass-panel px-6 py-2.5 rounded-2xl shadow-lg flex items-center gap-3">
+      <span id="target-word-display" class="text-2xl sm:text-3xl font-black tracking-widest text-amber-400 pulse-target uppercase">
+        ---
+      </span>
+    </div>
+  </section>
+
+  <!-- TABULEIRO DO CAÇA-PALAVRAS -->
+  <main class="w-full flex-1 flex items-center justify-center my-auto overflow-hidden">
+    <div id="board-container" class="p-2 glass-panel rounded-2xl shadow-2xl relative transition-all">
+      <canvas id="lines-canvas"></canvas>
+      <div id="grid-element" class="grid gap-1 select-none relative z-10">
+        <!-- Células geradas via JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAIS DE CONFIGURAÇÃO E RECURSOS -->
+
+  <!-- Modal 1: Importar Palavras -->
+  <div id="modal-import" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-5 border border-slate-700 shadow-2xl flex flex-col gap-4">
+      <h3 class="text-lg font-bold text-emerald-400 flex items-center justify-between">
+        Importar Palavras
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white">&times;</button>
+      </h3>
+      <p class="text-xs text-slate-300">Digite ou cole suas palavras separadas por vírgula ou em linhas separadas (com acentos ou Ç se desejar):</p>
+      <textarea id="import-text-input" rows="5" class="w-full p-3 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" placeholder="Maçã, Melância, Ônibus, Brasil, Ação, Coração..."></textarea>
+      <div class="flex gap-2">
+        <input type="text" id="import-list-name" placeholder="Nome da lista (opcional para salvar)" class="flex-1 p-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-xs text-slate-100 focus:outline-none">
+        <button id="btn-save-imported" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition">Salvar Lista</button>
+      </div>
+      <div class="flex justify-end gap-2 mt-1">
+        <button onclick="closeModals()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700">Cancelar</button>
+        <button id="btn-apply-import" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold">Usar Agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Listas Salvas -->
+  <div id="modal-saved-lists" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-5 border border-slate-700 shadow-2xl flex flex-col gap-4">
+      <h3 class="text-lg font-bold text-indigo-400 flex items-center justify-between">
+        Minhas Listas Salvas
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white">&times;</button>
+      </h3>
+      <div id="saved-lists-container" class="max-h-60 overflow-y-auto flex flex-col gap-2 pr-1">
+        <!-- Lista salva dinamicamente -->
+      </div>
+      <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-800">
+        <button id="btn-restore-default-words" class="text-xs text-amber-400 hover:underline">Restaurar Banco Padrão</button>
+        <button onclick="closeModals()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Estilo de Fonte -->
+  <div id="modal-font" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-sm rounded-2xl p-5 border border-slate-700 shadow-2xl flex flex-col gap-4">
+      <h3 class="text-lg font-bold text-fuchsia-400 flex items-center justify-between">
+        Estilo das Letras
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white">&times;</button>
+      </h3>
+      
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-300">Família da Fonte:</label>
+        <select id="select-font-family" class="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100">
+          <option value="'Inter', sans-serif">Inter (Padrão Clean)</option>
+          <option value="'Fredoka', sans-serif">Fredoka (Arredondada / Divertida)</option>
+          <option value="'Roboto Mono', monospace">Roboto Mono (Estilo Código)</option>
+          <option value="'Lora', serif">Lora (Clássica / Elegante)</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-300">Cor das Letras:</label>
+        <div class="flex gap-2">
+          <button class="w-8 h-8 rounded-full bg-slate-300 border-2 border-white" onclick="setFontColor('#cbd5e1')"></button>
+          <button class="w-8 h-8 rounded-full bg-white border-2 border-white" onclick="setFontColor('#ffffff')"></button>
+          <button class="w-8 h-8 rounded-full bg-amber-300 border-2 border-white" onclick="setFontColor('#fcd34d')"></button>
+          <button class="w-8 h-8 rounded-full bg-cyan-300 border-2 border-white" onclick="setFontColor('#67e8f9')"></button>
+          <button class="w-8 h-8 rounded-full bg-emerald-300 border-2 border-white" onclick="setFontColor('#6ee7b7')"></button>
+        </div>
+      </div>
+
+      <button onclick="closeModals()" class="w-full mt-2 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl text-xs font-bold">Concluído</button>
+    </div>
+  </div>
+
+  <!-- Modal 4: Fundo e Efeito de Vidro -->
+  <div id="modal-theme" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-sm rounded-2xl p-5 border border-slate-700 shadow-2xl flex flex-col gap-4">
+      <h3 class="text-lg font-bold text-pink-400 flex items-center justify-between">
+        Fundo e Efeito Vidro
+        <button onclick="closeModals()" class="text-slate-400 hover:text-white">&times;</button>
+      </h3>
+
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-300">Estilo de Fundo:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setAppBg('linear-gradient(135deg, #090d16 0%, #111827 100%)')" class="p-2 rounded-xl text-xs font-bold bg-slate-900 border border-slate-700 text-slate-200">Escuro Padrão</button>
+          <button onclick="setAppBg('linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)')" class="p-2 rounded-xl text-xs font-bold bg-indigo-950 border border-slate-700 text-slate-200">Roxo Cósmico</button>
+          <button onclick="setAppBg('linear-gradient(135deg, #064e3b 0%, #022c22 100%)')" class="p-2 rounded-xl text-xs font-bold bg-emerald-950 border border-slate-700 text-slate-200">Verde Floresta</button>
+          <button onclick="setAppBg('linear-gradient(135deg, #831843 0%, #500724 100%)')" class="p-2 rounded-xl text-xs font-bold bg-pink-950 border border-slate-700 text-slate-200">Vinho Vibrante</button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-300">Opacidade do Painel Vidro:</label>
+        <input type="range" id="range-glass-opacity" min="0.1" max="0.95" step="0.05" value="0.85" class="w-full accent-pink-500">
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-300">Intensidade do Desfoque (Blur):</label>
+        <input type="range" id="range-glass-blur" min="0" max="25" step="1" value="12" class="w-full accent-pink-500">
+      </div>
+
+      <button onclick="closeModals()" class="w-full mt-2 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-bold">Concluído</button>
+    </div>
+  </div>
+
+  <script>
+    // LISTA DE TAMANHOS DE GRADE (MANTIDOS EXATOS)
+    const GRID_SIZES = [
+      { r: 8, c: 8 },
+      { r: 10, c: 8 },
+      { r: 12, c: 8 },
+      { r: 14, c: 8 },
+      { r: 16, c: 8 },
+      { r: 10, c: 10 },
+      { r: 12, c: 10 },
+      { r: 14, c: 10 },
+      { r: 16, c: 10 }
+    ];
+
+    // BANCO EXPANDIDO COMPLETO DE PALAVRAS EM PORTUGUÊS (200+ PALAVRAS COM ACENTOS E Ç)
+    const MASSIVE_WORD_BANK = [
+      // Frutas
+      "MAÇÃ", "MELÂNCIA", "ABACAXI", "MORANGO", "LARÂNJA", "GOIABA", "AÇAÍ", "MARACUJÁ", "PÊSSEGO", "LIMÃO", 
+      "AÇAÍ", "JABUTICABA", "PITANGA", "MARACUJÁ", "TANGERINA", "AMORA", "GRAVIOLA", "FIGO", "AMEIXA", "UVA",
+
+      // Alimentos e Bebidas
+      "PÃO", "CAFÉ", "AÇÚCAR", "FEIJÃO", "MACARRÃO", "QUEIJO", "PRESUNTO", "REFRIGERANTE", "CHOCOLATE", "GUARANÁ",
+      "PASTEL", "COXINHA", "TORRADA", "SOPA", "LENTILHA", "ARROZ", "BISCOITO", "PIZZA", "AMENDOIM", "VINHO",
+
+      // Lugares e Cidades
+      "BRASÍLIA", "MÉXICO", "JAPÃO", "PRAIA", "MONTANHA", "FLORESTA", "CIDADE", "IGREJA", "AEROPORTO", "BIBLIOTECA",
+      "HOSPITAL", "ESTÁDIO", "MUSEU", "PARQUE", "FARMÁCIA", "ESCOLA", "RESTAURANTE", "PADARIA", "TEATRO", "CINEMA",
+
+      // Objetos
+      "RELÍQUIA", "LÁPIS", "CANETA", "CADERNO", "RELÍGIAO", "RELÓGIO", "TELEVISÃO", "CADEIRA", "LÂMPADA", "COMPUTADOR",
+      "XÍCARA", "GARRAFA", "ESPELHO", "TESOURA", "MOCHILA", "GELADEIRA", "TELEFONE", "ALMOFADA", "BOTEÍA", "CELULAR",
+
+      // Veículos e Transporte
+      "CAMINHÃO", "AVIÃO", "ÔNIBUS", "HELICÓPTERO", "AUTOMÓVEL", "BICICLETA", "FOGUETE", "SUBMARINO", "TRANVIA", "METRÔ",
+
+      // Verbos
+      "CANTAR", "DANÇAR", "CORRER", "ESCREVER", "SORRIR", "PENSAR", "ESTUDAR", "VIAJAR", "APRENDER", "CONSTRUIR",
+      "CORRIGIR", "IMAGINAR", "DESENHAR", "NAVEGAR", "CULTIVAR", "PROGRAMAR", "ESCUTAR", "PROTEGER", "ACOLHER", "VENCER",
+
+      // Qualidades, Adjetivos e Advérbios
+      "RÁPIDO", "FÁCIL", "AGORA", "RÁPIDAMENTE", "TALVEZ", "ONTEM", "AMANHÃ", "SÁBIO", "GENTIL", "CORAJOSO",
+      "ALEGRE", "PRÓXIMO", "ÚLTIMO", "SEMPRE", "NUNCA", "BASTANTE", "HOJE", "DEVAGAR", "ÓTIMO", "INCRÍVEL",
+
+      // Nomes de Pessoas
+      "JOÃO", "SÓFIA", "ANTÔNIO", "CONCEIÇÃO", "VITÓRIA", "LUÍS", "MÁRCIA", "GABRIEL", "HELENA", "INÊS",
+      "BÁRBARA", "CÉSAR", "RAFAEL", "MÁRCIO", "LÚCIA", "ÉDSON", "SÉRGIO", "MÔNICA", "CLÁUDIA", "TÂNIA",
+
+      // Cores, Natureza e Animais
+      "AMARELO", "AZUL", "VERMELHO", "PURPURINA", "VIOLETA", "PÁSSARO", "TUBARÃO", "CÃO", "LEÃO", "ÁGUIA",
+      "TIGRE", "GIRAFA", "GATO", "CAMALEÃO", "BORBOLETA", "DRAGÃO", "PANTERA", "TARTARUGA", "GOLFINHO", "ELEFANTE"
+    ];
+
+    // Cores vibrantes únicas para destacar palavras encontradas
+    const VIBRANT_COLORS = [
+      "#38bdf8", "#34d399", "#f472b6", "#fbbf24", "#a78bfa", 
+      "#fb923c", "#2dd4bf", "#f43f5e", "#818cf8", "#a3e635"
+    ];
+
+    // ESTADO DO JOGO
+    let activeWordSet = [...MASSIVE_WORD_BANK];
+    let isCustomSession = false;
+    let currentSizeIndex = 5; // 10x10 Padrão
+    let rows = 10;
+    let cols = 10;
+
+    let gridMatrix = [];
+    let placedWordsInfo = [];
+    let activeWordIndex = 0;
+
+    // Arraste e Seleção
+    let isDragging = false;
+    let dragStartCell = null;
+    let currentDragPos = { x: 0, y: 0 };
+    let currentSelectionLine = null;
+
+    // ELEMENTOS DO DOM
+    const gridElement = document.getElementById('grid-element');
+    const boardContainer = document.getElementById('board-container');
+    const targetWordDisplay = document.getElementById('target-word-display');
+    const progressIndicator = document.getElementById('progress-indicator');
+    const btnReload = document.getElementById('btn-reload');
+    const btnSpeak = document.getElementById('btn-speak');
+    const btnImport = document.getElementById('btn-import');
+    const btnSavedLists = document.getElementById('btn-saved-lists');
+    const btnFontStyle = document.getElementById('btn-font-style');
+    const btnTheme = document.getElementById('btn-theme');
+    const btnSizeToggle = document.getElementById('btn-size-toggle');
+    const sizeDropdown = document.getElementById('size-dropdown');
+    const sizeOptionsContainer = document.getElementById('size-options-container');
+    const canvas = document.getElementById('lines-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // ================= EFEITOS (som + confete + vibração) =================
+    let fxOn = true;
+    try { fxOn = localStorage.getItem('cacaFx') !== 'off'; } catch (e) {}
+
+    let audioCtx = null;
+    function getAudio() {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      } catch (e) { audioCtx = null; }
+      return audioCtx;
+    }
+
+    function tone(freq, dur, type = 'triangle', vol = 0.12, delay = 0) {
+      const ac = getAudio(); if (!ac) return;
+      const t = ac.currentTime + delay;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + dur);
+    }
+
+    // "Pop" de fogos de artifício (ruído filtrado + estalo grave)
+    function popSound(delay = 0, vol = 0.18) {
+      const ac = getAudio(); if (!ac) return;
+      const t = ac.currentTime + delay, len = Math.floor(ac.sampleRate * 0.35);
+      const buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const f = ac.createBiquadFilter(); f.type = 'lowpass';
+      f.frequency.setValueAtTime(2500, t); f.frequency.exponentialRampToValueAtTime(300, t + 0.3);
+      const g = ac.createGain(); g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t);
+      tone(110, 0.2, 'sine', vol * 0.8, delay);
+    }
+
+    function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+
+    // Palavra encontrada: ding de 2 notas + confete pequeno + vibração leve
+    function celebrateWord(cells, color) {
+      if (!fxOn) return;
+      tone(659, 0.14, 'triangle', 0.12);
+      tone(880, 0.22, 'triangle', 0.12, 0.09);
+      vibrate(25);
+      if (!window.confetti || !cells || !cells.length) return;
+      const end = cells[cells.length - 1];
+      const el = gridElement.querySelector(`[data-row="${end.r}"][data-col="${end.c}"]`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      confetti({
+        particleCount: 30, spread: 65, startVelocity: 22, ticks: 90, scalar: 0.85, zIndex: 1000,
+        origin: { x: (r.left + r.width / 2) / window.innerWidth, y: (r.top + r.height / 2) / window.innerHeight },
+        colors: [color, '#ffffff', ...VIBRANT_COLORS.slice(0, 4)],
+        disableForReducedMotion: true
+      });
+    }
+
+    // Todas encontradas: fanfarra + explosão completa (fogos + papel picado)
+    let finaleTimers = [];
+    function celebrateFinale() {
+      if (!fxOn) return;
+      // Fanfarra
+      [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, i * 0.11));
+      [784, 1047, 1319].forEach(f => tone(f, 0.9, 'triangle', 0.1, 0.5));
+      vibrate([40, 60, 40, 60, 160]);
+      if (!window.confetti) return;
+
+      const base = { zIndex: 1000, colors: VIBRANT_COLORS, disableForReducedMotion: true };
+      const later = (fn, ms) => finaleTimers.push(setTimeout(fn, ms));
+
+      // Explosão inicial (papel picado, centro + laterais)
+      confetti({ ...base, particleCount: 140, spread: 90, origin: { y: 0.6 } });
+      confetti({ ...base, particleCount: 70, angle: 60, spread: 70, origin: { x: 0, y: 0.7 } });
+      confetti({ ...base, particleCount: 70, angle: 120, spread: 70, origin: { x: 1, y: 0.7 } });
+      popSound(0.05, 0.2);
+
+      // Fogos: várias explosões radiais em pontos aleatórios do alto da tela
+      const bursts = 9;
+      for (let i = 0; i < bursts; i++) {
+        later(() => {
+          confetti({
+            ...base, particleCount: 70, spread: 360, startVelocity: 32, gravity: 0.8,
+            ticks: 75, scalar: 1.0, shapes: ['circle'],
+            origin: { x: 0.12 + Math.random() * 0.76, y: 0.12 + Math.random() * 0.35 }
+          });
+          popSound(0, 0.14);
+        }, 350 + i * 330);
+      }
+
+      // Chuva final de papel picado vinda das laterais
+      const end = Date.now() + 2200;
+      later(function rain() {
+        confetti({ ...base, particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
+        confetti({ ...base, particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
+        if (Date.now() < end) finaleTimers.push(setTimeout(rain, 90));
+      }, 1000);
+    }
+
+    function stopFx() {
+      finaleTimers.forEach(clearTimeout); finaleTimers = [];
+      if (window.confetti && confetti.reset) confetti.reset();
+    }
+
+    function refreshFxButton() {
+      const b = document.getElementById('btn-fx');
+      document.getElementById('fx-slash').classList.toggle('hidden', fxOn);
+      b.classList.toggle('opacity-50', !fxOn);
+    }
+
+    // SINTETIZADOR DE VOZ (TTS com acentos exatos) — delay opcional para não atropelar os sons
+    let speakTimer = null;
+    function speakText(text, delay = 0) {
+      clearTimeout(speakTimer);
+      if (delay > 0) { speakTimer = setTimeout(() => speakText(text), delay); return; }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 0.95;
+        utterance.pitch = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const ptVoice = voices.find(v => v.lang.includes('pt') || v.lang.includes('PT'));
+        if (ptVoice) utterance.voice = ptVoice;
+
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    // Normalização sem acentos apenas para preenchimento ou correspondência auxiliar
+    function removeAccents(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/Ç/g, "C");
+    }
+
+    function init() {
+      renderSizeMenu();
+      setupEventListeners();
+      startNewGame();
+    }
+
+    function renderSizeMenu() {
+      sizeOptionsContainer.innerHTML = '';
+      GRID_SIZES.forEach((size, idx) => {
+        const btn = document.createElement('button');
+        const isActive = idx === currentSizeIndex;
+        btn.className = `w-full px-3 py-1.5 text-xs font-black rounded-xl transition text-center ${
+          isActive 
+            ? 'bg-amber-400 text-slate-950 shadow-md' 
+            : 'text-slate-300 hover:bg-slate-800'
+        }`;
+        btn.innerText = `${size.r} × ${size.c}`;
+        btn.addEventListener('click', () => {
+          currentSizeIndex = idx;
+          sizeDropdown.classList.add('hidden');
+          renderSizeMenu();
+          startNewGame();
+        });
+        sizeOptionsContainer.appendChild(btn);
+      });
+    }
+
+    function startNewGame() {
+      const size = GRID_SIZES[currentSizeIndex];
+      rows = size.r;
+      cols = size.c;
+
+      stopFx();
+      placedWordsInfo = [];
+      activeWordIndex = 0;
+
+      generatePuzzle();
+      adjustGridDimensions();
+      renderBoard();
+      updateTargetWordDisplay();
+
+      setTimeout(() => {
+        resizeCanvas();
+        drawCanvas();
+        speakCurrentTargetWord();
+      }, 100);
+    }
+
+    function generatePuzzle() {
+      gridMatrix = Array.from({ length: rows }, () => Array(cols).fill(''));
+
+      const maxDim = Math.max(rows, cols);
+      const shuffled = [...activeWordSet].sort(() => 0.5 - Math.random());
+      
+      // Filtra por tamanho máximo da grade
+      const validWords = shuffled.filter(w => w.trim().length >= 2 && w.trim().length <= maxDim);
+      
+      // Multiplica drasticamente o número de palavras por partida
+      const baseRatio = Math.floor((rows * cols) / 8);
+      const targetCount = Math.min(validWords.length, Math.max(5, baseRatio + 2));
+      const wordsToPlace = validWords.slice(0, targetCount);
+
+      const directions = [
+        [0, 1],   // Horiz Direita
+        [1, 0],   // Vert Baixo
+        [1, 1],   // Diag Baixo-Direita
+        [-1, 1],  // Diag Cima-Direita
+        [0, -1],  // Horiz Esquerda
+        [-1, 0]   // Vert Cima
+      ];
+
+      let colorIdx = 0;
+
+      wordsToPlace.forEach(rawWord => {
+        const word = rawWord.trim().toUpperCase();
+        let placed = false;
+        let attempts = 0;
+
+        while (!placed && attempts < 120) {
+          attempts++;
+          const dir = directions[Math.floor(Math.random() * directions.length)];
+          const dr = dir[0], dc = dir[1];
+
+          let startR = Math.floor(Math.random() * rows);
+          let startC = Math.floor(Math.random() * cols);
+
+          let endR = startR + dr * (word.length - 1);
+          let endC = startC + dc * (word.length - 1);
+
+          if (endR >= 0 && endR < rows && endC >= 0 && endC < cols) {
+            let canPlace = true;
+            let cells = [];
+
+            for (let i = 0; i < word.length; i++) {
+              let r = startR + dr * i;
+              let c = startC + dc * i;
+              let char = word[i];
+
+              if (gridMatrix[r][c] !== '' && gridMatrix[r][c] !== char) {
+                canPlace = false;
+                break;
+              }
+              cells.push({ r, c });
+            }
+
+            if (canPlace) {
+              cells.forEach((cell, i) => { gridMatrix[cell.r][cell.c] = word[i]; });
+              placedWordsInfo.push({
+                word,
+                cells,
+                color: VIBRANT_COLORS[colorIdx % VIBRANT_COLORS.length],
+                found: false
+              });
+              colorIdx++;
+              placed = true;
+            }
+          }
+        }
+      });
+
+      // Preenche espaços vazios com letras portuguesas (incluindo Ç e vogais com acentos esporádicos)
+      const fillerLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZÇÁÉÍÓÚÃÕÂÊÔ";
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!gridMatrix[r][c]) {
+            gridMatrix[r][c] = fillerLetters[Math.floor(Math.random() * fillerLetters.length)];
+          }
+        }
+      }
+    }
+
+    function adjustGridDimensions() {
+      const screenW = window.innerWidth;
+      const screenH = window.innerHeight;
+
+      const availW = Math.min(screenW - 16, 540);
+      const availH = screenH - 140;
+
+      const cellW = Math.floor((availW - (cols * 4)) / cols);
+      const cellH = Math.floor((availH - (rows * 4)) / rows);
+
+      let cellSize = Math.min(cellW, cellH);
+      cellSize = Math.max(22, Math.min(cellSize, 56));
+
+      let fontSize = Math.floor(cellSize * 0.60);
+
+      document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
+      document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+    }
+
+    function renderBoard() {
+      gridElement.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
+      gridElement.innerHTML = '';
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'grid-cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.innerText = gridMatrix[r][c];
+          gridElement.appendChild(cell);
+        }
+      }
+    }
+
+    function updateTargetWordDisplay() {
+      if (activeWordIndex < placedWordsInfo.length) {
+        const activeWord = placedWordsInfo[activeWordIndex].word;
+        targetWordDisplay.innerText = activeWord;
+      } else {
+        targetWordDisplay.innerText = "PARABÉNS!";
+        speakText("Parabéns! Você encontrou todas as palavras do caça palavras!", fxOn ? 1300 : 0);
+      }
+
+      const foundCount = placedWordsInfo.filter(w => w.found).length;
+      progressIndicator.innerText = `${foundCount}/${placedWordsInfo.length}`;
+    }
+
+    function speakCurrentTargetWord() {
+      if (activeWordIndex < placedWordsInfo.length) {
+        speakText(placedWordsInfo[activeWordIndex].word);
+      }
+    }
+
+    function resizeCanvas() {
+      const parentRect = boardContainer.getBoundingClientRect();
+      canvas.width = parentRect.width;
+      canvas.height = parentRect.height;
+    }
+
+    function getCellCenter(r, c) {
+      const cellEl = gridElement.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+      if (!cellEl) return { x: 0, y: 0, radius: 10 };
+
+      const cellRect = cellEl.getBoundingClientRect();
+      const parentRect = boardContainer.getBoundingClientRect();
+
+      return {
+        x: (cellRect.left - parentRect.left) + cellRect.width / 2,
+        y: (cellRect.top - parentRect.top) + cellRect.height / 2,
+        radius: cellRect.width / 2
+      };
+    }
+
+    function drawPill(start, end, color, alpha = 0.6) {
+      if (!start || !end) return;
+
+      const p1 = getCellCenter(start.r, start.c);
+      const p2 = getCellCenter(end.r, end.c);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = p1.radius * 1.6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawFreeDragLine(startCell, currentPos, color) {
+      const p1 = getCellCenter(startCell.r, startCell.c);
+
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = p1.radius * 1.6;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(currentPos.x, currentPos.y);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Desenha destaques fixos de palavras já encontradas
+      placedWordsInfo.forEach(info => {
+        if (info.found && info.cells.length > 0) {
+          const start = info.cells[0];
+          const end = info.cells[info.cells.length - 1];
+          drawPill(start, end, info.color, 0.65);
+        }
+      });
+
+      // Desenha linha atual de seleção
+      if (isDragging && dragStartCell) {
+        const currentColor = placedWordsInfo[activeWordIndex] 
+          ? placedWordsInfo[activeWordIndex].color 
+          : '#fbbf24';
+
+        if (currentSelectionLine && currentSelectionLine.lineCells.length > 1) {
+          drawPill(
+            currentSelectionLine.startCell, 
+            currentSelectionLine.endCell, 
+            currentColor, 
+            0.75
+          );
+        } else {
+          drawFreeDragLine(dragStartCell, currentDragPos, currentColor);
+        }
+      }
+    }
+
+    function setupEventListeners() {
+      btnReload.addEventListener('click', startNewGame);
+      btnSpeak.addEventListener('click', speakCurrentTargetWord);
+      refreshFxButton();
+      document.getElementById('btn-fx').addEventListener('click', () => {
+        fxOn = !fxOn;
+        try { localStorage.setItem('cacaFx', fxOn ? 'on' : 'off'); } catch (e) {}
+        refreshFxButton();
+        if (fxOn) { tone(659, 0.12); tone(880, 0.18, 'triangle', 0.12, 0.08); } else stopFx();
+      });
+
+      btnSizeToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sizeDropdown.classList.toggle('hidden');
+      });
+
+      // Abertura de Modais
+      btnImport.addEventListener('click', () => openModal('modal-import'));
+      btnSavedLists.addEventListener('click', () => {
+        renderSavedLists();
+        openModal('modal-saved-lists');
+      });
+      btnFontStyle.addEventListener('click', () => openModal('modal-font'));
+      btnTheme.addEventListener('click', () => openModal('modal-theme'));
+
+      // Ações de Modais
+      document.getElementById('btn-apply-import').addEventListener('click', handleImportWords);
+      document.getElementById('btn-save-imported').addEventListener('click', handleSaveImportedList);
+      document.getElementById('btn-restore-default-words').addEventListener('click', restoreDefaultWords);
+
+      // Estilo de Fonte e Cores
+      document.getElementById('select-font-family').addEventListener('change', (e) => {
+        document.documentElement.style.setProperty('--font-family', e.target.value);
+      });
+
+      // Transparência e Blur
+      document.getElementById('range-glass-opacity').addEventListener('input', (e) => {
+        const val = e.target.value;
+        document.documentElement.style.setProperty('--glass-bg', `rgba(15, 23, 42, ${val})`);
+      });
+      document.getElementById('range-glass-blur').addEventListener('input', (e) => {
+        const val = e.target.value;
+        document.documentElement.style.setProperty('--glass-blur', `${val}px`);
+      });
+
+      document.addEventListener('click', () => sizeDropdown.classList.add('hidden'));
+
+      // Interações do Tabuleiro
+      boardContainer.addEventListener('pointerdown', handleDragStart);
+      window.addEventListener('pointermove', handleDragMove);
+      window.addEventListener('pointerup', handleDragEnd);
+      window.addEventListener('pointercancel', handleDragEnd);
+
+      window.addEventListener('resize', () => {
+        adjustGridDimensions();
+        resizeCanvas();
+        drawCanvas();
+      });
+    }
+
+    function openModal(id) {
+      closeModals();
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModals() {
+      document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
+    }
+
+    function setFontColor(colorHex) {
+      document.documentElement.style.setProperty('--app-font-color', colorHex);
+    }
+
+    function setAppBg(bgGradient) {
+      document.documentElement.style.setProperty('--app-bg', bgGradient);
+    }
+
+    function parseImportedText(rawText) {
+      return rawText
+        .split(/[\n,;]+/)
+        .map(w => w.trim().toUpperCase())
+        .filter(w => w.length >= 2);
+    }
+
+    function handleImportWords() {
+      const input = document.getElementById('import-text-input').value;
+      const parsed = parseImportedText(input);
+
+      if (parsed.length === 0) {
+        alert("Por favor, digite pelo menos uma palavra válida.");
+        return;
+      }
+
+      activeWordSet = parsed;
+      isCustomSession = true;
+      closeModals();
+      startNewGame();
+    }
+
+    function handleSaveImportedList() {
+      const input = document.getElementById('import-text-input').value;
+      const nameInput = document.getElementById('import-list-name').value.trim();
+      const parsed = parseImportedText(input);
+
+      if (parsed.length === 0) {
+        alert("Digite palavras válidas para salvar.");
+        return;
+      }
+
+      const listName = nameInput || `Lista ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
+      
+      const saved = JSON.parse(localStorage.getItem('caca_palavras_listas') || '{}');
+      saved[listName] = parsed;
+      localStorage.setItem('caca_palavras_listas', JSON.stringify(saved));
+
+      document.getElementById('import-list-name').value = '';
+      alert(`Lista "${listName}" salva com sucesso!`);
+    }
+
+    function renderSavedLists() {
+      const container = document.getElementById('saved-lists-container');
+      container.innerHTML = '';
+
+      const saved = JSON.parse(localStorage.getItem('caca_palavras_listas') || '{}');
+      const keys = Object.keys(saved);
+
+      if (keys.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 italic py-2">Nenhuma lista personalizada salva ainda.</p>';
+        return;
+      }
+
+      keys.forEach(key => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-xs';
+        
+        item.innerHTML = `
+          <div class="flex flex-col flex-1 pr-2">
+            <span class="font-bold text-slate-100">${key}</span>
+            <span class="text-[10px] text-slate-400">${saved[key].length} palavras</span>
+          </div>
+          <div class="flex gap-1">
+            <button class="btn-use-list px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold">Usar</button>
+            <button class="btn-del-list p-1 text-rose-400 hover:text-rose-300">&times;</button>
+          </div>
+        `;
+
+        item.querySelector('.btn-use-list').addEventListener('click', () => {
+          activeWordSet = saved[key];
+          isCustomSession = true;
+          closeModals();
+          startNewGame();
+        });
+
+        item.querySelector('.btn-del-list').addEventListener('click', () => {
+          delete saved[key];
+          localStorage.setItem('caca_palavras_listas', JSON.stringify(saved));
+          renderSavedLists();
+        });
+
+        container.appendChild(item);
+      });
+    }
+
+    function restoreDefaultWords() {
+      activeWordSet = [...MASSIVE_WORD_BANK];
+      isCustomSession = false;
+      closeModals();
+      startNewGame();
+    }
+
+    function getCellFromCoords(clientX, clientY) {
+      const element = document.elementFromPoint(clientX, clientY);
+      if (element && element.classList.contains('grid-cell')) {
+        return {
+          r: parseInt(element.dataset.row),
+          c: parseInt(element.dataset.col)
+        };
+      }
+      return null;
+    }
+
+    function handleDragStart(e) {
+      const cell = getCellFromCoords(e.clientX, e.clientY);
+      if (!cell) return;
+
+      isDragging = true;
+      dragStartCell = cell;
+
+      const parentRect = boardContainer.getBoundingClientRect();
+      currentDragPos = {
+        x: e.clientX - parentRect.left,
+        y: e.clientY - parentRect.top
+      };
+
+      currentSelectionLine = null;
+      drawCanvas();
+    }
+
+    function handleDragMove(e) {
+      if (!isDragging || !dragStartCell) return;
+
+      const parentRect = boardContainer.getBoundingClientRect();
+      currentDragPos = {
+        x: e.clientX - parentRect.left,
+        y: e.clientY - parentRect.top
+      };
+
+      const currentCell = getCellFromCoords(e.clientX, e.clientY);
+      if (currentCell) {
+        currentSelectionLine = calculateSnapLine(dragStartCell, currentCell);
+      } else {
+        currentSelectionLine = null;
+      }
+
+      drawCanvas();
+    }
+
+    function handleDragEnd() {
+      if (!isDragging) return;
+      isDragging = false;
+
+      if (currentSelectionLine && currentSelectionLine.lineCells.length > 1) {
+        validateSelection(currentSelectionLine.lineCells);
+      }
+
+      dragStartCell = null;
+      currentSelectionLine = null;
+      drawCanvas();
+    }
+
+    function calculateSnapLine(start, end) {
+      const dr = end.r - start.r;
+      const dc = end.c - start.c;
+      const absR = Math.abs(dr);
+      const absC = Math.abs(dc);
+
+      const isHorizontal = dr === 0 && dc !== 0;
+      const isVertical = dc === 0 && dr !== 0;
+      const isDiagonal = absR === absC && absR !== 0;
+
+      if (!isHorizontal && !isVertical && !isDiagonal) {
+        return { startCell: start, endCell: start, lineCells: [start] };
+      }
+
+      const stepR = dr === 0 ? 0 : dr / absR;
+      const stepC = dc === 0 ? 0 : dc / absC;
+      const steps = Math.max(absR, absC);
+
+      const lineCells = [];
+      for (let i = 0; i <= steps; i++) {
+        lineCells.push({ r: start.r + stepR * i, c: start.c + stepC * i });
+      }
+
+      return { startCell: start, endCell: end, lineCells };
+    }
+
+    function validateSelection(selectedCells) {
+      if (activeWordIndex >= placedWordsInfo.length) return;
+
+      const selectedStr = selectedCells.map(c => gridMatrix[c.r][c.c]).join('');
+      const reversedStr = selectedStr.split('').reverse().join('');
+
+      const targetInfo = placedWordsInfo[activeWordIndex];
+
+      if (!targetInfo.found && (selectedStr === targetInfo.word || reversedStr === targetInfo.word)) {
+        targetInfo.found = true;
+        targetInfo.cells = selectedCells;
+
+        selectedCells.forEach(c => {
+          const el = gridElement.querySelector(`[data-row="${c.r}"][data-col="${c.c}"]`);
+          if (el) el.classList.add('highlighted-text');
+        });
+
+        activeWordIndex++;
+        updateTargetWordDisplay();
+        drawCanvas();
+
+        if (activeWordIndex < placedWordsInfo.length) {
+          celebrateWord(selectedCells, targetInfo.color);
+          const nextWord = placedWordsInfo[activeWordIndex].word;
+          speakText(`Muito bem! Agora encontre: ${nextWord}`, fxOn ? 450 : 0);
+        } else {
+          celebrateFinale();
+        }
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
