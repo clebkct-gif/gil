@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 Mini Canvas Paint (Estabilidade Total e Funções Gráficas Expandidas)</title>
+    <style>
+        /* C1: Constantes CSS para Cores/Tema */
+        :root {
+            --toolbar-bg: #333;
+            --tool-hover: #555;
+            --tool-active: #007bff;
+            --tool-color: #fff;
+            --canvas-bg: #fff;
+            --modal-bg: rgba(0, 0, 0, 0.9);
+            --modal-content-bg: #444; 
+        }
+
+        /* Estilos Globais e Reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+            background-color: #f0f0f0;
+            user-select: none;
+            touch-action: none; 
+        }
+
+        /* Contêiner Principal */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Barra de Ferramentas (Topo, Minúscula) */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            padding: 2px 5px;
+            background-color: var(--toolbar-bg);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            justify-content: space-between; 
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center; 
+        }
+
+        .tool-button {
+            background: none;
+            border: none;
+            color: var(--tool-color);
+            padding: 4px;
+            margin: 0 2px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+        
+        #graphic-tool-button {
+             font-size: 18px; 
+             min-width: 25px;
+        }
+
+        .tool-button:hover {
+            background-color: var(--tool-hover);
+        }
+
+        .tool-button.active {
+            background-color: var(--tool-active);
+        }
+        
+        .tool-button:disabled, .tool-button[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: none;
+        }
+
+
+        /* --- ESTILOS COMUNS DE MODAL --- */
+        .full-screen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-bg);
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000; 
+            box-sizing: border-box;
+        }
+
+        .full-screen-modal.visible {
+            display: flex;
+        }
+        
+        /* Contêiner de Conteúdo Padrão (Cores) */
+        #color-picker-modal .modal-content-container {
+             background: var(--modal-content-bg);
+             padding: 10px;
+             border-radius: 8px;
+             max-width: 95%;
+             max-height: 95%;
+             overflow: auto;
+        }
+        
+        /* Contêiner de Conteúdo EXPANDIDO (Gráfico) */
+        #graphic-functions-modal .modal-content-container {
+             width: 100%;
+             height: 100%;
+             background: var(--modal-content-bg);
+             padding: 10px;
+             box-sizing: border-box;
+             overflow-y: auto; 
+        }
+        
+        .close-modal-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        /* --- MODAL DE CORES (layout para espessura no topo) --- */
+        #modal-top-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            box-sizing: border-box;
+        }
+
+        #modal-current-color-preview {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--tool-color);
+            border-radius: 50%;
+            margin-right: 15px; 
+            flex-shrink: 0;
+        }
+        
+        /* Estilos do slider e preview de espessura */
+        #line-width-slider {
+            width: 100%; 
+            max-width: 200px; 
+            margin: 0 15px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: #ccc;
+            border-radius: 2px;
+        }
+        #line-width-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--tool-color);
+            border: 1px solid #777;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #thickness-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--canvas-bg); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 0 0 15px;
+            box-shadow: 0 0 0 1px var(--tool-color);
+            flex-shrink: 0;
+        }
+        #thickness-dot {
+            border-radius: 50%;
+        }
+        /* Grid da Paleta */
+        #color-palette {
+            display: grid; 
+            grid-template-columns: repeat(20, 1fr);
+            gap: 2px; 
+            margin-top: 10px;
+        }
+        .color-swatch {
+            width: 12px; 
+            height: 12px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: 2px; 
+            transition: transform 0.1s, border-color: 0.1s;
+        }
+        .color-swatch:hover {
+            border-color: var(--tool-active);
+            transform: scale(1.2); 
+        }
+
+        /* --- MODAL DE FUNÇÕES GRÁFICAS EXPANDIDO --- */
+        #graphic-tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 15px;
+            padding: 10px;
+            flex-grow: 1;
+            box-sizing: border-box;
+        }
+        
+        .tool-category h4 {
+            color: var(--tool-color);
+            margin-top: 0;
+            margin-bottom: 5px;
+            padding: 5px 0;
+            border-bottom: 1px solid #666;
+        }
+
+        .category-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            background: #555;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        #graphic-functions-modal .tool-button {
+            width: 100%;
+            justify-content: flex-start; 
+            padding: 8px 10px;
+            font-size: 16px; 
+            margin: 0;
+        }
+        
+        #graphic-functions-modal .tool-button span {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        
+        #graphic-functions-modal .tool-button:hover {
+            background-color: var(--tool-active);
+        }
+        
+        /* Botão da Paleta na Toolbar */
+        #color-palette-button {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--tool-color);
+            border-radius: 2px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 5px;
+        }
+        
+        /* Área do Canvas */
+        #drawing-canvas {
+            display: block;
+            flex-grow: 1;
+            background-color: var(--canvas-bg);
+            cursor: crosshair;
+        }
+        
+        /* Estilo de cursor específico */
+        .select-cursor {
+            cursor: grab !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <div id="toolbar">
+            <div class="tool-group group-left">
+                
+                <button class="tool-button active" id="graphic-tool-button" title="Função Gráfica Ativa (Abre Menu)">
+                    ✏️ 
+                </button>
+                
+                <button class="tool-button" data-tool="bucket-fill" id="bucket-fill-button" title="Preenchimento em Balde">
+                    💧
+                </button>
+                
+                <button class="tool-button" data-tool="fill-toggle" id="fill-toggle" title="Alternar Preenchimento (Contorno/Preenchido)">
+                    🔳
+                </button>
+                
+                <button class="tool-button" data-tool="eraser" id="eraser-button" title="Borracha">
+                    🧼
+                </button>
+            </div>
+
+            <div class="tool-group group-right">
+                
+                <button class="tool-button" data-tool="undo" id="undo-button" title="Desfazer" disabled>
+                    ↩️
+                </button>
+                <button class="tool-button" data-tool="redo" id="redo-button" title="Refazer" disabled>
+                    ↪️
+                </button>
+                
+                <button id="color-palette-button" title="Seletor de Cores e Espessura (Modal)">
+                    <div id="current-color-swatch" style="width: 100%; height: 100%; border-radius: 2px;"></div>
+                </button>
+                
+                <button class="tool-button" data-tool="save" title="Salvar Imagem">
+                    💾
+                </button>
+                
+                <button class="tool-button" data-tool="clear" title="Limpar Canvas">
+                    🗑️
+                </button>
+
+                <button class="tool-button" data-tool="fullscreen" id="fullscreen-button" title="Alternar Tela Cheia">
+                    🖥️
+                </button>
+            </div>
+        </div>
+
+        <canvas id="drawing-canvas"></canvas>
+    </div>
+    
+    <div id="graphic-functions-modal" class="full-screen-modal">
+        <button id="close-graphic-modal-button" class="close-modal-button" title="Fechar Menu">X</button>
+        <div id="graphic-functions-container" class="modal-content-container">
+             <h3 style="color: white; margin-bottom: 10px;">Aba de Função Gráfica</h3>
+             
+             <div id="graphic-tools-grid">
+                 </div>
+        </div>
+    </div>
+    
+    <div id="color-picker-modal" class="full-screen-modal">
+        <button id="close-color-modal-button" class="close-modal-button" title="Fechar Seletor de Cores">X</button>
+        <div id="color-palette-container-full" class="modal-content-container">
+            
+            <div id="modal-top-controls">
+                <div id="modal-current-color-preview" title="Cor Atual"></div>
+                
+                <input type="range" id="line-width-slider" min="1" max="50" value="5" title="Espessura da Linha">
+                
+                <div id="thickness-preview" title="Preview da Espessura">
+                    <div id="thickness-dot" style="width: 5px; height: 5px;"></div>
+                </div>
+            </div>
+            
+            <div id="color-palette">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawing-canvas');
+        const ctx = canvas.getContext('2d');
+        const toolbar = document.getElementById('toolbar');
+        
+        // Elementos dos Modais
+        const colorPickerModal = document.getElementById('color-picker-modal');
+        const graphicFunctionsModal = document.getElementById('graphic-functions-modal');
+        const closeGraphicModalButton = document.getElementById('close-graphic-modal-button');
+        const graphicToolsGrid = document.getElementById('graphic-tools-grid');
+        const closeColorModalButton = document.getElementById('close-color-modal-button');
+        const modalCurrentColorPreview = document.getElementById('modal-current-color-preview');
+        const colorPalette = document.getElementById('color-palette');
+
+        // Elementos da Toolbar
+        const graphicToolButton = document.getElementById('graphic-tool-button');
+        const bucketFillButton = document.getElementById('bucket-fill-button'); 
+        const eraserButton = document.getElementById('eraser-button');         
+        const colorPaletteButton = document.getElementById('color-palette-button');
+        const currentColorSwatch = document.getElementById('current-color-swatch');
+        const lineWidthSlider = document.getElementById('line-width-slider');
+        const thicknessDot = document.getElementById('thickness-dot');
+        const fillToggleButton = document.getElementById('fill-toggle');
+        const appContainer = document.getElementById('app-container');
+        const undoButton = document.getElementById('undo-button');
+        const redoButton = document.getElementById('redo-button');
+        const fullscreenButton = document.getElementById('fullscreen-button'); 
+
+
+        // Mapeamento de Ícones 
+        const TOOL_ICONS = {
+            'pencil': '✏️', 'select-move': '▤', 'line': '╱', 'rectangle': '🗖', 'circle': '⚪', 
+            'polygon': '🔺', 'isosceles-triangle': '◺', 'equilateral-triangle': '△', 'right-triangle': '◣',
+            'heart': '❤️', 'house': '🏠', 'moon': '🌙', 'butterfly': '🦋', 'tree': '🌳', 
+            'cup': '☕', 'sun': '☀️', 'car': '🚗', 'rainbow-tree': '🌈',
+        };
+        const CANVAS_BG_COLOR = '#ffffff'; // Cor de fundo do canvas
+
+        // Variáveis de Estado
+        let isDrawing = false;
+        let currentTool = 'pencil'; 
+        let currentLineWidth = 5;
+        let currentColor = '#000000'; 
+        let isFillMode = false;
+        let lastX = 0; 
+        let lastY = 0; 
+        let startX = 0;
+        let startY = 0;
+        let selectionRect = null; 
+        let selectedImageData = null; 
+        let isMoving = false; 
+        let moveStartX = 0; 
+        let moveStartY = 0; 
+        let history = []; 
+        let historyIndex = -1;
+        const MAX_HISTORY = 30; 
+        let baseImageElement = new Image(); 
+        
+        // --- FUNÇÕES DE UTILIDADE E HISTÓRICO ---
+        
+        function drawBaseImage() { 
+            if (baseImageElement.complete) {
+                ctx.drawImage(baseImageElement, 0, 0, canvas.width, canvas.height);
+            }
+        }
+        function updateHistoryButtons() { 
+            undoButton.disabled = historyIndex <= 0;
+            redoButton.disabled = historyIndex >= history.length - 1;
+        }
+        function saveState() { 
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+            const state = canvas.toDataURL('image/png');
+            history.push(state);
+            if (history.length > MAX_HISTORY) { history.shift(); } 
+            else { historyIndex++; }
+            baseImageElement.src = state; 
+            if (selectedImageData) { 
+                selectionRect = null; selectedImageData = null; isMoving = false; canvas.style.cursor = 'crosshair'; 
+            }
+            updateHistoryButtons();
+        }
+        function restoreState(index) { 
+            const state = history[index];
+            if (state) {
+                selectionRect = null; selectedImageData = null; isMoving = false; canvas.style.cursor = 'crosshair';
+                baseImageElement.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); drawBaseImage(); baseImageElement.onload = null; updateHistoryButtons(); 
+                };
+                baseImageElement.src = state; 
+            }
+        }
+        function undo() { 
+            if (selectedImageData) { commitSelection(lastX, lastY, true); return; }
+            if (historyIndex > 0) { historyIndex--; restoreState(historyIndex); }
+        }
+        function redo() { 
+            if (historyIndex < history.length - 1) { historyIndex++; restoreState(historyIndex); }
+        }
+        function hexToRgba(hex, alpha = 255) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return [r, g, b, alpha];
+        }
+        function hslToHex(h, s, l) {
+          l /= 100;
+          const a = s * Math.min(l, 1 - l) / 100;
+          const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+          };
+          return `#${f(0)}${f(8)}${f(4)}`;
+        }
+        function generateAndRenderPalette() {
+            colorPalette.innerHTML = ''; 
+            const rows = 20; const cols = 20; const hueStep = 360 / cols;
+            for (let j = 0; j < rows; j++) {
+                let lightness = 100 - (j * 4.5); let saturation = (j < 10) ? 90 : 70;
+                if (j === 0) { lightness = 100; saturation = 0; } 
+                if (j === 19) { lightness = 0; saturation = 0; } 
+                if (j > 0 && j < 4) { saturation = 0; lightness = 95 - (j * 15); } 
+                for (let i = 0; i < cols; i++) {
+                    const hue = i * hueStep;
+                    const hex = hslToHex(hue, saturation, lightness); createSwatch(hex);
+                }
+            }
+        }
+        function createSwatch(hex) {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch'; swatch.style.backgroundColor = hex; swatch.setAttribute('data-color', hex);
+            swatch.addEventListener('click', () => { selectColor(hex); closeColorModal(); });
+            colorPalette.appendChild(swatch);
+        }
+        function selectColor(hex) {
+            currentColor = hex; currentColorSwatch.style.backgroundColor = hex; modalCurrentColorPreview.style.backgroundColor = hex; updateThicknessPreview();
+        }
+        function openColorModal() { 
+            modalCurrentColorPreview.style.backgroundColor = currentColor; lineWidthSlider.value = currentLineWidth; updateThicknessPreview(); colorPickerModal.classList.add('visible');
+        }
+        function closeColorModal() { colorPickerModal.classList.remove('visible'); }
+        function clearCanvas() { 
+            if (selectedImageData) { commitSelection(lastX, lastY, true); }
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            ctx.fillStyle = CANVAS_BG_COLOR; ctx.fillRect(0, 0, canvas.width, canvas.height); // Garante fundo branco
+            saveState(); 
+        }
+        function restoreBaseState() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            ctx.fillStyle = CANVAS_BG_COLOR; ctx.fillRect(0, 0, canvas.width, canvas.height); // Garante fundo branco
+            drawBaseImage();
+        }
+        function saveImage() { 
+            if (selectedImageData) { commitSelection(lastX, lastY, true); }
+            const link = document.createElement('a');
+            link.download = 'meu_desenho_' + new Date().toISOString().slice(0, 10) + '.png';
+            link.href = canvas.toDataURL('image/png'); link.click();
+        }
+        function updateThicknessPreview() {
+            function isLight(hex) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return (0.299 * r + 0.587 * g + 0.114 * b) > 186; 
+            }
+            thicknessDot.style.width = currentLineWidth + 'px';
+            thicknessDot.style.height = currentLineWidth + 'px';
+            thicknessDot.style.backgroundColor = currentColor; 
+            thicknessDot.style.border = isLight(currentColor) ? '1px solid black' : '1px solid white';
+        }
+        function floodFill(x, y) { 
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            const width = canvas.width;
+            const height = canvas.height;
+            const replaceColor = hexToRgba(currentColor, 255); 
+            const startIndex = (y * width + x) * 4;
+            if (startIndex < 0 || startIndex >= pixels.length) return; 
+            const targetColor = [ pixels[startIndex], pixels[startIndex + 1], pixels[startIndex + 2], pixels[startIndex + 3] ];
+            if (targetColor[0] === replaceColor[0] && targetColor[1] === replaceColor[1] && targetColor[2] === replaceColor[2] && targetColor[3] === replaceColor[3]) return;
+            function getPixelIndex(px, py) {
+                if (px < 0 || px >= width || py < 0 || py >= height) return -1;
+                return (py * width + px) * 4;
+            }
+            function matchColor(index) {
+                return ( pixels[index] === targetColor[0] && pixels[index + 1] === targetColor[1] && 
+                    pixels[index + 2] === targetColor[2] && pixels[index + 3] === targetColor[3] );
+            }
+            function colorPixel(index) {
+                pixels[index] = replaceColor[0]; pixels[index + 1] = replaceColor[1]; 
+                pixels[index + 2] = replaceColor[2]; pixels[index + 3] = replaceColor[3];
+            }
+            const queue = [[x, y]];
+            while (queue.length) {
+                const [cx, cy] = queue.shift(); 
+                const currentIndex = getPixelIndex(cx, cy);
+                if (currentIndex === -1 || !matchColor(currentIndex)) continue;
+                colorPixel(currentIndex);
+                queue.push([cx, cy - 1]); queue.push([cx, cy + 1]); queue.push([cx + 1, cy]); queue.push([cx - 1, cy]); 
+            }
+            ctx.putImageData(imageData, 0, 0); saveState();
+        }
+        function drawPolygonPath(context, centerX, centerY, radius, sides, rotation = 0) {
+            context.beginPath();
+            context.moveTo(centerX + radius * Math.cos(rotation), centerY + radius * Math.sin(rotation));
+            for (let i = 1; i < sides; i++) {
+                const angle = rotation + i * 2 * Math.PI / sides;
+                context.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+            }
+            context.closePath();
+        }
+        
+        // --- FUNÇÕES DEDICADAS PARA FORMAS COMPLEXAS (Refatoradas para Preenchimento) ---
+
+        function drawHouse(context, rectX, rectY, rectW, rectH, isFill, strokeColor, fillColor) {
+            const centerX = rectX + rectW / 2;
+            const roofH = rectH * 0.4;
+            const bodyH = rectH * 0.6;
+            const bodyY = rectY + roofH;
+
+            // 1. Telhado (Triângulo Isósceles)
+            context.beginPath();
+            context.moveTo(centerX, rectY); // Ápice
+            context.lineTo(rectX, bodyY);
+            context.lineTo(rectX + rectW, bodyY);
+            context.closePath();
+            
+            if (isFill) {
+                context.fillStyle = fillColor; 
+                context.fill();
+            }
+            context.strokeStyle = strokeColor;
+            context.stroke();
+
+            // 2. Corpo (Retângulo)
+            context.beginPath(); // NOVO PATH
+            context.rect(rectX, bodyY, rectW, bodyH);
+            context.closePath();
+            
+            if (isFill) {
+                context.fillStyle = fillColor; 
+                context.fill();
+            }
+            context.strokeStyle = strokeColor;
+            context.stroke(); 
+        }
+
+        function drawTree(context, rectX, rectY, rectW, rectH, isFill, strokeColor, fillColor) {
+            const centerX = rectX + rectW / 2;
+            const trunkW = rectW * 0.2;
+            const trunkH = rectH * 0.3;
+            const leavesH = rectH * 0.7;
+            
+            // 1. Tronco (Retângulo)
+            context.beginPath();
+            context.rect(centerX - trunkW / 2, rectY + leavesH, trunkW, trunkH);
+            context.closePath();
+            
+            if (isFill) {
+                context.fillStyle = '#964B00'; // Marrom para o tronco
+                context.fill();
+            }
+            context.strokeStyle = strokeColor;
+            context.stroke(); 
+            
+            // 2. Corpo da Árvore (Triângulo)
+            context.beginPath(); // NOVO PATH
+            context.moveTo(centerX, rectY); 
+            context.lineTo(rectX, rectY + leavesH); 
+            context.lineTo(rectX + rectW, rectY + leavesH);
+            context.closePath();
+            
+            if (isFill) {
+                context.fillStyle = fillColor; 
+                context.fill();
+            }
+            context.strokeStyle = strokeColor;
+            context.stroke(); 
+        }
+        
+        function drawCar(context, rectX, rectY, rectW, rectH, isFill, strokeColor, fillColor) {
+            const centerX = rectX + rectW / 2;
+            const bodyH = rectH * 0.4;
+            const bodyY = rectY + rectH * 0.5;
+            const cabinW = rectW * 0.5;
+            const cabinH = rectH * 0.3;
+            const wheelR = rectH * 0.15;
+            
+            // Rodas (usando a cor do contorno para stroke/fill)
+            context.beginPath();
+            context.arc(rectX + wheelR, bodyY + bodyH, wheelR, 0, Math.PI * 2);
+            context.arc(rectX + rectW - wheelR, bodyY + bodyH, wheelR, 0, Math.PI * 2);
+            
+            if (isFill) {
+                context.fillStyle = '#000000'; // Rodas pretas
+                context.fill();
+            }
+            context.strokeStyle = strokeColor;
+            context.stroke();
+            
+            // Chassi e Cabine (Retângulos)
+            context.beginPath();
+            context.rect(rectX, bodyY, rectW, bodyH); // Chassi
+            context.rect(centerX - cabinW / 2, rectY + rectH * 0.2, cabinW, cabinH); // Cabine
+            context.closePath();
+
+            if (isFill) {
+                context.fillStyle = fillColor;
+                context.fill();
+            }
+            context.strokeStyle = strokeColor;
+            context.stroke();
+        }
+        
+        function drawSun(context, rectX, rectY, rectW, rectH, strokeColor, fillColor) {
+            const centerX = rectX + rectW / 2;
+            const centerY = rectY + rectH / 2;
+            const radiusX = rectW / 2;
+            
+            // 1. Círculo central (Sempre preenchido com a cor do sol)
+            context.beginPath();
+            context.arc(centerX, centerY, radiusX * 0.3, 0, Math.PI * 2);
+            context.closePath();
+            
+            context.fillStyle = fillColor;
+            context.fill();
+            context.strokeStyle = strokeColor;
+            context.stroke();
+            
+            // 2. Raios (linhas) - path separado
+            context.beginPath();
+            const rays = 12;
+            const radiusInner = radiusX * 0.3;
+            const radiusOuter = radiusX;
+            for (let i = 0; i < rays; i++) {
+                const angle = i * (Math.PI * 2 / rays);
+                const x1 = centerX + radiusInner * Math.cos(angle);
+                const y1 = centerY + radiusInner * Math.sin(angle);
+                const x2 = centerX + radiusOuter * Math.cos(angle);
+                const y2 = centerY + radiusOuter * Math.sin(angle);
+                
+                context.moveTo(x1, y1);
+                context.lineTo(x2, y2);
+            }
+            
+            context.strokeStyle = strokeColor;
+            context.stroke();
+            // Sem preenchimento para raios
+        }
+
+
+        // --- FUNÇÃO PRINCIPAL DE DESENHO DE FORMAS ---
+        function drawShape(context, tool, sx, sy, fx, fy, isFinalDraw = false) {
+            
+            const w = fx - sx;
+            const h = fy - sy;
+            const rectX = Math.min(sx, fx);
+            const rectY = Math.min(sy, fy);
+            const rectW = Math.abs(w);
+            const rectH = Math.abs(h);
+            const centerX = rectX + rectW / 2;
+            const centerY = rectY + rectH / 2;
+            const radiusX = rectW / 2;
+            const radiusY = rectH / 2;
+            
+            // Seta os estilos padrão (aplicáveis a formas simples)
+            context.strokeStyle = currentColor;
+            context.fillStyle = currentColor;
+            context.lineWidth = currentLineWidth;
+            
+            // Formas Complexas (com lógica de múltiplos paths)
+            if (tool === 'house') {
+                drawHouse(context, rectX, rectY, rectW, rectH, isFillMode, currentColor, currentColor);
+                return;
+            }
+            if (tool === 'tree' || tool === 'rainbow-tree') {
+                const fillC = (tool === 'rainbow-tree' && isFillMode) ? '#00bfa5' : currentColor; // Cor arbitrária
+                drawTree(context, rectX, rectY, rectW, rectH, isFillMode, currentColor, fillC);
+                return;
+            }
+            if (tool === 'car') {
+                drawCar(context, rectX, rectY, rectW, rectH, isFillMode, currentColor, currentColor);
+                return;
+            }
+            if (tool === 'sun') {
+                drawSun(context, rectX, rectY, rectW, rectH, currentColor, isFillMode ? currentColor : '#ffeb3b'); // Sol preenchido
+                return;
+            }
+            
+            // Se for forma simples, começa o path único
+            context.beginPath();
+
+            if (tool === 'line') {
+                context.moveTo(sx, sy); context.lineTo(fx, fy);
+            } else if (tool === 'rectangle' || tool === 'select-move') {
+                context.rect(rectX, rectY, rectW, rectH);
+            } else if (tool === 'circle') {
+                context.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+            } else if (tool === 'polygon') {
+                const radius = Math.min(rectW, rectH) / 2;
+                drawPolygonPath(context, centerX, centerY, radius, 6); // Hexágono padrão
+            } 
+            
+            // --- TRIÂNGULOS ---
+            else if (tool === 'isosceles-triangle') {
+                context.moveTo(centerX, rectY);
+                context.lineTo(rectX, rectY + rectH);
+                context.lineTo(rectX + rectW, rectY + rectH);
+                context.closePath();
+            } else if (tool === 'equilateral-triangle') {
+                const size = Math.min(rectW, rectH);
+                const halfSize = size / 2;
+                const height = size * Math.sqrt(3) / 2;
+                const topY = centerY - height / 2;
+                const bottomY = centerY + height / 2;
+                
+                context.moveTo(centerX, topY);
+                context.lineTo(centerX - halfSize, bottomY);
+                context.lineTo(centerX + halfSize, bottomY);
+                context.closePath();
+            } else if (tool === 'right-triangle') {
+                context.moveTo(rectX, rectY + rectH);
+                context.lineTo(rectX + rectW, rectY + rectH);
+                context.lineTo(rectX, rectY);
+                context.closePath();
+            }
+            
+            // --- OUTRAS FORMAS COMPLEXAS (Path Único) ---
+            else if (tool === 'heart') {
+                const curveFactor = rectW / 4;
+                context.moveTo(centerX, rectY + rectH);
+                context.bezierCurveTo(
+                    centerX + curveFactor, rectY + rectH / 2,         
+                    rectX + rectW, rectY,                             
+                    centerX, rectY + rectH / 4                        
+                );
+                context.bezierCurveTo(
+                    rectX, rectY,                                     
+                    centerX - curveFactor, rectY + rectH / 2,         
+                    centerX, rectY + rectH                           
+                );
+            }
+            else if (tool === 'moon') {
+                // Para crescente, usamos dois círculos, preenchendo o primeiro e desenhando o segundo em CANVAS_BG_COLOR.
+                // Isso precisa de dois paths separados para funcionar bem com fill, então tratamos como complexa abaixo.
+                if (isFinalDraw) { // Só desenha o resultado final se não for preview
+                     context.save();
+                     // Círculo principal (disco cheio)
+                     context.arc(centerX, centerY, radiusX, 0, Math.PI * 2, false);
+                     context.clip(); // Corta tudo fora do círculo
+
+                     // Subtrai um segundo círculo (o "corte" da lua crescente)
+                     context.beginPath();
+                     const offset = radiusX * 0.4; 
+                     context.arc(centerX - offset, centerY, radiusX * 0.9, 0, Math.PI * 2, true); 
+                     
+                     if (isFillMode) {
+                        context.fillStyle = fillColor;
+                        context.fill();
+                     } else {
+                        context.stroke();
+                     }
+                     context.restore();
+                     return;
+                } else {
+                    // Preview simples (círculo)
+                    context.arc(centerX, centerY, radiusX, 0, Math.PI * 2);
+                }
+            }
+            else if (tool === 'butterfly') {
+                const qW = rectW / 4; 
+                const qH = rectH / 4; 
+                
+                // Desenho simplificado das 4 asas usando curvas Bezier
+                // Asa Superior Direita
+                context.moveTo(centerX, centerY);
+                context.bezierCurveTo(centerX + qW*2, rectY, centerX + qW*2, rectY + qH, centerX + qW*2, centerY);
+                // Asa Inferior Direita
+                context.bezierCurveTo(centerX + qW*2, centerY + qH*2, centerX + qW, centerY + qH*2, centerX + qW*2, centerY + qH*2);
+                // Asa Superior Esquerda
+                context.moveTo(centerX, centerY);
+                context.bezierCurveTo(centerX - qW*2, rectY, centerX - qW*2, rectY + qH, centerX - qW*2, centerY);
+                // Asa Inferior Esquerda
+                context.bezierCurveTo(centerX - qW*2, centerY + qH*2, centerX - qW, centerY + qH*2, centerX - qW*2, centerY + qH*2);
+                // Corpo central
+                context.rect(centerX - 5, rectY, 10, rectH); 
+                context.closePath();
+            }
+            else if (tool === 'cup') {
+                 // Elipse para o topo
+                context.ellipse(centerX, rectY + rectH * 0.1, radiusX, radiusY * 0.1, 0, 0, Math.PI * 2);
+                // Corpo (retângulo com bordas arredondadas)
+                const cupY = rectY + rectH * 0.1;
+                const cupH = rectH * 0.8;
+                context.rect(rectX, cupY, rectW, cupH);
+                // Alça (simples)
+                context.moveTo(rectX + rectW, cupY + cupH * 0.3);
+                context.lineTo(rectX + rectW + 10, cupY + cupH * 0.3);
+                context.lineTo(rectX + rectW + 10, cupY + cupH * 0.5);
+                context.lineTo(rectX + rectW, cupY + cupH * 0.5);
+                context.closePath();
+            }
+
+            // APLICAÇÃO GERAL DE FILL/STROKE (Para formas simples e complexas de path único)
+            const shouldFill = isFillMode && tool !== 'line' && tool !== 'select-move';
+            
+            if (shouldFill) {
+                context.fill();
+            }
+            
+            if (tool !== 'select-move') {
+                context.stroke();
+            }
+        }
+        // --- FIM DA FUNÇÃO DRAWSHAPE ---
+
+
+        function commitSelection(finalX, finalY, saveHistory = true) {
+            if (!selectedImageData) return;
+            let newX, newY;
+            if (isMoving) {
+                const dx = finalX - moveStartX; 
+                const dy = finalY - moveStartY;
+                newX = selectionRect.x + dx;
+                newY = selectionRect.y + dy;
+            } else {
+                newX = selectionRect.x; newY = selectionRect.y;
+            }
+            restoreBaseState(); 
+            ctx.putImageData(selectedImageData, newX, newY);
+            selectionRect = null; selectedImageData = null; isMoving = false; canvas.style.cursor = 'crosshair';
+            if (saveHistory) { saveState(); } else { baseImageElement.src = canvas.toDataURL('image/png'); }
+        }
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+            } else { clientX = e.clientX; clientY = e.clientY; }
+            if (clientX === undefined || clientY === undefined) return { x: 0, y: 0 };
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+        function drawSelectionBorder(rect) {
+            ctx.strokeStyle = '#000000'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); 
+            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+            ctx.setLineDash([]); 
+        }
+        function toggleFullScreen() {
+            const doc = document;
+            const target = doc.documentElement;
+            const isFullScreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+            if (isFullScreen) {
+                if (doc.exitFullscreen) { doc.exitFullscreen(); } 
+                else if (doc.webkitExitFullscreen) { doc.webkitExitFullscreen(); } 
+                else if (doc.mozCancelFullScreen) { doc.mozCancelFullScreen(); } 
+                else if (doc.msExitFullscreen) { doc.msExitFullscreen(); }
+            } else {
+                if (target.requestFullscreen) { target.requestFullscreen(); } 
+                else if (target.mozRequestFullScreen) { target.mozRequestFullScreen(); } 
+                else if (target.webkitRequestFullscreen) { target.webkitRequestFullscreen(); } 
+                else if (target.msRequestFullscreen) { target.msRequestFullscreen(); }
+            }
+        }
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+        function handleFullscreenChange() {
+            const doc = document;
+            const isFullScreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+            if (isFullScreen) {
+                fullscreenButton.title = "Sair de Tela Cheia"; fullscreenButton.textContent = "💻";
+            } else {
+                fullscreenButton.title = "Tela Cheia"; fullscreenButton.textContent = "🖥️"; resizeCanvas();
+            }
+        }
+        function resizeCanvas() {
+            const rect = appContainer.getBoundingClientRect();
+            const toolbarHeight = toolbar.offsetHeight;
+            const newWidth = rect.width;
+            const newHeight = rect.height - toolbarHeight;
+            const imageDataUrl = history[historyIndex]; 
+            canvas.width = newWidth; canvas.height = newHeight;
+            ctx.fillStyle = CANVAS_BG_COLOR; ctx.fillRect(0, 0, newWidth, newHeight);
+            if (imageDataUrl) {
+                baseImageElement.onload = function() {
+                    ctx.drawImage(baseImageElement, 0, 0, newWidth, newHeight); baseImageElement.onload = null; 
+                };
+                baseImageElement.src = imageDataUrl; 
+            }
+        }
+        
+        // --- FUNÇÕES DO MODAL DE FUNÇÕES GRÁFICAS ---
+
+        function openGraphicModal() { graphicFunctionsModal.classList.add('visible'); }
+        function closeGraphicModal() { graphicFunctionsModal.classList.remove('visible'); }
+        
+        function setActionToolActive(tool, active) {
+            bucketFillButton.classList.remove('active');
+            eraserButton.classList.remove('active');
+            
+            if (active) {
+                graphicToolButton.classList.remove('active');
+            }
+
+            if (tool === 'bucket-fill') {
+                bucketFillButton.classList.toggle('active', active);
+            } else if (tool === 'eraser') {
+                eraserButton.classList.toggle('active', active);
+            }
+        }
+
+        function selectGraphicTool(tool, icon) {
+            // Ação de UX: Descartar ou consolidar seleção ativa ao mudar a ferramenta principal
+            if (selectedImageData) { commitSelection(lastX, lastY, true); }
+            
+            currentTool = tool;
+            graphicToolButton.textContent = icon;
+            graphicToolButton.title = `Função Gráfica Ativa: ${tool.charAt(0).toUpperCase() + tool.slice(1)} (Abre Menu)`;
+            graphicToolButton.classList.add('active'); 
+            
+            setActionToolActive(tool, false); 
+
+            graphicToolsGrid.querySelectorAll('.tool-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.querySelector(`#graphic-functions-modal button[data-tool="${tool}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            canvas.style.cursor = 
+                (currentTool === 'select-move' && selectedImageData) ? 'grab' : 
+                'crosshair';
+            
+            closeGraphicModal();
+        }
+
+        function createToolButton(toolId, icon, name) {
+            const button = document.createElement('button');
+            button.className = 'tool-button';
+            button.setAttribute('data-tool', toolId);
+            button.title = name;
+            button.innerHTML = `${icon} <span>${name}</span>`;
+            
+            if (toolId === currentTool && currentTool === 'pencil') {
+                button.classList.add('active');
+            }
+
+            button.addEventListener('click', () => {
+                selectGraphicTool(toolId, icon);
+            });
+            return button;
+        }
+
+        function createGraphicToolButtons() {
+            const toolsMap = {
+                'Desenho Básico': [
+                    { id: 'pencil', icon: TOOL_ICONS['pencil'], name: 'Lápis/Desenho Livre' },
+                    { id: 'select-move', icon: TOOL_ICONS['select-move'], name: 'Selecionar e Mover' },
+                    { id: 'line', icon: TOOL_ICONS['line'], name: 'Linha Reta' },
+                    { id: 'rectangle', icon: TOOL_ICONS['rectangle'], name: 'Retângulo' },
+                    { id: 'circle', icon: TOOL_ICONS['circle'], name: 'Círculo/Elipse' },
+                    { id: 'polygon', icon: TOOL_ICONS['polygon'], name: 'Polígono (6 lados)' }
+                ],
+                'Triângulos': [
+                    { id: 'isosceles-triangle', icon: TOOL_ICONS['isosceles-triangle'], name: 'Triângulo Isósceles' },
+                    { id: 'equilateral-triangle', icon: TOOL_ICONS['equilateral-triangle'], name: 'Triângulo Equilátero' },
+                    { id: 'right-triangle', icon: TOOL_ICONS['right-triangle'], name: 'Triângulo Retângulo' },
+                ],
+                'Objetos e Formas Complexas': [
+                    { id: 'heart', icon: TOOL_ICONS['heart'], name: 'Coração' },
+                    { id: 'house', icon: TOOL_ICONS['house'], name: 'Casa' },
+                    { id: 'moon', icon: TOOL_ICONS['moon'], name: 'Lua Crescente' },
+                    { id: 'butterfly', icon: TOOL_ICONS['butterfly'], name: 'Borboleta' },
+                    { id: 'tree', icon: TOOL_ICONS['tree'], name: 'Árvore (Simples)' },
+                    { id: 'cup', icon: TOOL_ICONS['cup'], name: 'Copo/Caneca' },
+                    { id: 'sun', icon: TOOL_ICONS['sun'], name: 'Sol' },
+                    { id: 'car', icon: TOOL_ICONS['car'], name: 'Carro' },
+                    { id: 'rainbow-tree', icon: TOOL_ICONS['rainbow-tree'], name: 'Árvore Íris' },
+                ]
+            };
+            
+            graphicToolsGrid.innerHTML = '';
+
+            for (const category in toolsMap) {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'tool-category';
+                categoryDiv.innerHTML = `<h4>${category}</h4>`;
+                
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'category-group';
+                
+                toolsMap[category].forEach(tool => {
+                    groupDiv.appendChild(createToolButton(tool.id, tool.icon, tool.name));
+                });
+
+                categoryDiv.appendChild(groupDiv);
+                graphicToolsGrid.appendChild(categoryDiv);
+            }
+            
+            graphicToolButton.textContent = TOOL_ICONS[currentTool];
+            graphicToolButton.title = `Função Gráfica Ativa: Lápis (Abre Menu)`;
+            graphicToolButton.addEventListener('click', openGraphicModal);
+            closeGraphicModalButton.addEventListener('click', closeGraphicModal);
+        }
+        
+        
+        // --- MANUSEIO DE EVENTOS E INICIALIZAÇÃO ---
+
+        window.addEventListener('load', () => {
+            generateAndRenderPalette(); 
+            createGraphicToolButtons(); 
+            resizeCanvas(); 
+            selectColor(currentColor); 
+            
+            // Desenha fundo branco inicial antes de salvar o estado
+            ctx.fillStyle = CANVAS_BG_COLOR; ctx.fillRect(0, 0, canvas.width, canvas.height); 
+            setTimeout(saveState, 50); 
+        });
+        
+        window.addEventListener('resize', () => {
+             resizeCanvas(); 
+        });
+
+
+        // Seleção de Espessura
+        lineWidthSlider.addEventListener('input', (e) => {
+            currentLineWidth = parseInt(e.target.value);
+            updateThicknessPreview();
+        });
+        
+        // Eventos dos Modais
+        colorPaletteButton.addEventListener('click', openColorModal);
+        closeColorModalButton.addEventListener('click', closeColorModal);
+
+        // SELETOR DE FERRAMENTAS NA TOOLBAR (AÇÃO E GERAL)
+        toolbar.addEventListener('click', (e) => {
+            const button = e.target.closest('.tool-button');
+            if (button) {
+                const tool = button.getAttribute('data-tool');
+                
+                if (tool === 'bucket-fill' || tool === 'eraser') {
+                    if (selectedImageData) commitSelection(lastX, lastY, true);
+                    
+                    currentTool = tool; 
+                    
+                    setActionToolActive(tool, true); 
+                    
+                    canvas.style.cursor = (tool === 'bucket-fill') ? 'pointer' : 'crosshair';
+                } 
+                else if (tool === 'fill-toggle') {
+                    isFillMode = !isFillMode;
+                    fillToggleButton.classList.toggle('active', isFillMode);
+                    fillToggleButton.title = isFillMode ? 'Modo Preenchido Ativo' : 'Modo Contorno Ativo';
+                    fillToggleButton.textContent = isFillMode ? '⬛' : '🔳';
+                    return;
+                }
+                
+                else if (['fullscreen', 'clear', 'save', 'undo', 'redo'].includes(tool)) {
+                    // UX: Consolidar ou descartar seleção antes de ações que afetam todo o canvas/histórico
+                    if (tool !== 'fullscreen' && tool !== 'redo' && selectedImageData) { commitSelection(lastX, lastY, true); }
+                    
+                    if (tool === 'fullscreen') { toggleFullScreen(); return; }
+                    if (tool === 'clear') { clearCanvas(); return; }
+                    if (tool === 'save') { saveImage(); return; }
+                    if (tool === 'undo') { undo(); return; } 
+                    if (tool === 'redo') { redo(); return; } 
+                }
+            }
+        });
+        
+        // --- EVENTOS DE DESENHO E INTERAÇÃO ---
+        
+        function startDrawing(e) {
+            if (colorPickerModal.classList.contains('visible') || graphicFunctionsModal.classList.contains('visible')) return; 
+            
+            const pos = getMousePos(e);
+            const x = pos.x;
+            const y = pos.y;
+            
+            if (currentTool === 'bucket-fill') {
+                if (selectedImageData) commitSelection(lastX, lastY, true);
+                floodFill(Math.floor(x), Math.floor(y));
+                return;
+            }
+            
+            isDrawing = true;
+            lastX = x; 
+            lastY = y;
+            startX = x;
+            startY = y;
+            
+            if (currentTool === 'select-move') {
+                if (selectedImageData) {
+                    const rect = selectionRect;
+                    const endX = rect.x + rect.width;
+                    const endY = rect.y + rect.height;
+
+                    if (x >= rect.x && x <= endX && y >= rect.y && y <= endY) {
+                        isMoving = true;
+                        moveStartX = x; 
+                        moveStartY = y;
+                        canvas.style.cursor = 'grabbing';
+                        return; 
+                    } else {
+                        // Clica fora da seleção: consolida o movimento anterior.
+                        commitSelection(lastX, lastY, true); 
+                    }
+                }
+                
+                isMoving = false;
+                selectionRect = null;
+                selectedImageData = null;
+                canvas.style.cursor = 'crosshair';
+            }
+            
+            if (currentTool === 'pencil' || currentTool === 'eraser') {
+                const style = (currentTool === 'eraser') ? CANVAS_BG_COLOR : currentColor;
+                
+                // Desenha ponto inicial para traços curtos
+                ctx.beginPath();
+                ctx.arc(lastX, lastY, currentLineWidth / 2, 0, Math.PI * 2);
+                ctx.fillStyle = style;
+                ctx.fill();
+
+                ctx.lineWidth = currentLineWidth;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = style;
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+            const x = pos.x;
+            const y = pos.y;
+            
+            const shapeTools = ['line', 'rectangle', 'circle', 'polygon', 'isosceles-triangle', 'equilateral-triangle', 'right-triangle', 'heart', 'house', 'moon', 'butterfly', 'tree', 'cup', 'sun', 'car', 'rainbow-tree'];
+
+            // 1. MOVIMENTO
+            if (currentTool === 'select-move' && isMoving && selectedImageData) {
+                restoreBaseState(); 
+
+                const dx = x - moveStartX; 
+                const dy = y - moveStartY;
+
+                const newX = selectionRect.x + dx;
+                const newY = selectionRect.y + dy;
+
+                ctx.putImageData(selectedImageData, newX, newY);
+                drawSelectionBorder({ x: newX, y: newY, width: selectionRect.width, height: selectionRect.height });
+                
+                lastX = x;
+                lastY = y;
+                return;
+            }
+            
+            // 2. DESENHO CONTÍNUO (LÁPIS/BORRACHA)
+            if (currentTool === 'pencil' || currentTool === 'eraser') {
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                lastX = x;
+                lastY = y;
+            } 
+            // 3. PREVIEW DE FORMAS E SELEÇÃO INICIAL
+            else if (['select-move', ...shapeTools].includes(currentTool)) {
+                
+                restoreBaseState(); 
+
+                if (currentTool === 'select-move') {
+                    drawSelectionBorder({ x: startX, y: startY, width: x - startX, height: y - startY });
+                } else {
+                    // O drawShape agora gerencia seus próprios estilos e strokes/fills para formas complexas.
+                    drawShape(ctx, currentTool, startX, startY, x, y);
+                }
+                
+                lastX = x;
+                lastY = y;
+            }
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            
+            isDrawing = false;
+            
+            const finalX = lastX;
+            const finalY = lastY;
+            
+            const shapeTools = ['line', 'rectangle', 'circle', 'polygon', 'isosceles-triangle', 'equilateral-triangle', 'right-triangle', 'heart', 'house', 'moon', 'butterfly', 'tree', 'cup', 'sun', 'car', 'rainbow-tree'];
+
+            // 1. FINALIZAR MOVIMENTO
+            if (currentTool === 'select-move' && isMoving) {
+                commitSelection(finalX, finalY, true);
+                return; 
+            }
+            
+            // 2. FINALIZAR SELEÇÃO (PRIMEIRA FASE)
+            if (currentTool === 'select-move') {
+                const rectX = Math.min(startX, finalX);
+                const rectY = Math.min(startY, finalY);
+                const rectW = Math.abs(finalX - startX);
+                const rectH = Math.abs(finalY - startY);
+                
+                if (rectW === 0 || rectH === 0) {
+                    restoreBaseState(); 
+                    canvas.style.cursor = 'crosshair';
+                    return;
+                }
+
+                selectedImageData = ctx.getImageData(rectX, rectY, rectW, rectH);
+                
+                restoreBaseState();
+                ctx.clearRect(rectX, rectY, rectW, rectH);
+                ctx.fillStyle = CANVAS_BG_COLOR; ctx.fillRect(rectX, rectY, rectW, rectH);
+                
+                baseImageElement.src = canvas.toDataURL('image/png'); 
+                
+                selectionRect = { x: rectX, y: rectY, width: rectW, height: rectH };
+
+                ctx.putImageData(selectedImageData, selectionRect.x, selectionRect.y);
+                drawSelectionBorder(selectionRect);
+                
+                canvas.style.cursor = 'grab';
+                return;
+            }
+
+            // 3. FINALIZAR DESENHO DE FORMA (Linha, Retângulo, etc.)
+            if (shapeTools.includes(currentTool)) {
+                
+                restoreBaseState(); 
+
+                // Desenha a forma final com base no estado e nas coordenadas
+                drawShape(ctx, currentTool, startX, startY, finalX, finalY, true);
+            }
+            
+            saveState(); 
+        }
+
+        // Eventos de Mouse/Touch
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        
+        canvas.addEventListener('mouseleave', (e) => {
+            if (isDrawing) { 
+                if (currentTool === 'select-move' && isMoving) {
+                    // Se estiver movendo, consolida na posição atual ao sair do canvas
+                    commitSelection(lastX, lastY, true);
+                } else {
+                    // Para outras ferramentas, apenas finaliza o desenho
+                    stopDrawing({}); 
+                }
+            }
+        });
+
+
+        // Touch Events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); startDrawing(e);
+        }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); draw(e);
+        }, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing);
+        
+        // Se clicar fora do canvas/botões e houver seleção, consolida
+        document.addEventListener('mouseup', (e) => {
+            if (selectedImageData && !isDrawing) {
+                 const clickedElement = e.target;
+                 const isToolbarButton = clickedElement.closest('#toolbar') || clickedElement.closest('.close-modal-button');
+                 const isModal = clickedElement.closest('.full-screen-modal');
+                 
+                 // Se o clique não foi na toolbar ou modal, consolida.
+                 if (!isToolbarButton && !isModal) {
+                    commitSelection(selectionRect.x, selectionRect.y, true);
+                 }
+            }
+        });
+    </script>
+</body>
+</html>

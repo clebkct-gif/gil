@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+    <title>SMix Interface Definitiva</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Arial Black', Gadget, sans-serif;
+        }
+
+        /* --- TELA DE INTRODUÇÃO (START) --- */
+        #tela-start {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            z-index: 9999;
+            transition: opacity 0.4s ease;
+        }
+
+        .btn-start {
+            padding: 18px 45px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(to bottom, #2196f3, #0d47a1);
+            border: 2px solid #00d2ff;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+            width: 280px;
+        }
+
+        /* --- CONTAINER PRINCIPAL DO APP --- */
+        #app-container {
+            display: none; 
+            width: 100vw;
+            height: 100vh;
+            flex-direction: column;
+            padding: 4px;
+            gap: 4px;
+            background-color: #000;
+        }
+
+        /* --- TOPO FIXO E ESTRUTURAL --- */
+        .grid-header {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 4px;
+            height: 10.5vh;
+        }
+
+        /* --- CONTROLADOR DE EXIBIÇÃO DE ABAS --- */
+        .conteudo-tela {
+            flex: 1;
+            display: none;
+            gap: 4px;
+        }
+
+        /* Classes injetadas via JS para tornar a aba ativa */
+        .conteudo-tela.ativa-grid {
+            display: grid !important;
+        }
+
+        .conteudo-tela.ativa-flex {
+            display: flex !important;
+            flex-direction: column;
+            height: 100%;
+            gap: 4px;
+        }
+
+        /* Aba 1: Painel Base */
+        #grid-painel-base {
+            grid-template-columns: repeat(11, 1fr);
+            grid-template-rows: repeat(6, 1.2fr) repeat(2, 1.1fr);
+        }
+
+        /* Abas 2 e 3: Matrizes de 1 a 80 */
+        .grid-foto-layout {
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: 1.1fr repeat(8, 1fr);
+        }
+
+        /* --- DESIGN DAS CAIXAS DE TEXTO (MÚSICAS E VINHETAS) --- */
+        .campo-lista-dados {
+            width: 100%;
+            flex: 3;
+            background-color: #f1f2f6;
+            color: #111;
+            font-family: Arial, sans-serif;
+            font-size: clamp(16px, 3vh, 24px);
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: none;
+            outline: none;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        /* Barras horizontais que ocupam a largura total da tela */
+        .btn-horizontal-largo {
+            width: 100%;
+            flex: 1;
+        }
+
+        /* --- DESIGN DOS BOTÕES (EFEITO RELEVO 3D) --- */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(10px, 2.8vh, 22px);
+            font-weight: 900;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            cursor: pointer;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            box-shadow: inset 0 8px 8px rgba(255,255,255,0.22), inset 0 -8px 8px rgba(0,0,0,0.45);
+            width: 100%;
+            height: 100%;
+            transition: background 0.1s;
+        }
+
+        .btn:active {
+            filter: brightness(1.4);
+        }
+
+        /* --- PALETA DE CORES --- */
+        .vermelho     { background: linear-gradient(to bottom, #d32f2f, #8b0000); }
+        .verde        { background: linear-gradient(to bottom, #4caf50, #1b5e20); }
+        .azul         { background: linear-gradient(to bottom, #2196f3, #0d47a1); }
+        .laranja      { background: linear-gradient(to bottom, #ffb300, #b27a00); color: #fff; }
+        .cinza-claro  { background: linear-gradient(to bottom, #e0e0e0, #b0b0b0); color: #333; text-shadow: none; border: 1px solid rgba(0,0,0,0.2); }
+        .sub-azul     { background: linear-gradient(to bottom, #1976d2, #0d47a1); }
+        
+        /* Cores exclusivas extraídas fielmente das imagens */
+        .azul-salvar  { background: linear-gradient(to bottom, #0d47a1, #002171); }
+        .rosa-painel  { background: linear-gradient(to bottom, #d24dff, #800080); }
+        .cinza-voltar { background: linear-gradient(to bottom, #424242, #212121); }
+
+        /* Dimensões Fixas do Cabeçalho */
+        .topo-esq { grid-column: span 2; }
+        .topo-mid { grid-column: span 7; font-size: clamp(14px, 3.5vh, 28px); }
+        .topo-dir { grid-column: span 2; }
+
+        /* Ajuste do botão Stop */
+        .stop-cell {
+            grid-row: span 2;
+            background: linear-gradient(to bottom, #e53935, #b71c1c);
+        }
+
+        .sub-barra-10 { grid-column: span 10; display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="tela-start">
+        <button class="btn-start" onclick="iniciarApp()">Iniciar Painel</button>
+        <button class="btn-start" style="background: linear-gradient(to bottom, #4caf50, #1b5e20); border-color: #81c784;" onclick="baixarHTML()">Baixar HTML</button>
+    </div>
+
+    <div id="app-container">
+        
+        <div class="grid-header">
+            <div id="btn-topo-vermelho" class="btn vermelho topo-esq" onclick="alternarTela('painel-vermelho')">1</div>
+            <div class="btn laranja topo-mid" onclick="alternarTela('painel-base')">SMix</div>
+            <div id="btn-topo-azul" class="btn azul topo-dir" onclick="alternarTela('painel-azul')">1</div>
+        </div>
+
+        <div id="grid-painel-base" class="conteudo-tela ativa-grid">
+            <div id="btn-musical-A" class="btn vermelho">A</div>
+            <div class="btn verde">1</div><div class="btn verde">7</div><div class="btn verde">13</div><div class="btn verde">19</div>
+            <div class="btn verde"></div> <div class="btn verde">25</div><div class="btn verde">31</div><div class="btn verde">37</div><div class="btn verde">43</div>
+            <div class="btn vermelho">G</div>
+
+            <div id="btn-musical-B" class="btn vermelho">B</div>
+            <div class="btn verde">2</div><div class="btn verde">8</div><div class="btn verde">14</div><div class="btn verde">20</div>
+            <div class="btn azul">A</div> <div class="btn verde">26</div><div class="btn verde">32</div><div class="btn verde">38</div><div class="btn verde">44</div>
+            <div class="btn vermelho">H</div>
+
+            <div class="btn vermelho">C</div>
+            <div class="btn verde">3</div><div class="btn verde">9</div><div class="btn verde">15</div><div class="btn verde">21</div>
+            <div class="btn vermelho stop-cell">Stop</div> <div class="btn verde">27</div><div class="btn verde">33</div><div class="btn verde">39</div><div class="btn verde">45</div>
+            <div class="btn vermelho">I</div>
+
+            <div class="btn vermelho">D</div>
+            <div class="btn verde">4</div><div class="btn verde">10</div><div class="btn verde">16</div><div class="btn verde">22</div>
+            <div class="btn verde">28</div><div class="btn verde">34</div><div class="btn verde">40</div><div class="btn verde">46</div>
+            <div class="btn vermelho">J</div>
+
+            <div class="btn vermelho">E</div>
+            <div class="btn verde">5</div><div class="btn verde">11</div><div class="btn verde">17</div><div class="btn verde">23</div>
+            <div class="btn azul">B</div> <div class="btn verde">29</div><div class="btn verde">35</div><div class="btn verde">41</div><div class="btn verde">47</div>
+            <div class="btn vermelho">K</div>
+
+            <div class="btn vermelho">F</div>
+            <div class="btn verde">6</div><div class="btn verde">12</div><div class="btn verde">18</div><div class="btn verde">24</div>
+            <div class="btn verde"></div> <div class="btn verde">30</div><div class="btn verde">36</div><div class="btn verde">42</div><div class="btn verde">48</div>
+            <div class="btn vermelho">L</div>
+
+            <div class="btn azul">A</div><div class="btn azul">B</div><div class="btn azul">C</div><div class="btn azul">D</div><div class="btn azul">E</div><div class="btn azul">F</div><div class="btn azul">G</div><div class="btn azul">H</div><div class="btn azul">I</div><div class="btn azul">J</div><div class="btn azul">K</div>
+            <div class="btn azul">L</div><div class="btn azul">M</div><div class="btn azul">N</div><div class="btn azul">O</div><div class="btn azul">P</div><div class="btn azul">Q</div><div class="btn azul">R</div><div class="btn azul">S</div><div class="btn azul">T</div><div class="btn azul">U</div><div class="btn azul">V</div>
+        </div>
+
+        <div id="grid-painel-vermelho" class="conteudo-tela grid-foto-layout">
+            <div class="sub-barra-10">
+                <script>
+                    for (let i = 1; i <= 10; i++) {
+                        document.write(`<div class="btn vermelho btn-sub-vermelho" data-valor="${i}">${i}</div>`);
+                    }
+                </script>
+            </div>
+            <script>
+                for (let i = 1; i <= 80; i++) {
+                    document.write(`<div class="btn cinza-claro">${i}</div>`);
+                }
+            </script>
+        </div>
+
+        <div id="grid-painel-azul" class="conteudo-tela grid-foto-layout">
+            <div class="sub-barra-10">
+                <script>
+                    for (let i = 1; i <= 10; i++) {
+                        document.write(`<div class="btn sub-azul btn-sub-azul" data-valor="${i}">${i}</div>`);
+                    }
+                </script>
+            </div>
+            <script>
+                for (let i = 1; i <= 80; i++) {
+                    document.write(`<div class="btn cinza-claro">${i}</div>`);
+                }
+            </script>
+        </div>
+
+        <div id="grid-painel-musicas" class="conteudo-tela">
+            <textarea class="campo-lista-dados" id="txt-musicas" placeholder="Insira a lista de músicas aqui..."></textarea>
+            <div class="btn azul-salvar btn-horizontal-largo" onclick="salvarDados('musicas')">SALVAR MUSICAS</div>
+            <div class="btn rosa-painel btn-horizontal-largo" onclick="resetDados('musicas')">RESET MUSICAS</div>
+            <div class="btn cinza-voltar btn-horizontal-largo" onclick="alternarTela('painel-base')">VOLTAR</div>
+        </div>
+
+        <div id="grid-painel-vinhetas" class="conteudo-tela">
+            <textarea class="campo-lista-dados" id="txt-vinhetas" placeholder="Insira a lista de vinhetas aqui..."></textarea>
+            <div class="btn azul-salvar btn-horizontal-largo" onclick="salvarDados('vinhetas')">SALVAR VINHETAS</div>
+            <div class="btn rosa-painel btn-horizontal-largo" onclick="resetDados('vinhetas')">RESET VINHETAS</div>
+            <div class="btn cinza-voltar btn-horizontal-largo" onclick="alternarTela('painel-base')">VOLTAR</div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GERENCIADOR DE TRANSIÇÃO DE TELAS ---
+        function alternarTela(idPainelAlvo) {
+            document.querySelectorAll('.conteudo-tela').forEach(tela => {
+                tela.classList.remove('ativa-grid', 'ativa-flex');
+                tela.style.display = 'none'; 
+            });
+            
+            const telaAlvo = document.getElementById(`grid-${idPainelAlvo}`);
+            if (telaAlvo) {
+                if(idPainelAlvo === 'painel-musicas' || idPainelAlvo === 'painel-vinhetas') {
+                    telaAlvo.classList.add('ativa-flex');
+                } else {
+                    telaAlvo.classList.add('ativa-grid');
+                }
+            }
+        }
+
+        // --- SISTEMA DE CLIQUE LONGO INDEPENDENTE PARA OS BOTÕES A E B ---
+        let timerPressionado;
+
+        function configurarCliqueLongo(elemento, painelAlvo) {
+            function iniciarContagem() {
+                timerPressionado = setTimeout(() => {
+                    alternarTela(painelAlvo);
+                }, 600);
+            }
+
+            function interromperContagem() {
+                clearTimeout(timerPressionado);
+            }
+
+            // Eventos Mouse
+            elemento.addEventListener('mousedown', iniciarContagem);
+            elemento.addEventListener('mouseup', interromperContagem);
+            elemento.addEventListener('mouseleave', interromperContagem);
+            
+            // Eventos Touchscreen (Mobile)
+            elemento.addEventListener('touchstart', (e) => { iniciarContagem(); });
+            elemento.addEventListener('touchend', (e) => { interromperContagem(); });
+        }
+
+        // Aplicando a configuração aos botões correspondentes
+        configurarCliqueLongo(document.getElementById('btn-musical-A'), 'painel-musicas');
+        configurarCliqueLongo(document.getElementById('btn-musical-B'), 'painel-vinhetas');
+
+
+        // --- INTERAÇÕES DAS SUB-BARRAS (CÓPIA DE TEXTO PARA O TOPO) ---
+        document.querySelectorAll('.btn-sub-vermelho').forEach(botao => {
+            botao.addEventListener('click', (e) => {
+                const num = e.currentTarget.getAttribute('data-valor');
+                document.getElementById('btn-topo-vermelho').textContent = num;
+            });
+        });
+
+        document.querySelectorAll('.btn-sub-azul').forEach(botao => {
+            botao.addEventListener('click', (e) => {
+                const num = e.currentTarget.getAttribute('data-valor');
+                document.getElementById('btn-topo-azul').textContent = num;
+            });
+        });
+
+        // --- FUNÇÕES OPERACIONAIS (SALVAR / RESET) ---
+        function salvarDados(tipo) {
+            const idCampo = tipo === 'musicas' ? '#txt-musicas' : '#txt-vinhetas';
+            const conteudo = document.querySelector(idCampo).value;
+            console.log(`Dados salvos (${tipo}):`, conteudo);
+            alert(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} salvas com sucesso!`);
+        }
+
+        function resetDados(tipo) {
+            const idCampo = tipo === 'musicas' ? '#txt-musicas' : '#txt-vinhetas';
+            document.querySelector(idCampo).value = "";
+        }
+
+        // --- INICIALIZADOR GLOBAL (TELA CHEIA E ORIENTAÇÃO) ---
+        async function iniciarApp() {
+            const elementoRaiz = document.documentElement;
+            try {
+                if (elementoRaiz.requestFullscreen) await elementoRaiz.requestFullscreen();
+                else if (elementoRaiz.webkitRequestFullscreen) await elementoRaiz.webkitRequestFullscreen();
+            } catch (err) { console.log("Acesso à tela cheia negado."); }
+
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                }
+            } catch (err) { console.log("Falha ao travar orientação em paisagem."); }
+
+            document.getElementById('tela-start').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('tela-start').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+            }, 400);
+        }
+
+        function baixarHTML() {
+            const textoHtml = document.documentElement.outerHTML;
+            const arquivoBlob = new Blob([textoHtml], { type: "text/html" });
+            const gatilhoDownload = document.createElement("a");
+            gatilhoDownload.href = URL.createObjectURL(arquivoBlob);
+            gatilhoDownload.download = "interface_painel_smix.html";
+            document.body.appendChild(gatilhoDownload);
+            gatilhoDownload.click();
+            document.body.removeChild(gatilhoDownload);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Comunicador AAC</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background: #e6e6e6;
+}
+
+/* Estruturas de Fluxo */
+.av { display: flex; flex-direction: column; }
+.ah { display: flex; }
+.hidden { display: none !important; }
+
+#root { height: 100%; }
+
+/* ================= TELA INICIAL ================= */
+#tela-inicial {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #e6e6e6;
+}
+
+#tela-inicial button {
+  font-size: 2.5em;
+  padding: 20px 50px;
+  background: #1565c0;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+/* ================= AREA DE TEXTO (CTx) - ALTURA FIXA PARA 3 LINHAS ================= */
+#ctx {
+  width: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  font-size: 1.6em;
+  line-height: 1.35em;
+  padding: 6px;
+  height: 4.25em; 
+  min-height: 4.25em;
+  max-height: 4.25em;
+  overflow-y: scroll;
+  box-sizing: border-box;
+  border-bottom: 2px solid #999;
+  background: #ffffff;
+}
+
+/* ================= PAINEL DE CONTROLE (PC) E BARRA DE FONTE ================= */
+#pc {
+  display: flex;
+}
+
+#pc button {
+  background: #000;
+  border: none;
+  font-size: 0.95em;
+  padding: 10px 0;
+  font-weight: bold;
+}
+
+#pc .btn-small { width: 3em; }
+#pc .btn-flex { flex: 1; }
+
+/* Barra do Controle Deslizante de Fonte */
+#barra-fonte-container {
+  background: #222;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 5px 15px;
+  box-sizing: border-box;
+  height: 38px;
+}
+
+#barra-fonte-container label {
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-right: 15px;
+  text-transform: uppercase;
+  color: #ffd600;
+}
+
+#slider-fonte {
+  flex: 1;
+  margin-right: 15px;
+  cursor: pointer;
+}
+
+#btn-fechar-fonte {
+  background: #c62828;
+  color: #fff;
+  border: none;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ================= CONFIGURAÇÃO PADRÃO DE BOTÕES ================= */
+button {
+  margin: 0;
+  padding: 4px;
+  cursor: pointer;
+  border: none;
+}
+
+/* ================= PALETA DE CORES SEMÂNTICAS ================= */
+.btn-green { background: #1e8f3e !important; color: #fff !important; font-weight: bold; }
+.btn-red { background: #c62828 !important; color: #fff !important; font-weight: bold; }
+.btn-gold { background: #f9a825 !important; color: #ffffff !important; font-weight: bold; }
+.btn-blue { background: #1565c0 !important; color: #ffffff !important; font-weight: bold; }
+.btn-yellow-text { color: #ffd600 !important; font-weight: bold; }
+.btn-white-text { color: #ffffff !important; font-weight: bold; }
+.btn-white-bg { background: #ffffff !important; color: #000 !important; font-weight: bold; }
+
+/* ================= TRIOS CROMÁTICOS COMPACTADOS E PADRONIZADOS ================= */
+.trio-container {
+  flex: 2; 
+  display: flex;
+  margin: 0 1px;
+  height: 100%;
+}
+
+.btn-principal {
+  flex: 1 1 auto; 
+  white-space: nowrap;
+  overflow: visible; 
+  height: 100%;
+  padding: 0 4px;
+}
+
+.btn-mod-esquerdo, .btn-mod-direito {
+  flex: 0 0 32px; 
+  height: 100%;
+  padding: 0;
+  font-size: 0.9em !important;
+  font-weight: bold !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gold-escuro  { background: #c58209 !important; color: #fff !important; }
+.gold-claro   { background: #fbc02d !important; color: #000 !important; }
+.red-escuro   { background: #961c1c !important; color: #fff !important; }
+.red-claro    { background: #e53935 !important; color: #fff !important; }
+.green-escuro { background: #14642a !important; color: #fff !important; }
+.green-claro  { background: #2e7d32 !important; color: #fff !important; }
+.blue-escuro  { background: #0d47a1 !important; color: #fff !important; }
+.blue-claro   { background: #1e88e5 !important; color: #fff !important; }
+
+/* ================= COMPARTIMENTOS DE ABAS DA APLICAÇÃO ================= */
+#avPalavras, #avFrases, #avTeclado {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#avPalavras button, #avFrases button {
+  flex: 1;
+  font-size: 1.15em;
+  font-weight: bold;
+}
+
+.linha {
+  flex: 1;
+  display: flex;
+}
+
+#avPalavras .linha button:not(.btn-white-bg):not(.btn-green):not(.btn-red):not(.btn-gold):not(.btn-blue):not(.btn-mod-esquerdo):not(.btn-mod-direito):not(.btn-principal) {
+  border: 1px solid #ccc;
+}
+
+/* ================= MODELO DE TECLADO ULTRA-COMPACTO E DINÂMICO ================= */
+.teclado-modelo-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #bcd2ee;
+  padding: 6px;
+}
+
+.teclado-modelo-container .linha {
+  margin-bottom: 3px;
+}
+
+.teclado-modelo-container .linha-faixa-superior {
+  flex: 0.65; 
+}
+
+.teclado-modelo-container button {
+  flex: 1;
+  margin: 3px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 1.5em;
+  font-weight: bold;
+  border-radius: 8px;
+  box-shadow: 0 3px 0px #9bb2ce, 0 4px 5px rgba(0,0,0,0.15);
+  position: relative;
+}
+
+.teclado-modelo-container .btn-largura-letra {
+  flex: 1 !important; 
+}
+
+.teclado-modelo-container .btn-sinal-grande {
+  font-weight: bold !important; 
+}
+
+.teclado-modelo-container .btn-apagar-simbolo {
+  font-weight: bold !important;
+}
+
+.teclado-modelo-container .btn-espaco-simbolo {
+  flex: 4.4 !important; 
+  font-weight: bold !important;
+}
+
+.teclado-modelo-container .btn-enter-simbolo {
+  font-weight: bold !important;
+}
+
+.teclado-modelo-container button.acento-ativo {
+  background: #c62828 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 0px #8e1c1c, 0 4px 5px rgba(0,0,0,0.3);
+}
+
+.teclado-modelo-container .btn-ctrl-central {
+  background: #ffffff !important;
+  flex: 2 !important; 
+}
+.teclado-modelo-container #btn-ctrl-num { color: #1e8f3e !important; }   
+.teclado-modelo-container #btn-ctrl-enter { color: #1565c0 !important; } 
+.teclado-modelo-container #btn-ctrl-simb { color: #c62828 !important; }  
+
+.btn-peso-neutro { flex: 2 !important; background: #b0bec5 !important; cursor: default; }
+
+/* ================= ANIMAÇÕES DE IMPACTO / RAIO DE NEON ================= */
+.tecla-animando {
+  animation: efeitoClarao 0.4s cubic-bezier(0.15, 0.85, 0.35, 1) forwards !important;
+}
+
+@keyframes efeitoClarao {
+  0% {
+    background: #000000 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0px transparent;
+    transform: scale(0.95);
+  }
+  15% {
+    background: #ffffff !important;
+    color: #c62828 !important;
+    box-shadow: 0 0 25px #ff1111, 0 0 45px #ffffff;
+    transform: scale(1.08);
+  }
+  50% {
+    background: #c62828 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 15px #c62828;
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.falar-animando {
+  animation: efeitoFalar 0.45s cubic-bezier(0.15, 0.85, 0.35, 1) forwards !important;
+}
+
+@keyframes efeitoFalar {
+  0% {
+    background: #c62828 !important;
+    color: #ffd600 !important;
+    transform: scale(0.96);
+  }
+  20% {
+    background: #ffd600 !important;
+    color: #c62828 !important;
+    box-shadow: 0 0 30px #ffd600, 0 0 50px #c62828;
+    transform: scale(1.06);
+  }
+  60% {
+    background: #e53935 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 15px #e53935;
+    transform: scale(1.01);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ================= BARRA DE ABAS FRASES ================= */
+.barra-frases {
+  background: #000;
+  display: flex;
+}
+
+.barra-frases button {
+  background: #000 !important;
+  color: #fff !important;
+  border: none;
+  padding: 10px 0;
+  font-weight: bold;
+}
+
+/* ================= ANIMADOR DO MODO AUTOMÁTICO ================= */
+.neon {
+  color: #ff0000 !important;
+  text-shadow: 0 0 4px #ff0000, 0 0 10px #ff4444;
+  animation: pulsar 1.2s infinite alternate;
+}
+
+@keyframes pulsar {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="tela-inicial">
+  <button onclick="iniciarApp()">Iniciar</button>
+</div>
+
+<div id="root" class="av hidden">
+
+  <textarea id="ctx" readonly></textarea>
+
+  <div id="pc" class="ah">
+    <button class="btn-small btn-yellow-text" onclick="limparCTx()">L</button>
+    <button class="btn-flex btn-white-text" onclick="gerenciarNavegacao('palavras')">PALAVRA</button>
+    <button id="btn-falar-controle" class="btn-flex btn-yellow-text" onclick="falarCTx()">FALAR</button>
+    <button class="btn-flex btn-white-text" onclick="gerenciarNavegacao('frases')">FRASES</button>
+    <button class="btn-small" id="modoBtn" onclick="alternarModo()">N</button>
+  </div>
+
+  <div id="barra-fonte-container" class="hidden">
+    <label for="slider-fonte">Tamanho das Fontes</label>
+    <input type="range" id="slider-fonte" min="0.9" max="2.3" step="0.05" value="1.5" oninput="ajustarTamanhoFonteGlobal(this.value)">
+    <button id="btn-fechar-fonte" onclick="ocultarControleFonte()">X</button>
+  </div>
+
+  <div id="avTeclado">
+    <div class="teclado-modelo-container">
+      
+      <div id="faixa-controle" class="linha linha-faixa-superior">
+        <button class="btn-blue btn-largura-letra btn-apagar-simbolo" style="color: #fff !important;" onclick="exibirControleFonte()">🗚</button>
+        <button class="btn-white-bg btn-largura-letra btn-sinal-grande" onclick="digitarLetra(this, ',')">,</button>
+        <button class="btn-white-bg btn-largura-letra btn-sinal-grande" onclick="digitarLetra(this, '+')">+</button>
+        <button class="btn-gold btn-espaco-simbolo" style="color: #fff !important;" onclick="digitarLetra(this, ' ')">⎵</button>
+        <button class="btn-white-bg btn-largura-letra btn-sinal-grande" onclick="digitarLetra(this, '-')">-</button>
+        <button class="btn-white-bg btn-largura-letra btn-sinal-grande" onclick="digitarLetra(this, '.')">.</button>
+        <button class="btn-red btn-largura-letra btn-apagar-simbolo" style="color: #fff !important;" onclick="apagarLetra(this)">⌫</button>
+      </div>
+
+      <div id="faixa-alternancia" class="linha linha-faixa-superior hidden">
+        <button id="v0" class="btn-white-bg" onclick="digitarDinamico(this)">0</button>
+        <button id="v1" class="btn-white-bg" onclick="digitarDinamico(this)">1</button>
+        <button id="v2" class="btn-white-bg" onclick="digitarDinamico(this)">2</button>
+        <button id="v3" class="btn-white-bg" onclick="digitarDinamico(this)">3</button>
+        <button id="v4" class="btn-white-bg" onclick="digitarDinamico(this)">4</button>
+        
+        <button class="btn-peso-neutro" disabled></button>
+        
+        <button id="v5" class="btn-white-bg" onclick="digitarDinamico(this)">5</button>
+        <button id="v6" class="btn-white-bg" onclick="digitarDinamico(this)">6</button>
+        <button id="v7" class="btn-white-bg" onclick="digitarDinamico(this)">7</button>
+        <button id="v8" class="btn-white-bg" onclick="digitarDinamico(this)">8</button>
+        <button id="v9" class="btn-white-bg" onclick="digitarDinamico(this)">9</button>
+      </div>
+
+      <div class="linha">
+        <button onclick="digitarLetra(this, 'Q')">Q</button>
+        <button onclick="digitarLetra(this, 'W')">W</button>
+        <button onclick="digitarLetra(this, 'E')">E</button>
+        <button onclick="digitarLetra(this, 'R')">R</button>
+        <button onclick="digitarLetra(this, 'T')">T</button>
+        
+        <button id="btn-ctrl-num" class="btn-ctrl-central" onclick="activarModoTeclado(this, 'numeros')">5</button>
+        
+        <button onclick="digitarLetra(this, 'Y')">Y</button>
+        <button onclick="digitarLetra(this, 'U')">U</button>
+        <button onclick="digitarLetra(this, 'I')">I</button>
+        <button onclick="digitarLetra(this, 'O')">O</button>
+        <button onclick="digitarLetra(this, 'P')">P</button>
+      </div>
+
+      <div class="linha">
+        <button onclick="digitarLetra(this, 'A')">A</button>
+        <button onclick="digitarLetra(this, 'S')">S</button>
+        <button onclick="digitarLetra(this, 'D')">D</button>
+        <button onclick="digitarLetra(this, 'F')">F</button>
+        <button onclick="digitarLetra(this, 'G')">G</button>
+        
+        <button id="btn-ctrl-enter" class="btn-ctrl-central btn-enter-simbolo" onclick="executarEnterDuplo(this)">⏎</button>
+        
+        <button onclick="digitarLetra(this, 'H')">H</button>
+        <button onclick="digitarLetra(this, 'J')">J</button>
+        <button onclick="digitarLetra(this, 'K')">K</button>
+        <button onclick="digitarLetra(this, 'L')">L</button>
+        <button onclick="digitarLetra(this, 'Ç')">Ç</button>
+      </div>
+
+      <div class="linha">
+        <button id="btn-acento-circ" onclick="manipularAcento('^', this)">^</button>
+        <button onclick="digitarLetra(this, 'Z')">Z</button>
+        <button onclick="digitarLetra(this, 'X')">X</button>
+        <button onclick="digitarLetra(this, 'C')">C</button>
+        <button onclick="digitarLetra(this, 'V')">V</button>
+        
+        <button id="btn-ctrl-simb" class="btn-ctrl-central" onclick="activarModoTeclado(this, 'simbolos')">@</button>
+        
+        <button onclick="digitarLetra(this, 'B')">B</button>
+        <button onclick="digitarLetra(this, 'N')">N</button>
+        <button onclick="digitarLetra(this, 'M')">M</button>
+        <button id="btn-acento-agudo" onclick="manipularAcento('´', this)">´</button>
+        <button id="btn-acento-til" onclick="manipularAcento('~', this)">~</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="avPalavras" class="hidden">
+
+    <div class="linha" style="padding: 2px 0;">
+      <button class="btn-white-bg" style="flex: 0 0 40px; margin-right: 2px;" onclick="acao('O')">O</button>
+      
+      <div class="trio-container">
+        <button class="btn-mod-esquerdo gold-escuro" onclick="alternarOposto('Eu')">⇄</button>
+        <button id="btn-main-Eu" class="btn-gold btn-principal" onclick="acaoPrincipal('Eu')">Eu</button>
+        <button class="btn-mod-direito gold-claro" onclick="expandirClasse('pronomes')">＋</button>
+      </div>
+
+      <div class="trio-container">
+        <button class="btn-mod-esquerdo red-escuro" onclick="alternarOposto('Muito')">⇄</button>
+        <button id="btn-main-Muito" class="btn-red btn-principal" onclick="acaoPrincipal('Muito')">Muito</button>
+        <button class="btn-mod-direito red-claro" onclick="expandirClasse('adverbios')">＋</button>
+      </div>
+
+      <div class="trio-container">
+        <button class="btn-mod-esquerdo green-escuro" onclick="alternarOposto('Quero')">⇄</button>
+        <button id="btn-main-Quero" class="btn-green btn-principal" onclick="acaoPrincipal('Quero')">Quero</button>
+        <button class="btn-mod-direito green-claro" onclick="expandirClasse('desejos')">＋</button>
+      </div>
+
+      <div class="trio-container">
+        <button class="btn-mod-esquerdo blue-escuro" onclick="alternarOposto('Para')">⇄</button>
+        <button id="btn-main-Para" class="btn-blue btn-principal" onclick="acaoPrincipal('Para')">Para</button>
+        <button class="btn-mod-direito blue-claro" onclick="expandirClasse('preposicoes')">＋</button>
+      </div>
+
+      <div class="trio-container">
+        <button class="btn-mod-esquerdo red-escuro" onclick="alternarOposto('Casa')">⇄</button>
+        <button id="btn-main-Casa" class="btn-red btn-principal" onclick="acaoPrincipal('Casa')">Casa</button>
+        <button class="btn-mod-direito red-claro" onclick="expandirClasse('substantivos')">＋</button>
+      </div>
+
+      <div class="trio-container">
+        <button class="btn-mod-esquerdo gold-escuro" onclick="alternarOposto('Bonito')">⇄</button>
+        <button id="btn-main-Bonito" class="btn-gold btn-principal" onclick="acaoPrincipal('Bonito')">Bonito</button>
+        <button class="btn-mod-direito gold-claro" onclick="expandirClasse('adjetivos')">＋</button>
+      </div>
+
+      <button class="btn-white-bg" style="flex: 0 0 40px; margin-left: 2px;" onclick="acao('1')">1</button>
+    </div>
+
+    <div class="linha">
+      <button class="btn-green" onclick="acao('Sim')">Sim</button>
+      <button id="B1" onclick="acaoBtn(this)">vi</button>
+      <button id="B2" onclick="acaoBtn(this)">quebrei</button>
+      <button id="B3" onclick="acaoBtn(this)">fiquei</button>
+      <button id="B4" onclick="acaoBtn(this)">menti</button>
+      <button id="B5" onclick="acaoBtn(this)">brinquei</button>
+      <button id="B6" onclick="acaoBtn(this)">gostei</button>
+      <button class="btn-red" onclick="acao('Não')">Não</button>
+    </div>
+
+    <div class="linha">
+      <button class="btn-gold" onclick="acao('Comi')">Comi</button>
+      <button id="B7" onclick="acaoBtn(this)">sei</button>
+      <button id="B8" onclick="acaoBtn(this)">dei</button>
+      <button id="B9" onclick="acaoBtn(this)">cai</button>
+      <button id="B10" onclick="acaoBtn(this)">mordi</button>
+      <button id="B11" onclick="acaoBtn(this)">corri</button>
+      <button id="B12" onclick="acaoBtn(this)">pulei</button>
+      <button class="btn-green" onclick="acao('Bebi')">Bebi</button>
+    </div>
+
+    <div class="linha">
+      <button class="btn-green" onclick="acao('Certo')">Certo</button>
+      <button id="B13" onclick="acaoBtn(this)">tenho</button>
+      <button id="B14" onclick="acaoBtn(this)">fui</button>
+      <button id="B15" onclick="acaoBtn(this)">terminei</button>
+      <button id="B16" onclick="acaoBtn(this)">bati</button>
+      <button id="B17" onclick="acaoBtn(this)">chorei</button>
+      <button id="B18" onclick="acaoBtn(this)">sorri</button>
+      <button class="btn-red" onclick="acao('Errado')">Errado</button>
+    </div>
+
+    <div class="linha">
+      <button class="btn-red" onclick="acao('Medo')">Medo</button>
+      <button id="B19" onclick="acaoBtn(this)">perdi</button>
+      <button id="B20" onclick="acaoBtn(this)">vou</button>
+      <button id="B21" onclick="acaoBtn(this)">fiz</button>
+      <button id="B22" onclick="acaoBtn(this)">apanhei</button>
+      <button id="B23" onclick="acaoBtn(this)">achei</button>
+      <button id="B24" onclick="acaoBtn(this)">venci</button>
+      <button class="btn-gold" onclick="acao('Dói')">Dói</button>
+    </div>
+
+    <div class="linha">
+      <button class="btn-gold" onclick="acao('Frio')">Frio</button>
+      <button id="B25" onclick="acaoBtn(this)">entendi</button>
+      <button id="B26" onclick="acaoBtn(this)">esqueci</button>
+      <button id="B27" onclick="acaoBtn(this)">aprendi</button>
+      <button id="B28" onclick="acaoBtn(this)">acertei</button>
+      <button id="B29" onclick="acaoBtn(this)">sujei</button>
+      <button id="B30" onclick="acaoBtn(this)">limpei</button>
+      <button class="btn-red" onclick="acao('Quente')">Quente</button>
+    </div>
+
+    <div class="linha">
+      <button class="btn-red" onclick="acao('Fome')">Fome</button>
+      <button id="B31" onclick="acaoBtn(this)">chutei</button>
+      <button id="B32" onclick="acaoBtn(this)">estou</button>
+      <button id="B33" onclick="acaoBtn(this)">cansei</button>
+      <button id="B34" onclick="acaoBtn(this)">dormi</button>
+      <button id="B35" onclick="acaoBtn(this)">machuquei</button>
+      <button id="B36" onclick="acaoBtn(this)">assustei</button>
+      <button class="btn-gold" onclick="acao('Sede')">Sede</button>
+    </div>
+
+  </div>
+
+  <div id="avFrases" class="hidden">
+    <div class="barra-frases">
+      <button style="flex: 1;" onclick="acao('Frases')">Frases</button>
+      <button style="flex: 1;" onclick="acao('Famosos')">Famosos</button>
+      <button style="flex: 1;" onclick="acao('Perguntas')">Perguntas</button>
+    </div>
+    <div style="flex: 1; display: flex; justify-content: center; align-items: center; color: #666; font-weight: bold; font-size: 1.4em;">
+      Estrutura do Módulo de Frases Ativa.
+    </div>
+  </div>
+
+</div>
+
+<script>
+let modoAutomatico = false;
+const ctx = document.getElementById("ctx");
+let abaAtiva = "teclado"; 
+
+let acentoPendente = null;
+let elementoAcentoPendente = null;
+
+const listaNumeros = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const listaSimbolos = ["!", "@", "#", "$", "%", "&", "*", "?", "/", ";"];
+
+const estadoOpostos = {
+  Eu: "Eu", Muito: "Muito", Quero: "Quero", Para: "Para", Casa: "Casa", Bonito: "Bonito"
+};
+
+const mapeamentoOpostos = {
+  Eu: { atual: "Eu", oposto: "Você" },
+  Muito: { atual: "Muito", oposto: "Pouco" },
+  Quero: { atual: "Quero", oposto: "Não quero" },
+  Para: { atual: "Para", oposto: "De" },
+  Casa: { atual: "Casa", oposto: "Rua" },
+  Bonito: { atual: "Bonito", oposto: "Feio" }
+};
+
+const bancoPalavras = {
+  verbos_eu: [
+    "vi", "quebrei", "fiquei", "menti", "brinquei", "gostei",
+    "sei", "dei", "cai", "mordi", "corri", "pulei",
+    "tenho", "fui", "terminei", "bati", "chorei", "sorri",
+    "perdi", "vou", "fiz", "apanhei", "achei", "venci",
+    "entendi", "esqueci", "aprendi", "acertei", "sujei", "limpei",
+    "chutei", "estou", "cansei", "dormi", "machuquei", "assustei"
+  ],
+  verbos_voce: [
+    "viu", "quebrou", "ficou", "mentiu", "brincou", "gostou",
+    "sabe", "deu", "caiu", "mordeu", "correu", "pulou",
+    "tem", "foi", "terminou", "bateu", "chorou", "sorriu",
+    "perdeu", "vai", "fez", "apanhou", "achou", "venceu",
+    "entendeu", "esqueceu", "aprendeu", "acertou", "sujou", "limpou",
+    "chutou", "está", "cansou", "dormiu", "machucou", "assustou"
+  ],
+  pronomes: {
+    eu: ["comi", "bebi", "falei", "andei", "peguei", "ajudei", "olhei", "escutei", "banhei", "troquei", "deitei", "levantei", "abri", "fechei", "puxei", "empurrei", "entrei", "sai", "subi", "desci", "cantei", "dancei", "desenhei", "pintei", "escrevi", "li", "joguei", "ganhei", "assisti", "ouvi", "pensei", "corri", "tentei", "pedi", "comprei", "vendi"],
+    voce: ["comeu", "bebeu", "falou", "andou", "pegou", "ajudou", "olhou", "escutou", "banhou", "trocou", "deitou", "levantou", "abriu", "fechou", "puxou", "empurrou", "entrou", "saiu", "subiu", "desceu", "cantou", "dançou", "desenhou", "pintou", "escreveu", "leu", "jogou", "ganhou", "assistiu", "ouviu", "pensou", "correu", "tentou", "pediu", "comprou", "vendeu"]
+  },
+  adverbios: ["Hoje", "Ontem", "Amanhã", "Cedo", "Tarde", "Agora", "Depois", "Antes", "Sempre", "Nunca", "Aqui", "Ali", "Lá", "Perto", "Longe", "Dentro", "Fora", "Atrás", "Na frente", "Devagar", "Rápido", "Bem", "Mal", "Assim", "Também", "Quase", "Apenas", "Mais", "Menos", "Tudo", "Nada", "Sim", "Não", "Talvez", "Provavelmente", "Calmamente"],
+  desejos: ["Preciso", "Consigo", "Posso", "Deixo", "Devo", "Ajudo", "Peço", "Mando", "Chamo", "Procuro", "Tento", "Sinto", "Espero", "Lembro", "Esqueço", "Amo", "Odeio", "Prefiro", "Aceito", "Recuso", "Começo", "Paro", "Continuo", "Escolho", "Deixo", "Levo", "Trago", "Mostro", "Escondo", "Guardo", "Uso", "Ligo", "Desligo", "Abro", "Fecho", "Salvo"],
+  preposicoes: ["Com", "Sem", "Em", "Por", "Através", "Até", "Desde", "Sobre", "Sob", "E", "Mas", "Porque", "Se", "Ou", "Como", "Onde", "Quando", "Quem", "Que", "Para que", "Por que", "Aonde", "Daquele", "Desta", "Nesse", "Naquela", "Comigo", "Contigo", "Conosco", "Num", "Numa", "Apenas", "Salvo", "Exceto", "Durante", "Conforme"],
+  substantivos: ["Escola", "Banheiro", "Quarto", "Cozinha", "Hospital", "Carro", "Parque", "Cama", "Mesa", "Cadeira", "Brinquedo", "Água", "Comida", "Roupas", "Telefone", "Televisão", "Mãe", "Pai", "Filho", "Amigo", "Professor", "Médico", "Bola", "Livro", "Caderno", "Lápis", "Mochila", "Sapato", "Chave", "Dinheiro", "Rua", "Praça", "Shopping", "Cinema", "Praia", "Gato"],
+  adjetivos: ["Grande", "Pequeno", "Quente", "Frio", "Limpo", "Sujo", "Feliz", "Triste", "Bravo", "Cansado", "Dodói", "Bom", "Mau", "Novo", "Velho", "Cheio", "Vazio", "Alto", "Baixo", "Forte", "Fraco", "Rápido", "Lento", "Bonito", "Feio", "Certo", "Errado", "Fácil", "Difícil", "Macio", "Duro", "Pesado", "Leve", "Escuro", "Claro", "Gostoso"]
+};
+
+let classeExpandidaAtual = null;
+
+function acao(texto) {
+  if (modoAutomatico) {
+    falar(texto);
+  } else {
+    ctx.value += (ctx.value ? " " : "") + texto;
+    ctx.scrollTop = ctx.scrollHeight;
+  }
+}
+
+function acaoPrincipal(id) {
+  acao(estadoOpostos[id]);
+}
+
+function acaoBtn(btnEl) {
+  acao(btnEl.textContent);
+}
+
+function dispararAnimacaoTecla(elemento) {
+  if (!elemento) return;
+  elemento.classList.remove("tecla-animando");
+  void elemento.offsetWidth; 
+  elemento.classList.add("tecla-animando");
+  
+  setTimeout(() => {
+    elemento.classList.remove("tecla-animando");
+  }, 400);
+}
+
+function dispararAnimacaoFalar(elemento) {
+  if (!elemento) return;
+  elemento.classList.remove("falar-animando");
+  void elemento.offsetWidth; 
+  elemento.classList.add("falar-animando");
+  
+  setTimeout(() => {
+    elemento.classList.remove("falar-animando");
+  }, 450);
+}
+
+function exibirControleFonte() {
+  document.getElementById("pc").classList.add("hidden");
+  document.getElementById("barra-fonte-container").classList.remove("hidden");
+}
+
+function ocultarControleFonte() {
+  document.getElementById("barra-fonte-container").classList.add("hidden");
+  document.getElementById("pc").classList.remove("hidden");
+}
+
+function ajustarTamanhoFonteGlobal(valor) {
+  ctx.style.fontSize = valor + "em";
+  const botoesTeclado = document.querySelectorAll(".teclado-modelo-container button");
+  botoesTeclado.forEach(btn => {
+    btn.style.fontSize = valor + "em";
+  });
+}
+
+function manipularAcento(acento, elemento) {
+  dispararAnimacaoTecla(elemento);
+  
+  if (acentoPendente === acento) {
+    limparAcentoPendente();
+  } else {
+    limparAcentoPendente();
+    acentoPendente = acento;
+    elementoAcentoPendente = elemento;
+    elemento.classList.add("acento-ativo");
+  }
+}
+
+function limparAcentoPendente() {
+  if (elementoAcentoPendente) {
+    elementoAcentoPendente.classList.remove("acento-ativo");
+  }
+  acentoPendente = null;
+  elementoAcentoPendente = null;
+}
+
+function aplicarRegraAcentuacao(letra) {
+  const mapaAcentos = {
+    '´': { 
+      'A': 'Á', 'E': 'É', 'I': 'Í', 'O': 'Ó', 'U': 'Ú',
+      'a': 'á', 'e': 'é', 'i': 'í', 'o': 'ó', 'u': 'ú' 
+    },
+    '^': { 
+      'A': 'Â', 'E': 'Ê', 'O': 'Ô', 
+      'a': 'â', 'e': 'ê', 'o': 'ô' 
+    },
+    '~': { 
+      'A': 'Ã', 'O': 'Õ', 'N': 'Ñ', 
+      'a': 'ã', 'o': 'õ', 'n': 'ñ' 
+    }
+  };
+
+  if (acentoPendente) {
+    let resultado = letra;
+    if (mapaAcentos[acentoPendente] && mapaAcentos[acentoPendente][letra]) {
+      resultado = mapaAcentos[acentoPendente][letra];
+    }
+    limparAcentoPendente();
+    return resultado;
+  }
+  return letra;
+}
+
+function digitarLetra(elemento, letra) {
+  dispararAnimacaoTecla(elemento);
+  letra = aplicarRegraAcentuacao(letra);
+  ctx.value += letra;
+  ctx.scrollTop = ctx.scrollHeight;
+}
+
+function digitarDinamico(btn) {
+  letra = aplicarRegraAcentuacao(btn.textContent);
+  ctx.value += letra;
+  ctx.scrollTop = ctx.scrollHeight;
+}
+
+function apagarLetra(elemento) {
+  dispararAnimacaoTecla(elemento);
+  limparAcentoPendente();
+  ctx.value = ctx.value.slice(0, -1);
+  ctx.scrollTop = ctx.scrollHeight;
+}
+
+function activarModoTeclado(elemento, modo) {
+  dispararAnimacaoTecla(elemento);
+  limparAcentoPendente();
+  
+  const fControle = document.getElementById("faixa-controle");
+  const fAlternancia = document.getElementById("faixa-alternancia");
+  
+  fControle.classList.add("hidden");
+  fAlternancia.classList.remove("hidden");
+
+  const dados = (modo === 'numeros') ? listaNumeros : listaSimbolos;
+  for (let i = 0; i < 10; i++) {
+    document.getElementById(`v${i}`).textContent = dados[i];
+  }
+}
+
+/* LÓGICA DE DUPLA FUNÇÃO ATUALIZADA EXATAMENTE COMO SOLICITADO */
+function ejecutarEnterDuplo(elemento) {
+  dispararAnimacaoTecla(elemento);
+  limparAcentoPendente();
+
+  // PASSO 1: Verifica se o aplicativo saiu do modo tela cheia
+  if (!document.fullscreenElement) {
+    // Se NÃO estiver em tela cheia, age estritamente como o botão restaurador de Fullscreen
+    document.documentElement.requestFullscreen()
+      .then(() => {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock("landscape").catch(e => console.log(e));
+        }
+      }).catch(err => console.log("Erro ao forçar re-fullscreen:", err));
+  } else {
+    // PASSO 2: Se JÁ ESTIVER em tela cheia, executa o Enter normal
+    ctx.value += '\n';
+    ctx.scrollTop = ctx.scrollHeight;
+
+    // Fecha faixas numéricas/símbolos se estiverem abertas
+    const fControle = document.getElementById("faixa-controle");
+    const fAlternancia = document.getElementById("faixa-alternancia");
+    fAlternancia.classList.add("hidden");
+    fControle.classList.remove("hidden");
+  }
+}
+
+function gerenciarNavegacao(destino) {
+  limparAcentoPendente();
+
+  const elTeclado = document.getElementById("avTeclado");
+  const elPalavras = document.getElementById("avPalavras");
+  const elFrases = document.getElementById("avFrases");
+
+  if (destino === 'palavras') {
+    if (abaAtiva === 'palavras') {
+      elPalavras.classList.add("hidden");
+      elTeclado.classList.remove("hidden");
+      abaAtiva = "teclado";
+    } else {
+      elFrases.classList.add("hidden");
+      elTeclado.classList.add("hidden");
+      elPalavras.classList.remove("hidden");
+      abaAtiva = "palavras";
+    }
+  } else if (destino === 'frases') {
+    if (abaAtiva === 'frases') {
+      elFrases.classList.add("hidden");
+      elTeclado.classList.remove("hidden");
+      abaAtiva = "teclado";
+    } else {
+      elPalavras.classList.add("hidden");
+      elTeclado.classList.add("hidden");
+      elFrases.classList.remove("hidden");
+      abaAtiva = "frases";
+    }
+  }
+}
+
+function alternarOposto(id) {
+  const btnPrincipal = document.getElementById(`btn-main-${id}`);
+  if (estadoOpostos[id] === mapeamentoOpostos[id].atual) {
+    estadoOpostos[id] = mapeamentoOpostos[id].oposto;
+  } else {
+    estadoOpostos[id] = mapeamentoOpostos[id].atual;
+  }
+  btnPrincipal.textContent = estadoOpostos[id];
+  if (id === "Eu") atualizarGradeCentral();
+}
+
+function expandirClasse(classe) {
+  if (classeExpandidaAtual === classe) {
+    classeExpandidaAtual = null;
+  } else {
+    classeExpandidaAtual = classe;
+  }
+  atualizarGradeCentral();
+}
+
+function atualizarGradeCentral() {
+  const isVoce = (estadoOpostos["Eu"] === "Você");
+  for (let i = 1; i <= 36; i++) {
+    const btn = document.getElementById(`B${i}`);
+    if (!btn) continue;
+
+    if (classeExpandidaAtual === null) {
+      btn.textContent = isVoce ? bancoPalavras.verbos_voce[i-1] : bancoPalavras.verbos_eu[i-1];
+    } else if (classeExpandidaAtual === "pronomes") {
+      btn.textContent = isVoce ? bancoPalavras.pronomes.voce[i-1] : bancoPalavras.pronomes.eu[i-1];
+    } else {
+      btn.textContent = bancoPalavras[classeExpandidaAtual][i-1];
+    }
+  }
+}
+
+function limparCTx() {
+  limparAcentoPendente();
+  ctx.value = "";
+}
+
+function falarCTx() {
+  const btnFalar = document.getElementById("btn-falar-controle");
+  dispararAnimacaoFalar(btnFalar);
+  if (ctx.value.trim()) falar(ctx.value);
+}
+
+function falar(texto) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(texto);
+  u.lang = "pt-BR";
+  speechSynthesis.speak(u);
+}
+
+function alternarModo() {
+  modoAutomatico = !modoAutomatico;
+  const btn = document.getElementById("modoBtn");
+  btn.textContent = modoAutomatico ? "A" : "N";
+  btn.classList.toggle("neon", modoAutomatico);
+}
+
+function iniciarApp() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+      .then(() => {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock("landscape").catch(e => console.log(e));
+        }
+      })
+      .catch((err) => {
+        console.log("Acesso fullscreen inicial:", err);
+      });
+  }
+  document.getElementById("tela-inicial").classList.add("hidden");
+  document.getElementById("root").classList.remove("hidden");
+  atualizarGradeCentral();
+}
+</script>
+
+</body>
+</html>
