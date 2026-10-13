@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full w-full overflow-hidden select-none bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Windex</title>
+    <!-- PWA: instalar no aparelho e abrir offline -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Windex">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fonte -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Elementos dinâmicos de vidro do Windex */
+        .dynamic-taskbar {
+            background: var(--tb-bg, rgba(220, 235, 252, 0.45));
+            backdrop-filter: blur(var(--tb-blur, 16px)) saturate(160%);
+            -webkit-backdrop-filter: blur(var(--tb-blur, 16px)) saturate(160%);
+            border-top: 1px solid var(--tb-border, rgba(255, 255, 255, 0.6));
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .dynamic-startmenu {
+            background: var(--sm-bg, rgba(18, 30, 49, 0.85));
+            backdrop-filter: blur(var(--sm-blur, 24px)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--sm-blur, 24px)) saturate(180%);
+            border-top: 1px solid var(--sm-border, rgba(255, 255, 255, 0.3));
+            border-right: 1px solid var(--sm-border, rgba(255, 255, 255, 0.3));
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            color: var(--sm-text, #ffffff);
+        }
+
+        .aero-window {
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(0, 31, 63, 0.37);
+        }
+
+        .aero-window-header {
+            background: linear-gradient(180deg, 
+                rgba(255,255,255,0.75) 0%, 
+                rgba(210,230,250,0.5) 40%, 
+                rgba(170,205,240,0.4) 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        .aero-window-inactive {
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* Classic Orb Default Styling */
+        .windex-orb {
+            background: radial-gradient(circle at 35% 30%, #3a97ff 0%, #155bb5 50%, #082d6b 100%);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.8);
+            transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+
+        .windex-orb:hover, .windex-orb:active {
+            box-shadow: 0 0 22px #00aeff, inset 0 1px 4px rgba(255,255,255,1);
+            filter: brightness(1.2);
+            transform: scale(1.06);
+        }
+
+
+        /* Start menu: revelado da esquerda para a direita */
+        .start-menu-anim {
+            clip-path: inset(-50px -60px -50px 0);
+            transition: clip-path 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease-out;
+        }
+        .start-menu-hidden {
+            clip-path: inset(-50px 100% -50px 0);
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: clip-path 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease-out, visibility 0s linear 0.38s;
+        }
+
+        /* Barra de bolhas de sabão */
+        #bubble-bar {
+            position: fixed;
+            left: 50%;
+            bottom: 58px;
+            transform: translateX(-50%);
+            z-index: 15;
+            display: flex;
+            gap: clamp(8px, 3vw, 22px);
+        }
+        .bubble {
+            position: relative;
+            width: clamp(48px, 14vw, 68px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: clamp(16px, 4.5vw, 22px);
+            color: rgba(255, 255, 255, 0.85);
+            text-shadow: 0 0 6px rgba(120, 200, 255, 0.9), 0 1px 2px rgba(0, 0, 0, 0.35);
+            background:
+                radial-gradient(ellipse 28% 18% at 30% 20%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%),
+                radial-gradient(circle at 72% 80%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 14%),
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 52%, rgba(120,210,255,0.22) 68%, rgba(255,120,230,0.28) 82%, rgba(255,245,150,0.35) 94%, rgba(255,255,255,0.5) 100%);
+            box-shadow:
+                inset 0 0 10px rgba(255,255,255,0.55),
+                inset 7px 0 14px rgba(255,100,240,0.28),
+                inset -7px 0 14px rgba(60,230,255,0.32),
+                inset 0 -7px 12px rgba(255,240,120,0.22),
+                0 6px 16px rgba(0, 40, 90, 0.28);
+            transition: filter 0.2s, scale 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+        }
+        .bubble:hover { filter: brightness(1.2); scale: 1.1; }
+        .bubble:active { scale: 0.92; }
+        .bubble.active { filter: brightness(1.25); box-shadow: inset 0 0 10px rgba(255,255,255,0.7), inset 7px 0 14px rgba(255,100,240,0.35), inset -7px 0 14px rgba(60,230,255,0.4), 0 0 22px rgba(0,174,255,0.8); }
+
+        /* Aba de categoria */
+        #category-panel {
+            position: fixed;
+            left: 50%;
+            bottom: calc(58px + clamp(48px, 14vw, 68px) + 18px);
+            width: min(94vw, 720px);
+            max-height: calc(100vh - 160px);
+            transform: translateX(-50%) scale(1);
+            transform-origin: bottom center;
+            z-index: 36;
+            display: flex;
+            flex-direction: column;
+            border-radius: 20px;
+            background: rgba(200, 222, 248, 0.38);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            backdrop-filter: blur(14px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px rgba(0, 31, 63, 0.45), inset 0 1px 0 rgba(255,255,255,0.8);
+            transition: opacity 0.22s ease-out, transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+        }
+        #category-panel.panel-hidden {
+            opacity: 0;
+            transform: translateX(-50%) scale(0.85) translateY(20px);
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.22s ease-out, transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2), visibility 0s linear 0.28s;
+        }
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            justify-items: center;
+            align-items: start;
+            gap: 18px 8px;
+            padding: 10px 14px 20px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .category-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+        }
+        .category-item.empty { cursor: default; opacity: 0.45; }
+        .category-btn {
+            width: clamp(52px, 13vw, 76px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            color: #fff;
+            font-size: 22px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 35% 28%, rgba(255,255,255,0.75) 0%, rgba(90,170,245,0.75) 40%, rgba(21,91,181,0.9) 100%);
+            box-shadow: 0 3px 8px rgba(0, 31, 63, 0.4), inset 0 1px 2px rgba(255,255,255,0.8);
+            transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+        }
+        .category-btn img { width: 100%; height: 100%; object-fit: cover; }
+        .category-item.empty .category-btn { background: rgba(255,255,255,0.08); border: 2px dashed rgba(255,255,255,0.6); box-shadow: none; }
+        .category-item:not(.empty):hover .category-btn { filter: brightness(1.15); transform: scale(1.08); box-shadow: 0 0 14px #00aeff; }
+        .category-item:not(.empty):active .category-btn { transform: scale(0.93); }
+        .category-name {
+            font-size: 11px;
+            line-height: 1.2;
+            font-weight: 500;
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+            max-width: 100%;
+            min-height: 2.4em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        /* Aviso discreto (substitui alert, que tira o navegador do fullscreen) */
+        #toast {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translate(-50%, -20px);
+            z-index: 300;
+            max-width: 90vw;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: #fff;
+            background: rgba(15, 30, 55, 0.85);
+            border: 1px solid rgba(255,255,255,0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s, transform 0.25s;
+        }
+        #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        html, body { overscroll-behavior: none; }
+        #fs-pill {
+            display: none; position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 310; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.6);
+            background: rgba(15, 30, 55, 0.9); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        #fs-pill.show { display: block; }
+
+        /* Animations */
+        .win-transition {
+            transition: transform 0.22s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.22s ease-out;
+        }
+
+        .win-minimized {
+            opacity: 0;
+            transform: scale(0.2) translateY(100vh);
+            pointer-events: none;
+            visibility: hidden;
+            transition: transform 0.22s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.22s ease-out, visibility 0s linear 0.22s;
+        }
+        /* Durante o arraste, iframes não roubam o ponteiro */
+        #windows-layer.dragging iframe { pointer-events: none; }
+
+        /* Desktop Grid Layout */
+        .desktop-grid {
+            display: grid;
+            grid-template-rows: repeat(auto-fill, minmax(90px, 1fr));
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(85px, 1fr);
+            gap: 12px;
+            align-content: start;
+        }
+
+        .taskbar-item-active {
+            background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(180,215,255,0.4) 50%, rgba(120,180,240,0.6) 100%);
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 0 12px rgba(0, 174, 255, 0.6), inset 0 0 4px rgba(255,255,255,0.9);
+        }
+
+
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 3px;
+        }
+
+        /* Relógio digital + data (topo da área de trabalho) */
+        #desktop.desktop-grid { padding-top: calc(env(safe-area-inset-top, 0px) + var(--clock-top, 44px) + 76px); }
+        #clock-widget {
+            position: fixed; top: calc(env(safe-area-inset-top, 0px) + var(--clock-top, 44px)); left: 50%; transform: translateX(-50%);
+            z-index: 11; display: flex; flex-direction: column; align-items: center;
+            padding: 4px 18px 6px; border-radius: 14px; border: 0; background: transparent;
+            color: #fff; cursor: pointer; line-height: 1.1;
+            text-shadow: 0 1px 3px rgba(0,0,0,.8), 0 0 14px rgba(0,0,0,.55);
+            transition: background .2s, transform .15s;
+        }
+        #clock-widget:hover, #clock-widget.active { background: rgba(255,255,255,.16); }
+        #clock-widget:active { transform: translateX(-50%) scale(.96); }
+        #clock-time { font-size: clamp(30px, 8vw, 46px); font-weight: 300; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+        #clock-time small { font-size: .42em; opacity: .8; margin-left: 4px; letter-spacing: 1px; }
+        #clock-date { font-size: clamp(11px, 3vw, 14px); font-weight: 600; margin-top: 2px; }
+
+
+        /* ===== Janelas personalizáveis (molduras, vidro, cores) ===== */
+        .aero-window {
+            background: var(--win-bg, rgba(220, 235, 252, 0.7));
+            padding: var(--fw, 0px);
+            border-radius: var(--win-rad, 12px 12px 6px 6px) !important;
+            -webkit-backdrop-filter: var(--win-bf, none);
+            backdrop-filter: var(--win-bf, none);
+        }
+        .aero-window::before {
+            content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--fw, 0px);
+            background: var(--frame, none); background-size: 100% 100%;
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+            pointer-events: none; z-index: 50; display: var(--frame-display, none);
+        }
+        .aero-window.aero-window-inactive::before { opacity: .6; }
+        body.frame-anim .aero-window::before { background-size: 300% 300%; animation: frameshine 8s linear infinite; }
+        @keyframes frameshine { to { background-position: 300% 300%; } }
+        @media (prefers-reduced-motion: reduce) { body.frame-anim .aero-window::before { animation: none; } }
+
+        .aero-window .aero-window-header {
+            background: var(--hdr-bg, linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(210,230,250,0.5) 40%, rgba(170,205,240,0.4) 100%));
+        }
+        .aero-window-header span { color: var(--hdr-fg, #0f172a) !important; }
+        .aero-window-header button:not([onclick^="closeWindow"]) { color: var(--hdr-fg, #0f172a) !important; }
+        .win-body { background: var(--win-body-bg, rgba(255, 255, 255, 0.95)); }
+        .win-iframe { background: var(--iframe-bg, #fff); }
+    </style>
+</head>
+<body class="h-full w-full overflow-hidden bg-cover bg-center bg-no-repeat text-slate-800" 
+      id="desktop-body" 
+      style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2000&auto=format&fit=crop');">
+
+    <div id="toast" role="status"></div>
+    <button id="fs-pill" onclick="requestFullscreenMode(true)"><i class="fa-solid fa-expand"></i> Voltar à tela cheia</button>
+
+    <!-- INITIAL LANDING SCREEN: somente o orb. Clique = tela cheia + próxima tela -->
+    <div id="landing-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-lg transition-opacity duration-500 opacity-100">
+        <button id="landing-orb-preview" onclick="launchWindex()" aria-label="Iniciar"
+                class="windex-orb w-24 h-24 rounded-full flex items-center justify-center border-4 border-cyan-200/80 shadow-2xl animate-pulse overflow-hidden cursor-pointer">
+            <div class="grid grid-cols-2 gap-1.5 w-12 h-12">
+                <div class="bg-red-500 rounded-tl-md"></div>
+                <div class="bg-green-500 rounded-tr-md"></div>
+                <div class="bg-blue-500 rounded-bl-md"></div>
+                <div class="bg-yellow-400 rounded-br-md"></div>
+            </div>
+        </button>
+    </div>
+
+    <!-- DESKTOP CONTAINER -->
+    <div id="main-os-container" class="hidden h-full w-full relative">
+        <!-- Desktop Grid Shortcuts -->
+        <div id="desktop" class="relative h-[calc(100vh-48px)] w-full p-4 desktop-grid z-10 overflow-hidden" onclick="deselectAll(event)">
+            <!-- Shortcuts injected via JS -->
+        </div>
+
+        <!-- Camada de janelas -->
+        <div id="windows-layer" class="absolute inset-0 pointer-events-none z-20 pb-12">
+            <!-- Open Windows appended dynamically -->
+        </div>
+
+
+        <!-- Relógio digital + data (clique abre/fecha o calendário) -->
+        <button id="clock-widget" onclick="toggleCalendar(event)" aria-label="Abrir calendário" title="Abrir calendário">
+            <span id="clock-time">00:00<small>00</small></span>
+            <span id="clock-date"></span>
+        </button>
+
+        <template id="calendar-template">
+<style>
+:host{display:block;width:100%;height:100%;
+  --w:100%;--gap:6px;--mb:18px;--pad:6px;--ts:1.5rem;--ds:2.4rem;--ws:2rem;--ih:6px;
+  --ff:'Inter',sans-serif;--fw:700;--ls:2px;
+  --tc:#d4af37;--tdc:#d4af37;--wc:#a89f91;--dc:#f0eae1;--hc:#ff8a80;--ig:#2ecc71;
+  --cbg:rgba(40,36,32,.85);--blur:10px;--rad:8px;--sh:15px;--bw:1px;
+  --bgrad:linear-gradient(#3d352e,#3d352e)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+#cal-root{width:100%;height:100%;color:var(--dc);font-family:var(--ff);background:linear-gradient(160deg,rgba(30,27,24,var(--cal-a,.95)),rgba(22,20,18,var(--cal-a,.95)))}
+#app{position:relative;width:100%;height:100%;padding:var(--pad);display:flex;flex-direction:column;align-items:center;overflow:hidden}
+
+/* Cabeçalho */
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;width:var(--w);margin-bottom:var(--mb);flex:none}
+.tl,.tr{display:flex;align-items:center;gap:10px}
+.title{font-family:var(--ff);font-size:var(--ts);font-weight:var(--fw);letter-spacing:var(--ls);color:var(--tc);text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.mb{width:34px;height:34px;border-radius:50%;border:1px solid var(--tc);background:var(--cbg);color:var(--tc);font-size:1.3rem;cursor:pointer;display:grid;place-items:center;flex:none;line-height:1}
+.mb.tdy{width:auto;padding:0 14px;border-radius:999px;font:600 .72rem var(--ff);letter-spacing:.5px}
+.mb[hidden]{display:none}
+.vs{display:flex;border:1px solid var(--tc);border-radius:999px;overflow:hidden}
+.vs button{background:var(--cbg);color:var(--wc);border:0;padding:6px 11px;font:600 .72rem var(--ff);cursor:pointer}
+.vs button.on{background:var(--tc);color:#000}
+.badge{font-family:var(--ff);font-size:calc(var(--ds)*.9);font-weight:var(--fw);padding:4px 20px;background:var(--cbg);backdrop-filter:blur(var(--blur));border-radius:var(--rad);color:var(--tdc);position:relative}
+
+/* Visão mensal */
+.main{width:var(--w);flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.wd{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap);text-align:center;margin-bottom:8px;font-family:var(--ff);font-weight:var(--fw);color:var(--wc);font-size:var(--ws)}
+.days{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(var(--rows,5),1fr);gap:var(--gap)}
+.day{--bgrad:linear-gradient(var(--ig),var(--ig));background:var(--cbg);backdrop-filter:blur(var(--blur));border-radius:var(--rad);box-shadow:0 4px var(--sh) rgba(0,0,0,.5);display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:6px 5px 5px;position:relative;overflow:hidden;min-height:0;transition:transform .2s}
+.day::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:var(--bw);background:var(--bgrad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude;pointer-events:none;z-index:2}
+.day::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.55) 0,rgba(255,255,255,.12) 32%,transparent 34%,transparent 60%,rgba(255,255,255,.14) 100%)}
+.day:not(.empty){cursor:pointer}
+.day.sel{outline:2px solid var(--tc);outline-offset:1px}
+.day.empty{background:none;box-shadow:none;backdrop-filter:none}
+.day.empty::before,.day.empty::after{display:none}
+.dn{font-family:var(--ff);font-size:var(--ds);font-weight:var(--fw);color:var(--dc);line-height:1.1;position:relative;z-index:1}
+.hl{font-family:var(--ff);font-size:.58rem;font-weight:600;line-height:1.05;color:var(--hc);text-align:center;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;position:relative;z-index:1}
+.ind{width:100%;height:var(--ih);border-radius:999px;margin-top:auto;position:relative;z-index:1;background:var(--ig);box-shadow:0 0 8px var(--ig)}
+.day.hol .dn{color:var(--hc)}
+.day.today{transform:scale(1.07);z-index:6;box-shadow:0 0 22px var(--tdc),inset 0 0 18px var(--tdc);animation:pl 1.6s ease-in-out infinite}
+.day.today .dn{color:var(--tdc);text-shadow:0 0 12px var(--tdc)}
+@keyframes pl{50%{box-shadow:0 0 38px var(--tdc),inset 0 0 28px var(--tdc)}}
+
+/* Detalhe do dia tocado */
+.det{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:20;max-width:92%;padding:7px 16px;border-radius:16px;background:var(--cbg);backdrop-filter:blur(var(--blur));border:1px solid var(--tc);color:var(--dc);font:600 .8rem var(--ff);text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5);pointer-events:none}
+.det[hidden]{display:none}
+
+/* Visão anual */
+.days.year{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);overflow:auto}
+.mm{background:var(--cbg);backdrop-filter:blur(var(--blur));border-radius:var(--rad);padding:8px;box-shadow:0 4px var(--sh) rgba(0,0,0,.4);position:relative;cursor:pointer;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.mm::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:var(--bw);background:var(--bgrad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude;pointer-events:none}
+.mm h4{font-family:var(--ff);color:var(--tc);font-size:.9rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.mm .g{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-family:var(--ff);font-size:.66rem;color:var(--dc);flex:1;align-content:space-around}
+.mm .l{opacity:.5;font-size:.58rem}
+.mm .x.t{background:var(--tdc);color:#000;border-radius:50%}
+.mm .x.hol{color:var(--hc);font-weight:700}
+@media(prefers-reduced-motion:reduce){.day.today{animation:none}.day{transition:none}}
+@media(max-width:700px){.days.year{grid-template-columns:repeat(3,1fr);grid-template-rows:none;grid-auto-rows:minmax(110px,1fr)}.title{font-size:calc(var(--ts)*.75)}}
+</style>
+<div id="cal-root">
+<div id="app">
+<div class="top">
+<div class="tl"><button class="mb" id="pm" aria-label="Mês anterior">‹</button><div class="title" id="ttl"></div><button class="mb" id="nm" aria-label="Próximo mês">›</button><button class="mb tdy" id="tdy" aria-label="Ir para hoje" hidden>Hoje</button></div>
+<div class="tr"><div class="vs" role="group" aria-label="Tipo de visão"><button id="vm" aria-pressed="true">Mês</button><button id="vy" aria-pressed="false">Ano</button></div><div class="badge" id="bdg"></div></div>
+</div>
+<div class="main"><div class="wd" id="wdr"></div><div class="days" id="days"></div></div>
+<div class="det" id="det" role="status" aria-live="polite" hidden></div>
+</div>
+</div>
+        </template>
+
+        <!-- Barra de bolhas (acima da barra de tarefas) -->
+        <div id="bubble-bar"></div>
+
+        <!-- Aba de categoria (20 botões circulares) -->
+        <div id="category-panel" class="panel-hidden">
+            <div class="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
+                <span id="category-title" class="font-semibold text-white drop-shadow text-sm"></span>
+                <button onclick="closeCategoryPanel()" aria-label="Fechar" class="w-7 h-7 rounded-full bg-white/30 hover:bg-red-500/80 text-white text-xs transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="category-grid" class="category-grid"></div>
+        </div>
+
+        <!-- Menu Iniciar do Windex (altura total) -->
+        <div id="start-menu" class="fixed bottom-12 left-0 z-50 w-80 sm:w-96 h-[calc(100vh-48px)] dynamic-startmenu shadow-2xl start-menu-anim start-menu-hidden flex flex-col justify-between overflow-hidden">
+            
+            <!-- User Profile Header -->
+            <div class="p-3 border-b border-white/20 flex items-center justify-between bg-gradient-to-r from-black/40 to-transparent shrink-0">
+                <div class="flex items-center gap-3">
+                    <div id="profile-avatar-container" class="w-10 h-10 rounded-lg border-2 border-white/60 bg-blue-600/60 overflow-hidden flex items-center justify-center shadow-md">
+                        <i class="fa-solid fa-user text-xl text-white"></i>
+                    </div>
+                    <span id="profile-name-display" class="font-semibold text-sm text-shadow drop-shadow text-white">Usuário</span>
+                </div>
+            </div>
+
+            <!-- Start Menu Navigation Body -->
+            <div class="flex-1 grid grid-cols-12 overflow-hidden bg-white/90 text-gray-800">
+                <!-- Left Column: Shortcuts List -->
+                <div class="col-span-7 flex flex-col min-h-0 bg-white/80 border-r border-gray-300/60">
+                    <div class="p-2 pb-1 shrink-0">
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[11px] pointer-events-none"></i>
+                            <input id="start-search" type="search" autocomplete="off" placeholder="Buscar apps" aria-label="Buscar apps" oninput="renderStartMenuApps()" onkeydown="startSearchKey(event)" class="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-300 rounded-md bg-white/90 focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex-1 min-h-0 p-2 pt-1 space-y-1 overflow-y-auto" id="start-menu-apps">
+                        <!-- Apps injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right Column: System Tools -->
+                <div class="col-span-5 p-2 space-y-2 bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800 text-xs overflow-y-auto">
+                    <div onclick="openApp('settings'); toggleStartMenu(event)" class="p-2 hover:bg-blue-200/60 rounded cursor-pointer font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-blue-700 text-sm"></i> Personalizar
+                    </div>
+                    <div onclick="openApp('appmanager'); toggleStartMenu(event)" class="p-2 hover:bg-blue-200/60 rounded cursor-pointer font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-emerald-600 text-sm"></i> Gerenciar Apps
+                    </div>
+                    <hr class="border-gray-300 my-1">
+                    <div onclick="showDesktop(); toggleStartMenu(event)" class="p-2 hover:bg-blue-200/60 rounded cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-desktop text-slate-600 text-sm"></i> Área de Trabalho
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Exit Footer -->
+            <div class="p-2.5 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-t border-white/20 flex justify-end shrink-0">
+                <button onclick="requirePin(exitSession)" class="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 border border-red-300 rounded text-xs text-white shadow-md active:scale-95 transition">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+                </button>
+            </div>
+        </div>
+
+        <!-- Dynamic Aero Taskbar -->
+        <div id="taskbar" class="fixed bottom-0 left-0 right-0 h-12 dynamic-taskbar z-50 flex items-center justify-between px-1 border-t border-white/40 shadow-2xl select-none">
+            <div class="flex items-center gap-2 h-full">
+                <!-- Botão Iniciar (orb) do Windex -->
+                <button id="taskbar-orb-btn" onclick="handleStartOrbClick(event)" class="windex-orb w-10 h-10 rounded-full flex items-center justify-center border-2 border-cyan-200/80 my-auto shadow-lg relative overflow-hidden group">
+                    <div id="taskbar-orb-content" class="grid grid-cols-2 gap-0.5 w-5 h-5 transition-transform group-hover:scale-110">
+                        <div class="bg-red-500 rounded-tl-sm"></div>
+                        <div class="bg-green-500 rounded-tr-sm"></div>
+                        <div class="bg-blue-500 rounded-bl-sm"></div>
+                        <div class="bg-yellow-400 rounded-br-md"></div>
+                    </div>
+                </button>
+
+                <div class="h-6 w-[1px] bg-white/30 mx-0.5"></div>
+
+                <!-- Active Taskbar App Thumbnails -->
+                <div id="taskbar-apps" class="flex items-center gap-1 h-full overflow-x-auto no-scrollbar">
+                    <!-- Dynamic window tabs -->
+                </div>
+            </div>
+
+            <!-- Aero Peek Edge -->
+            <div class="flex items-center h-full">
+                <div onclick="showDesktop()" title="Mostrar Área de Trabalho" class="w-3.5 h-full border-l border-white/30 bg-white/20 hover:bg-white/50 active:bg-cyan-300/60 transition cursor-pointer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // ===== Armazenamento local (persistência) =====
+        const KEYS = {
+            settings:  'windex_system_settings',
+            profile:   'windex_user_profile',
+            apps:      'windex_apps',
+            wallpaper: 'windex_wallpaper',
+            pin:       'windex_pin_hash',
+            pinFail:   'windex_pin_fail',
+            recent:    'windex_recent',
+            winpos:    'windex_winpos'
+        };
+        // Chaves antigas (versões anteriores) -> migradas sem perder nada
+        const LEGACY_KEYS = {
+            'win7_system_settings': KEYS.settings,
+            'win7_user_profile':    KEYS.profile,
+            'win7_custom_apps':     KEYS.apps,
+            'win7_wallpaper':       KEYS.wallpaper,
+            'winPinHash':           KEYS.pin
+        };
+        const store = {
+            get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+            set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+            remove(k) { try { localStorage.removeItem(k); } catch (e) {} }
+        };
+        function migrateLegacyStorage() {
+            Object.keys(LEGACY_KEYS).forEach(oldKey => {
+                const old = store.get(oldKey);
+                if (old === null) return;
+                const nk = LEGACY_KEYS[oldKey];
+                if (store.get(nk) !== null || store.set(nk, old)) store.remove(oldKey);
+            });
+        }
+        // Pede ao navegador para não apagar os dados salvos quando faltar espaço
+        function requestPersistentStorage() {
+            try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+        }
+        // Reduz imagens antes de salvar (evita estourar o limite do armazenamento local)
+        function imageFileToDataURL(file, max, mime, quality) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file), img = new Image();
+                img.onload = () => {
+                    const k = Math.min(1, max / Math.max(img.width, img.height));
+                    const c = document.createElement('canvas');
+                    c.width = Math.max(1, Math.round(img.width * k));
+                    c.height = Math.max(1, Math.round(img.height * k));
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    resolve(c.toDataURL(mime, quality));
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem inválida')); };
+                img.src = url;
+            });
+        }
+
+        // ===== Relógio / Data / Calendário =====
+        const CLK_DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        const CLK_MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        let lastDayKey = new Date().toDateString();
+
+        function tickClockWidget() {
+            const t = new Date(), p = n => String(n).padStart(2, '0');
+            const time = document.getElementById('clock-time'), date = document.getElementById('clock-date');
+            if (!time || !date) return;
+            time.innerHTML = `${p(t.getHours())}:${p(t.getMinutes())}<small>${p(t.getSeconds())}</small>`;
+            date.textContent = `${CLK_DAYS[t.getDay()]} ${p(t.getDate())} de ${CLK_MONTHS[t.getMonth()]} de ${t.getFullYear()}`;
+        }
+        tickClockWidget();
+        setInterval(() => {
+            if (document.hidden) return;
+            tickClockWidget();
+            const dk = new Date().toDateString();
+            if (dk !== lastDayKey) {
+                lastDayKey = dk;
+                const w = (typeof openWindows !== 'undefined') && openWindows['calendar'];
+                if (w && w.element._cal) w.element._cal.fit();
+            }
+        }, 1000);
+
+        // Clique no relógio: abre, restaura, traz para frente ou minimiza a janela do Calendário
+        function toggleCalendar(e) {
+            if (e) e.stopPropagation();
+            closeStartMenu(); closeCategoryPanel();
+            const w = openWindows['calendar'];
+            if (!w) { openApp('calendar'); return; }
+            if (w.minimized) { restoreWindow('calendar'); return; }
+            if (activeWindowId === 'calendar') { minimizeWindow('calendar', null); return; }
+            focusWindow('calendar');
+        }
+
+        // Monta o calendário (Shadow DOM) dentro do corpo da janela
+        function mountCalendar(win) {
+            const host = win.querySelector('#calendar-host');
+            if (!host || host.shadowRoot) return;
+            const root = host.attachShadow({ mode: 'open' });
+            root.appendChild(document.getElementById('calendar-template').content.cloneNode(true));
+            const api = buildCalendar(root, host);
+            win._cal = api;
+            api.reset();
+            let raf = 0;
+            new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => api.fit()); }).observe(host);
+        }
+
+        const CALENDAR_APP = { id: 'calendar', name: 'Calendário', icon: 'fa-solid fa-calendar-days', color: 'text-amber-500', isSystem: true, onDesktop: false, inStart: true };
+
+        function buildCalendar(CR, CH) {
+            const $ = id => CR.getElementById(id);
+            const MN = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            const DN = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+            const LET = ['D','S','T','Q','Q','S','S'];
+            const weekStart = () => systemSettings.weekStart === 1 ? 1 : 0;
+            const dayLabel = (y, m, d) => DN[new Date(y, m, d).getDay()] + ', ' + d + ' de ' + MN[m].toLowerCase() + ' de ' + y;
+
+            // ---- Feriados nacionais (fixos + móveis a partir da Páscoa) ----
+            function easter(y) {
+                const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+                    g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+                    l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+                    mo = Math.floor((h + l - 7 * m + 114) / 31), da = (h + l - 7 * m + 114) % 31 + 1;
+                return new Date(y, mo - 1, da);
+            }
+            const holCache = {};
+            function holidays(y) {
+                if (holCache[y]) return holCache[y];
+                const o = {}, E = easter(y);
+                [['1-1','Confraternização Universal'],['4-21','Tiradentes'],['5-1','Dia do Trabalho'],['9-7','Independência'],
+                 ['10-12','N. Sra. Aparecida · Dia das Crianças'],['11-2','Finados'],['11-15','Proclamação da República'],
+                 ['11-20','Consciência Negra'],['12-25','Natal']].forEach(([k, n]) => o[k] = n);
+                [[-48,'Segunda de Carnaval'],[-47,'Carnaval'],[-2,'Sexta-feira Santa'],[0,'Páscoa'],[60,'Corpus Christi']].forEach(([off, n]) => {
+                    const x = new Date(E); x.setDate(x.getDate() + off);
+                    o[(x.getMonth() + 1) + '-' + x.getDate()] = n;
+                });
+                return holCache[y] = o;
+            }
+
+            // ---- Estado e desenho ----
+            const d0 = new Date();
+            let Y = d0.getFullYear(), M = d0.getMonth(), view = 'm', selKey = '', detT = 0;
+
+            function hideDet() {
+                clearTimeout(detT);
+                selKey = '';
+                $('det').hidden = true;
+                $('days').querySelectorAll('.sel').forEach(x => x.classList.remove('sel'));
+            }
+            function showDay(y, m, d, cell) {
+                const key = y + '-' + m + '-' + d;
+                if (!$('det').hidden && selKey === key) { hideDet(); return; }
+                hideDet();
+                const ho = holidays(y)[(m + 1) + '-' + d];
+                cell.classList.add('sel');
+                selKey = key;
+                $('det').textContent = dayLabel(y, m, d) + (ho ? ' · ' + ho : '');
+                $('det').hidden = false;
+                detT = setTimeout(hideDet, 5000);
+            }
+
+            function draw() {
+                const g = $('days'), now = new Date(), ty = now.getFullYear(), tm = now.getMonth(), td = now.getDate(), w0 = weekStart();
+                const hol = (y, m, d) => holidays(y)[(m + 1) + '-' + d];
+                hideDet();
+                g.innerHTML = '';
+                g.className = 'days' + (view === 'y' ? ' year' : '');
+                $('vm').classList.toggle('on', view === 'm');
+                $('vy').classList.toggle('on', view === 'y');
+                $('vm').setAttribute('aria-pressed', view === 'm');
+                $('vy').setAttribute('aria-pressed', view === 'y');
+                $('pm').setAttribute('aria-label', view === 'y' ? 'Ano anterior' : 'Mês anterior');
+                $('nm').setAttribute('aria-label', view === 'y' ? 'Próximo ano' : 'Próximo mês');
+                $('tdy').hidden = view === 'y' ? Y === ty : (Y === ty && M === tm);
+                $('wdr').style.display = view === 'm' ? '' : 'none';
+                $('wdr').innerHTML = LET.map((_, i) => '<div>' + LET[(i + w0) % 7] + '</div>').join('');
+                $('bdg').textContent = td;
+                $('ttl').textContent = view === 'y' ? Y : MN[M] + ' ' + Y;
+
+                if (view === 'y') {
+                    for (let m = 0; m < 12; m++) {
+                        const first = (new Date(Y, m, 1).getDay() - w0 + 7) % 7, n = new Date(Y, m + 1, 0).getDate(), c = document.createElement('div');
+                        c.className = 'mm';
+                        c.setAttribute('role', 'button'); c.tabIndex = 0; c.setAttribute('aria-label', MN[m] + ' ' + Y);
+                        c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.onclick(); } };
+                        let h = '<h4>' + MN[m] + '</h4><div class="g">' + LET.map((_, i) => '<span class="l">' + LET[(i + w0) % 7] + '</span>').join('') + '<span></span>'.repeat(first);
+                        for (let d = 1; d <= n; d++) {
+                            h += '<span class="x' + (ty === Y && tm === m && td === d ? ' t' : '') + (hol(Y, m, d) ? ' hol' : '') + '">' + d + '</span>';
+                        }
+                        c.innerHTML = h + '</div>';
+                        c.onclick = () => { M = m; view = 'm'; draw(); };
+                        g.appendChild(c);
+                    }
+                    return;
+                }
+
+                const n = new Date(Y, M + 1, 0).getDate(), first = (new Date(Y, M, 1).getDay() - w0 + 7) % 7,
+                    rows = Math.ceil((first + n) / 7), isNow = ty === Y && tm === M, yy = Y, mm = M;
+                CH.style.setProperty('--rows', rows);
+                for (let i = 0; i < rows * 7; i++) {
+                    const d = i - first + 1, c = document.createElement('div');
+                    if (d < 1 || d > n) {
+                        c.className = 'day empty';
+                    } else {
+                        const ho = hol(yy, mm, d);
+                        c.className = 'day' + (isNow && d === td ? ' today' : '') + (ho ? ' hol' : '');
+                        c.innerHTML = '<div class="dn">' + d + '</div>' + (ho ? '<div class="hl">' + ho + '</div>' : '') + '<div class="ind"></div>';
+                        c.setAttribute('role', 'button'); c.tabIndex = 0;
+                        c.setAttribute('aria-label', dayLabel(yy, mm, d) + (ho ? ', ' + ho : ''));
+                        c.onclick = () => showDay(yy, mm, d, c);
+                        c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDay(yy, mm, d, c); } };
+                    }
+                    g.appendChild(c);
+                }
+            }
+
+            function go(d) {
+                if (view === 'y') Y += d;
+                else { M += d; if (M < 0) { M = 11; Y--; } if (M > 11) { M = 0; Y++; } }
+                draw();
+            }
+
+            $('pm').onclick = () => go(-1);
+            $('nm').onclick = () => go(1);
+            $('vm').onclick = () => { view = 'm'; draw(); };
+            $('vy').onclick = () => { view = 'y'; draw(); };
+            $('tdy').onclick = () => { const n = new Date(); Y = n.getFullYear(); M = n.getMonth(); draw(); };
+
+            // Deslizar para o lado troca o mês (ou o ano, na visão anual)
+            let sx = 0, sy = 0, tracking = false;
+            const area = $('days');
+            area.addEventListener('touchstart', e => {
+                tracking = e.touches.length === 1;
+                if (tracking) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
+            }, { passive: true });
+            area.addEventListener('touchend', e => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+                if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+            }, { passive: true });
+            draw();
+
+            // ---- Ajuste de escala conforme a altura da janela ----
+            const BASE = { '--ts': [1.5, 'rem'], '--ds': [2.4, 'rem'], '--ws': [2, 'rem'], '--gap': [6, 'px'], '--mb': [18, 'px'], '--pad': [6, 'px'], '--ih': [6, 'px'] };
+            function fit() {
+                const h = CH.getBoundingClientRect().height || 520, k = Math.max(.4, Math.min(1, h / 520));
+                for (const v in BASE) CH.style.setProperty(v, (Math.round(BASE[v][0] * k * 100) / 100) + BASE[v][1]);
+                draw();
+            }
+            function reset() { const n = new Date(); Y = n.getFullYear(); M = n.getMonth(); view = 'm'; fit(); }
+            return { reset, fit };
+        }
+
+
+        // ===== Personalização das janelas (molduras, vidro, cores) =====
+        const WIN_FRAMES = {
+            classic:  { name: 'Aero Clássico', w: 0, g: null, sw: 'linear-gradient(180deg,#fff,#a9cdf0)' },
+            gold:     { name: 'Ouro Brilhante', w: 6, g: 'linear-gradient(135deg,#6b4a08,#ffe27a 12%,#b8860b 25%,#fff7c2 38%,#9a7209 52%,#ffd76a 66%,#8a6508 80%,#fff0a0 92%,#6b4a08)' },
+            ruby:     { name: 'Rubi', w: 6, g: 'linear-gradient(135deg,#3d000d,#e0115f 14%,#7d0823 28%,#ff8fab 40%,#5a0014 54%,#d6204a 68%,#7d0823 82%,#ff6f91 92%,#3d000d)' },
+            emerald:  { name: 'Esmeralda', w: 6, g: 'linear-gradient(135deg,#02281b,#10b981 14%,#046a45 28%,#9ff5cf 40%,#033d29 54%,#22c58a 68%,#046a45 82%,#7ff0be 92%,#02281b)' },
+            sapphire: { name: 'Safira', w: 6, g: 'linear-gradient(135deg,#041b4d,#2f6bff 14%,#0b2f8f 28%,#a9c4ff 40%,#07236b 54%,#4d86ff 68%,#0b2f8f 82%,#9bbaff 92%,#041b4d)' },
+            silver:   { name: 'Prata', w: 5, g: 'linear-gradient(135deg,#5b6370,#f3f4f6 14%,#9ca3af 28%,#ffffff 40%,#6b7280 54%,#e5e7eb 68%,#9ca3af 82%,#ffffff 92%,#5b6370)' },
+            crystal:  { name: 'Vidro Cristal', w: 8, g: 'linear-gradient(135deg,rgba(255,255,255,.92),rgba(165,243,252,.5),rgba(196,181,253,.55),rgba(255,255,255,.88),rgba(240,171,252,.5),rgba(165,243,252,.5),rgba(255,255,255,.92))' },
+            frosted:  { name: 'Vidro Fosco', w: 8, g: 'linear-gradient(135deg,rgba(255,255,255,.6),rgba(255,255,255,.22),rgba(255,255,255,.5),rgba(255,255,255,.2),rgba(255,255,255,.6))' },
+            smoke:    { name: 'Vidro Fumê', w: 8, g: 'linear-gradient(135deg,rgba(10,14,22,.8),rgba(80,92,115,.5),rgba(10,14,22,.78),rgba(60,72,95,.5),rgba(10,14,22,.8))' },
+            custom:   { name: 'Cor Personalizada', w: 5, g: null }
+        };
+        const WIN_DEFAULTS = {
+            frame: 'classic', frameW: 5, frameColor: '#d4af37', anim: false, rad: 12,
+            color: '#dcebfc', alpha: 70, blur: 0,
+            hdrOn: false, hdrColor: '#9ec5f0', hdrAlpha: 60,
+            bodyColor: '#ffffff', bodyAlpha: 95
+        };
+
+        function hexRgba(hex, a) {
+            const h = (hex || '#ffffff').replace('#', '');
+            return `rgba(${parseInt(h.slice(0,2),16)}, ${parseInt(h.slice(2,4),16)}, ${parseInt(h.slice(4,6),16)}, ${a})`;
+        }
+        function shadeHex(hex, amt) {
+            const h = hex.replace('#', '');
+            const c = i => {
+                const v = parseInt(h.slice(i, i + 2), 16);
+                return Math.max(0, Math.min(255, Math.round(amt < 0 ? v * (1 + amt) : v + (255 - v) * amt)));
+            };
+            return `rgb(${c(0)}, ${c(2)}, ${c(4)})`;
+        }
+        function isDarkHex(hex) {
+            const h = hex.replace('#', '');
+            const l = 0.299 * parseInt(h.slice(0,2),16) + 0.587 * parseInt(h.slice(2,4),16) + 0.114 * parseInt(h.slice(4,6),16);
+            return l < 140;
+        }
+        function frameGradient(w) {
+            if (w.frame === 'custom') {
+                const c = w.frameColor;
+                return `linear-gradient(135deg,${shadeHex(c,-.55)},${shadeHex(c,.55)} 14%,${c} 28%,${shadeHex(c,.75)} 42%,${shadeHex(c,-.35)} 56%,${shadeHex(c,.4)} 70%,${c} 84%,${shadeHex(c,-.55)})`;
+            }
+            return (WIN_FRAMES[w.frame] || WIN_FRAMES.classic).g;
+        }
+
+        function applyWindowTheme() {
+            const w = systemSettings.win, r = document.documentElement.style;
+            const g = frameGradient(w);
+            r.setProperty('--fw', g ? w.frameW + 'px' : '0px');
+            r.setProperty('--frame', g || 'none');
+            r.setProperty('--frame-display', g ? 'block' : 'none');
+            document.body.classList.toggle('frame-anim', !!g && !!w.anim);
+            r.setProperty('--win-bg', hexRgba(w.color, w.alpha / 100));
+            r.setProperty('--win-bf', w.blur > 0 ? `blur(${w.blur}px) saturate(150%)` : 'none');
+            const R = +w.rad, r2 = Math.round(R / 2);
+            r.setProperty('--win-rad', `${R}px ${R}px ${r2}px ${r2}px`);
+            if (w.hdrOn) {
+                r.setProperty('--hdr-bg', `linear-gradient(180deg, rgba(255,255,255,.35) 0%, ${hexRgba(w.hdrColor, w.hdrAlpha / 100)} 55%, ${hexRgba(shadeHex(w.hdrColor, -.25), w.hdrAlpha / 100)} 100%)`);
+                r.setProperty('--hdr-fg', isDarkHex(w.hdrColor) && w.hdrAlpha > 45 ? '#ffffff' : '#0f172a');
+            } else {
+                r.removeProperty('--hdr-bg');
+                r.removeProperty('--hdr-fg');
+            }
+            r.setProperty('--win-body-bg', hexRgba(w.bodyColor, w.bodyAlpha / 100));
+            r.setProperty('--iframe-bg', w.bodyAlpha < 95 ? 'transparent' : '#fff');
+            r.setProperty('--cal-a', (w.bodyAlpha / 100).toFixed(2));
+        }
+
+        let persistTimer = null, settingsDirty = false;
+        function writeSettings() {
+            clearTimeout(persistTimer);
+            settingsDirty = false;
+            if (!store.set(KEYS.settings, JSON.stringify(systemSettings))) showToast('Sem espaço para salvar as configurações.');
+        }
+        function persistSettings() {
+            settingsDirty = true;
+            clearTimeout(persistTimer);
+            persistTimer = setTimeout(writeSettings, 200);
+        }
+        // Garante que nada fique sem salvar ao fechar/trocar de aba
+        function flushPending() { if (settingsDirty) writeSettings(); }
+        window.addEventListener('pagehide', flushPending);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPending(); });
+        function winSet(key, val) {
+            systemSettings.win[key] = val;
+            persistSettings();
+            applyWindowTheme();
+        }
+        function winSetHeader(key, val) {
+            systemSettings.win.hdrOn = true;
+            winSet(key, val);
+        }
+        function selectWinFrame(key) {
+            systemSettings.win.frame = key;
+            if (WIN_FRAMES[key] && WIN_FRAMES[key].w) systemSettings.win.frameW = WIN_FRAMES[key].w;
+            persistSettings(); applyWindowTheme(); refreshSettingsWindow();
+        }
+        function pickCustomFrameColor(hex) {
+            systemSettings.win.frameColor = hex;
+            systemSettings.win.frame = 'custom';
+            persistSettings(); applyWindowTheme(); refreshSettingsWindow();
+        }
+        function resetWinTheme() {
+            systemSettings.win = { ...WIN_DEFAULTS };
+            persistSettings(); applyWindowTheme(); refreshSettingsWindow();
+            showToast('Janelas restauradas ao padrão');
+        }
+        function refreshSettingsWindow() {
+            const w = openWindows['settings'];
+            if (!w) return;
+            const body = w.element.children[1];
+            if (!body) return;
+            const sc = body.firstElementChild ? body.firstElementChild.scrollTop : 0;
+            body.innerHTML = renderSettingsHTML();
+            if (body.firstElementChild) body.firstElementChild.scrollTop = sc;
+        }
+        function renderWinFramesGrid() {
+            const cur = systemSettings.win.frame;
+            return Object.keys(WIN_FRAMES).map(k => {
+                const f = WIN_FRAMES[k];
+                const bg = k === 'custom' ? frameGradient({ frame: 'custom', frameColor: systemSettings.win.frameColor }) : (f.g || f.sw);
+                const checker = (k === 'crystal' || k === 'frosted' || k === 'smoke')
+                    ? 'background-image:repeating-conic-gradient(#cbd5e1 0% 25%,#f8fafc 0% 50%);background-size:10px 10px;' : '';
+                return `<button onclick="selectWinFrame('${k}')" class="rounded-md border-2 ${cur === k ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white'} p-1 text-[10px] font-semibold text-slate-700 flex flex-col items-center gap-1">
+                    <span class="w-full h-6 rounded relative overflow-hidden" style="${checker}"><span class="absolute inset-0" style="background:${bg}"></span></span>${f.name}</button>`;
+            }).join('');
+        }
+
+        // ===== Plano de fundo e relógio (persistentes) =====
+        const WALLPAPER_KEY = KEYS.wallpaper;
+        function applyWallpaper() {
+            const u = cleanUrl(store.get(WALLPAPER_KEY), 'img');
+            if (u) document.getElementById('desktop-body').style.backgroundImage = `url("${u.replace(/"/g, '%22')}")`;
+        }
+        function setWallpaper(u) {
+            if (!store.set(WALLPAPER_KEY, u)) { showToast('Imagem grande demais para salvar neste aparelho.'); return false; }
+            applyWallpaper();
+            return true;
+        }
+        function handleWallpaperUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                const max = 1920, k = Math.min(1, max / Math.max(img.width, img.height));
+                const c = document.createElement('canvas');
+                c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                URL.revokeObjectURL(url);
+                if (setWallpaper(c.toDataURL('image/jpeg', 0.82))) showToast('Plano de fundo salvo');
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); showToast('Não consegui abrir essa imagem.'); };
+            img.src = url;
+        }
+        function resetWallpaper() {
+            store.remove(WALLPAPER_KEY);
+            document.getElementById('desktop-body').style.backgroundImage = "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2000&auto=format&fit=crop')";
+        }
+        function applyClockPos() {
+            document.documentElement.style.setProperty('--clock-top', (systemSettings.clockTop ?? 44) + 'px');
+        }
+        function setClockTop(v) {
+            systemSettings.clockTop = +v;
+            applyClockPos();
+            persistSettings();
+        }
+
+        // Start Menu Themes Preset Definitions
+        const START_MENU_THEMES = {
+            'default_dark': { name: 'Aero Glass Escuro (Padrão)', bg: 'rgba(18, 30, 49, 0.85)', blur: '24px', border: 'rgba(255, 255, 255, 0.3)', text: '#ffffff' },
+            'soft_cyan': { name: 'Aero Azul Celeste', bg: 'rgba(15, 65, 110, 0.80)', blur: '20px', border: 'rgba(120, 210, 255, 0.5)', text: '#ffffff' },
+            'translucent_acrylic': { name: 'Acrílico Translucido', bg: 'rgba(255, 255, 255, 0.35)', blur: '30px', border: 'rgba(255, 255, 255, 0.7)', text: '#0f172a' },
+            'deep_cobalt': { name: 'Cobalto Profundo', bg: 'rgba(7, 18, 41, 0.92)', blur: '18px', border: 'rgba(56, 189, 248, 0.4)', text: '#f8fafc' },
+            'ruby_glass': { name: 'Rubi Transparente', bg: 'rgba(88, 12, 31, 0.82)', blur: '22px', border: 'rgba(252, 165, 165, 0.4)', text: '#ffffff' },
+            'emerald_glass': { name: 'Esmeralda Aero', bg: 'rgba(6, 68, 48, 0.82)', blur: '20px', border: 'rgba(110, 231, 183, 0.4)', text: '#ffffff' },
+            'cyberpunk_neon': { name: 'Neon Cyberpunk', bg: 'rgba(24, 9, 43, 0.88)', blur: '25px', border: 'rgba(236, 72, 153, 0.6)', text: '#f472b6' },
+            'royal_gold': { name: 'Ouro Real', bg: 'rgba(59, 41, 12, 0.85)', blur: '20px', border: 'rgba(253, 224, 71, 0.5)', text: '#fef08a' },
+            'minimal_frosted': { name: 'Cinza Fosco Mínimo', bg: 'rgba(30, 41, 59, 0.88)', blur: '16px', border: 'rgba(148, 163, 184, 0.3)', text: '#f1f5f9' },
+            'classic_gray': { name: 'Aero Cinza Clássico', bg: 'rgba(200, 215, 230, 0.75)', blur: '18px', border: 'rgba(255, 255, 255, 0.8)', text: '#0f172a' }
+        };
+
+        const DEFAULT_APPS = [
+            { id: 'settings', name: 'Painel de Controle', icon: 'fa-solid fa-sliders', color: 'text-slate-700', isSystem: true },
+            { id: 'appmanager', name: 'Gerenciador de Apps', icon: 'fa-solid fa-circle-plus', color: 'text-emerald-600', isSystem: true },
+            { id: 'app_meuapp', name: 'Meu App Local', icon: 'fa-solid fa-folder-open', color: 'text-amber-500', url: './meu-app.html' }
+        ];
+
+        // State Objects
+        let apps = [];
+        let openWindows = {};
+        let activeWindowId = null;
+        let zIndexCounter = 100;
+
+        let userProfile = {
+            name: 'Usuário',
+            avatar: null // base64 or URL
+        };
+
+        let systemSettings = {
+            taskbarColor: 'rgba(220, 235, 252, 0.45)',
+            taskbarBlur: 16,
+            startMenuThemeKey: 'default_dark',
+            taskbarHex: '#dcebfc',
+            taskbarAlpha: 45,
+            startOrbType: 'classic', // classic, image
+            startOrbImage: null,
+            clockTop: 44,
+            weekStart: 0, // 0 = domingo, 1 = segunda
+            win: null
+        };
+        systemSettings.win = { ...WIN_DEFAULTS };
+
+        window.onload = function() {
+            migrateLegacyStorage();
+            requestPersistentStorage();
+            loadSystemSettings();
+            loadUserProfile();
+            loadRecent();
+            loadWinPos();
+            loadApps();
+            applySystemTheme();
+            updateProfileUI();
+        };
+
+        // Fullscreen launch & lock handler
+        let launching = false;
+        function launchWindex() {
+            if (launching) return;
+            launching = true;
+            requestFullscreenMode();
+            startSession();
+            const landing = document.getElementById('landing-screen');
+            const osContainer = document.getElementById('main-os-container');
+
+            landing.classList.add('opacity-0');
+            setTimeout(() => {
+                landing.classList.add('hidden');
+                osContainer.classList.remove('hidden');
+                renderDesktopIcons();
+                renderBubbles();
+                renderStartMenuApps();
+                updateTaskbar();
+                launching = false;
+            }, 300);
+        }
+
+        function inFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement) || window.matchMedia('(display-mode: fullscreen)').matches;
+        }
+
+        let fsEntered = false, fsTries = 0;
+        function updateFsPill() {
+            document.getElementById('fs-pill').classList.toggle('show', sessionActive && !inFullscreen());
+        }
+        function requestFullscreenMode(fromUser) {
+            if (inFullscreen()) return;
+            const el = document.documentElement;
+            const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+            if (!fn) { if (fromUser === true) showToast('Este navegador não permite tela cheia.'); return; }
+            try {
+                const r = fn.call(el, { navigationUI: 'hide' });
+                if (r && r.catch) r.catch(err => { if (fromUser === true) showToast('Tela cheia não permitida (' + ((err && err.name) || 'erro') + ')'); updateFsPill(); });
+            } catch (e) { if (fromUser === true) showToast('Tela cheia não permitida.'); }
+            setTimeout(updateFsPill, 600);
+        }
+
+        function handleStartOrbClick(e) {
+            if (e) e.stopPropagation();
+            if (!inFullscreen()) {
+                requestFullscreenMode();
+                openStartMenu();
+            } else {
+                toggleStartMenu();
+            }
+        }
+
+        function openStartMenu() {
+            const startMenu = document.getElementById('start-menu');
+            const si = document.getElementById('start-search');
+            if (si) si.value = '';
+            renderStartMenuApps();
+            startMenu.classList.remove('start-menu-hidden');
+        }
+
+        function closeStartMenu() {
+            const startMenu = document.getElementById('start-menu');
+            startMenu.classList.add('start-menu-hidden');
+        }
+
+        function toggleStartMenu(e) {
+            if (e) e.stopPropagation();
+            const startMenu = document.getElementById('start-menu');
+            const isClosed = startMenu.classList.contains('start-menu-hidden');
+
+            if (isClosed) {
+                openStartMenu();
+            } else {
+                closeStartMenu();
+            }
+        }
+
+
+        // ---------- Categorias (bolhas) e pastas ----------
+        // folder = pasta onde ficam o HTML e o ícone de cada app da aba
+        const CATEGORIES = [
+            { key: 'p', label: 'P',  name: 'Português',  folder: 'português' },
+            { key: 'm', label: 'M',  name: 'Matemática', folder: 'matemática' },
+            { key: 'g', label: 'G',  name: 'Games',      folder: 'games' },
+            { key: 'u', label: 'Mu', name: 'Multimídia', folder: 'multimídia' },
+            { key: 'o', label: 'O',  name: 'Outros',     folder: 'outros' }
+        ];
+        const SLOTS_PER_CATEGORY = 20;
+        let activeCategory = null;
+        let editingAppId = null; // app em edição no gerenciador
+
+        const FALLBACK_ICON = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#155bb5"/><text x="32" y="40" font-size="22" font-family="Arial" fill="#fff" text-anchor="middle">APP</text></svg>');
+
+        function esc(t) {
+            return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        // ---------- Validação de dados guardados ou importados ----------
+        // Tudo que vem do localStorage ou de um backup passa por aqui antes de ser usado.
+        function cleanText(v, max) {
+            return String(v ?? '').replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, max);
+        }
+        // kind: 'url' (página do app) ou 'img' (ícone, avatar, papel de parede)
+        function cleanUrl(v, kind) {
+            v = String(v ?? '').trim();
+            if (!v || v.length > 4000000 || /["<>`\x00-\x1f]/.test(v)) return '';
+            const m = v.match(/^([a-z][a-z0-9+.-]*):/i);
+            if (!m) return v; // caminho relativo
+            const sch = m[1].toLowerCase();
+            if (sch === 'http' || sch === 'https' || sch === 'blob') return v;
+            if (sch === 'data') return (kind === 'img' ? /^data:image\//i : /^data:(text\/html|image\/)/i).test(v) ? v : '';
+            return ''; // javascript:, vbscript:, file: etc.
+        }
+        function cleanIcon(v) {
+            v = String(v ?? '').trim();
+            if (isImageIcon(v)) return cleanUrl(v, 'img');
+            return /^[\w\s-]{1,80}$/.test(v) ? v : '';
+        }
+        function cleanClass(v) { v = String(v ?? '').trim(); return /^[\w\s\-\[\]#:.\/%]{1,80}$/.test(v) ? v : ''; }
+        function cleanHex(v, def) { return /^#[0-9a-f]{6}$/i.test(String(v)) ? String(v) : def; }
+        function cleanRgba(v, def) { return /^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(,\s*[\d.]+\s*)?\)$/i.test(String(v)) ? String(v) : def; }
+        function cleanNum(v, def, min, max) {
+            if (!(typeof v === 'number' || (typeof v === 'string' && v.trim() !== ''))) return def;
+            const n = Number(v);
+            return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+        }
+        function cleanBool(v, def) { return typeof v === 'boolean' ? v : def; }
+
+        function sanitizeApp(a) {
+            if (!a || typeof a !== 'object' || !/^[A-Za-z0-9_-]{1,64}$/.test(String(a.id))) return null;
+            const sys = DEFAULT_APPS.find(d => d.isSystem && d.id === a.id) || (a.id === CALENDAR_APP.id ? CALENDAR_APP : null);
+            if (sys) {
+                const o = { ...sys };
+                if (typeof a.onDesktop === 'boolean') o.onDesktop = a.onDesktop;
+                if (typeof a.inStart === 'boolean') o.inStart = a.inStart;
+                return o;
+            }
+            const out = {
+                id: String(a.id),
+                name: cleanText(a.name, 80) || 'App',
+                url: cleanUrl(a.url, 'url'),
+                icon: cleanIcon(a.icon) || 'fa-solid fa-window-maximize',
+                iconAuto: !!a.iconAuto,
+                category: CATEGORIES.some(c => c.key === a.category) ? a.category : '',
+                openMode: a.openMode === 'page' ? 'page' : 'window',
+                color: cleanClass(a.color) || 'text-blue-600',
+                isSystem: false
+            };
+            if (typeof a.onDesktop === 'boolean') out.onDesktop = a.onDesktop;
+            if (typeof a.inStart === 'boolean') out.inStart = a.inStart;
+            if (typeof a.allowMedia === 'boolean') out.allowMedia = a.allowMedia;
+            if (typeof a.keepAlive === 'boolean') out.keepAlive = a.keepAlive;
+            return out;
+        }
+        function sanitizeApps(list) {
+            const seen = new Set();
+            return (Array.isArray(list) ? list : []).map(sanitizeApp).filter(a => a && !seen.has(a.id) && seen.add(a.id));
+        }
+        function sanitizeProfile(r) {
+            r = (r && typeof r === 'object') ? r : {};
+            return { name: cleanText(r.name, 40) || 'Usuário', avatar: cleanUrl(r.avatar, 'img') || null };
+        }
+        function sanitizeSettings(r) {
+            r = (r && typeof r === 'object') ? r : {};
+            const w = (r.win && typeof r.win === 'object') ? r.win : {}, D = WIN_DEFAULTS;
+            return {
+                taskbarColor: cleanRgba(r.taskbarColor, 'rgba(220, 235, 252, 0.45)'),
+                taskbarBlur: cleanNum(r.taskbarBlur, 16, 0, 60),
+                startMenuThemeKey: Object.prototype.hasOwnProperty.call(START_MENU_THEMES, r.startMenuThemeKey) ? r.startMenuThemeKey : 'default_dark',
+                taskbarHex: cleanHex(r.taskbarHex, '#dcebfc'),
+                taskbarAlpha: cleanNum(r.taskbarAlpha, 45, 0, 100),
+                startOrbType: r.startOrbType === 'image' ? 'image' : 'classic',
+                startOrbImage: cleanUrl(r.startOrbImage, 'img') || null,
+                clockTop: cleanNum(r.clockTop, 44, 0, 400),
+                weekStart: r.weekStart === 1 ? 1 : 0,
+                win: {
+                    frame: Object.prototype.hasOwnProperty.call(WIN_FRAMES, w.frame) ? w.frame : D.frame,
+                    frameW: cleanNum(w.frameW, D.frameW, 1, 16),
+                    frameColor: cleanHex(w.frameColor, D.frameColor),
+                    anim: cleanBool(w.anim, D.anim),
+                    rad: cleanNum(w.rad, D.rad, 0, 28),
+                    color: cleanHex(w.color, D.color),
+                    alpha: cleanNum(w.alpha, D.alpha, 10, 100),
+                    blur: cleanNum(w.blur, D.blur, 0, 30),
+                    hdrOn: cleanBool(w.hdrOn, D.hdrOn),
+                    hdrColor: cleanHex(w.hdrColor, D.hdrColor),
+                    hdrAlpha: cleanNum(w.hdrAlpha, D.hdrAlpha, 10, 100),
+                    bodyColor: cleanHex(w.bodyColor, D.bodyColor),
+                    bodyAlpha: cleanNum(w.bodyAlpha, D.bodyAlpha, 10, 100)
+                }
+            };
+        }
+
+        function getCategory(key) {
+            return CATEGORIES.find(c => c.key === key) || null;
+        }
+
+        // Nome simples ("jogo.html") -> ./pasta/jogo.html. Caminhos explícitos (http, data, blob, ./, /, ../) passam direto.
+        function resolveAssetPath(app, field) {
+            const v = (app[field] || '').trim();
+            if (!v) return '';
+            if (/^(https?:|data:|blob:|\/|\.\/|\.\.\/)/i.test(v)) return v;
+            const cat = getCategory(app.category);
+            return encodeURI(`./${cat ? cat.folder + '/' : ''}${v}`);
+        }
+
+        // Microfone e área de transferência: apps locais mantêm o acesso; páginas externas só se você liberar.
+        function appAllowsMedia(app) {
+            return app.allowMedia ?? !/^https?:/i.test(String(app.url || '').trim());
+        }
+
+        function isImageIcon(v) {
+            return !!v && (/^(https?:|data:|blob:)/i.test(v) || /\.(png|jpe?g|gif|svg|webp|ico|bmp)$/i.test(v));
+        }
+
+        function appIconHTML(app, imgClass, faExtra) {
+            if (isImageIcon(app.icon)) {
+                return `<img src="${esc(resolveAssetPath(app, 'icon'))}" class="${imgClass}" onerror="this.onerror=null; this.src=FALLBACK_ICON;">`;
+            }
+            return `<i class="${esc(app.icon || 'fa-solid fa-window-maximize')} ${esc(app.color || 'text-blue-500')} ${faExtra}"></i>`;
+        }
+
+        // ---------- Apps recentes e posição das janelas (lembradas neste aparelho) ----------
+        let recentIds = [];
+        let winPos = {};
+        const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+        function loadRecent() {
+            try {
+                const r = JSON.parse(store.get(KEYS.recent) || '[]');
+                recentIds = (Array.isArray(r) ? r : []).filter(x => typeof x === 'string' && ID_RE.test(x)).slice(0, 8);
+            } catch (e) { recentIds = []; }
+        }
+        function pushRecent(id) {
+            if (id === 'settings' || id === 'appmanager') return;
+            recentIds = [id, ...recentIds.filter(x => x !== id)].slice(0, 8);
+            store.set(KEYS.recent, JSON.stringify(recentIds));
+        }
+        function recentApps() {
+            return recentIds.map(id => apps.find(a => a.id === id)).filter(Boolean).slice(0, 5);
+        }
+        function loadWinPos() {
+            winPos = {};
+            try {
+                const r = JSON.parse(store.get(KEYS.winpos) || '{}');
+                if (r && typeof r === 'object') Object.keys(r).slice(0, 80).forEach(id => {
+                    const v = r[id];
+                    if (ID_RE.test(id) && v && Number.isFinite(v.l) && Number.isFinite(v.t)) winPos[id] = { l: Math.round(v.l), t: Math.round(v.t), max: v.max === true };
+                });
+            } catch (e) {}
+        }
+        function saveWinPos(id, patch) {
+            winPos[id] = { ...(winPos[id] || { l: 0, t: 0, max: false }), ...patch };
+            store.set(KEYS.winpos, JSON.stringify(winPos));
+        }
+        function clampWinPos(l, t, w) {
+            return { l: Math.min(window.innerWidth - 80, Math.max(80 - w, l)), t: Math.min(window.innerHeight - 48 - 32, Math.max(0, t)) };
+        }
+        function resetWinPositions() {
+            winPos = {};
+            store.remove(KEYS.winpos);
+            showToast('Posições das janelas esquecidas');
+        }
+
+        // ---------- Busca no menu iniciar ----------
+        function normText(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+        function startSearchKey(e) {
+            if (e.key === 'Enter') {
+                const first = document.querySelector('#start-menu-apps [data-app]');
+                if (first) first.click();
+            } else if (e.key === 'Escape' && e.target.value) {
+                e.target.value = '';
+                renderStartMenuApps();
+            }
+        }
+
+        // ---------- Calendário: início da semana ----------
+        function setWeekStart(v) {
+            systemSettings.weekStart = String(v) === '1' ? 1 : 0;
+            persistSettings();
+            const w = openWindows['calendar'];
+            if (w && w.element._cal) w.element._cal.fit();
+        }
+
+        // ---------- PWA: instalação e modo offline ----------
+        let installPrompt = null;
+        if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+        }
+        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; refreshInstallUI(); });
+        window.addEventListener('appinstalled', () => { installPrompt = null; refreshInstallUI(); showToast('Windex instalado'); });
+        function isStandalone() {
+            return ['standalone', 'fullscreen', 'minimal-ui'].some(m => window.matchMedia('(display-mode: ' + m + ')').matches) || navigator.standalone === true;
+        }
+        function installApp() {
+            if (!installPrompt) return;
+            installPrompt.prompt();
+            installPrompt.userChoice.finally(() => { installPrompt = null; refreshInstallUI(); });
+        }
+        function installBoxHTML() {
+            if (isStandalone()) return '<p class="text-[10px] text-emerald-700 font-semibold">O Windex já está instalado neste aparelho.</p>';
+            if (installPrompt) return '<button onclick="installApp()" class="w-full py-1.5 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"><i class="fa-solid fa-download mr-1"></i> Instalar o Windex</button>';
+            if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return '<p class="text-[10px] text-gray-600">No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.</p>';
+            if (!/^https?:$/.test(location.protocol)) return '<p class="text-[10px] text-gray-600">Para instalar, abra o Windex por um endereço http(s), como o site onde ele estiver hospedado.</p>';
+            return '<p class="text-[10px] text-gray-600">Use o menu do navegador (⋮) e escolha “Instalar app” ou “Adicionar à tela inicial”.</p>';
+        }
+        function refreshInstallUI() {
+            const b = document.getElementById('install-box');
+            if (b) b.innerHTML = installBoxHTML();
+        }
+
+        // ---------- Sessão longa: tela acesa e proteção contra saída acidental ----------
+        let sessionActive = false;
+        let wakeLock = null;
+
+        async function acquireWakeLock() {
+            try {
+                if ('wakeLock' in navigator && !wakeLock) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => { wakeLock = null; });
+                }
+            } catch (e) { /* não suportado ou negado */ }
+        }
+        function releaseWakeLock() {
+            if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+        }
+        function startSession() {
+            sessionActive = true;
+            acquireWakeLock();
+            history.pushState({ os: 1 }, '');
+            fsEntered = inFullscreen();
+            fsTries = 0;
+            setTimeout(updateFsPill, 800);
+        }
+        function endSession() {
+            sessionActive = false;
+            releaseWakeLock();
+            document.getElementById('fs-pill').classList.remove('show');
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && sessionActive) acquireWakeLock();
+        });
+        window.addEventListener('beforeunload', (e) => {
+            if (sessionActive) { e.preventDefault(); e.returnValue = ''; }
+        });
+        window.addEventListener('popstate', () => {
+            if (sessionActive) {
+                history.pushState({ os: 1 }, '');
+                showToast('Para sair, use "Sair" no menu iniciar');
+            }
+        });
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => {
+            if (inFullscreen()) fsEntered = true;
+            updateFsPill();
+        }));
+        // Se a tela cheia não entrou ao iniciar (comum em app instalado), tenta de novo nos primeiros toques.
+        // Depois que ela entrou uma vez, sair é escolha do usuário: só o botão "Voltar à tela cheia" a reativa.
+        document.addEventListener('pointerup', () => {
+            if (!sessionActive || inFullscreen()) return;
+            if (!fsEntered && fsTries < 6) { fsTries++; requestFullscreenMode(); }
+            setTimeout(updateFsPill, 500);
+        });
+
+        // ---------- Verificação de arquivos dos apps ----------
+        async function checkPage(url) {
+            try {
+                const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                return (r.status === 404 || r.status === 410) ? 'missing' : 'ok';
+            } catch (e) { return 'unknown'; }
+        }
+        function checkImage(src) {
+            return new Promise(res => {
+                const img = new Image();
+                img.onload = () => res('ok');
+                img.onerror = () => res('missing');
+                img.src = src;
+            });
+        }
+        async function verifyAppPage(app, win) {
+            if (!app.url || app.isSystem) return;
+            const url = resolveAssetPath(app, 'url');
+            if (await checkPage(url) !== 'missing') return;
+            const body = win.children[1];
+            if (!body) return;
+            body.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-2 p-6 text-center text-sm text-gray-700">
+                <i class="fa-solid fa-triangle-exclamation text-3xl text-amber-500"></i>
+                <p class="font-semibold">Não encontrei a página deste app.</p>
+                <code class="text-xs bg-gray-100 px-2 py-1 rounded break-all">${esc(decodeURI(url))}</code>
+                <p class="text-xs">Coloque o arquivo nessa pasta e abra o app de novo.</p></div>`;
+        }
+        async function verifyAllApps() {
+            const out = document.getElementById('verify-result');
+            if (!out) return;
+            out.innerHTML = '<div class="text-[11px] text-gray-500">Verificando...</div>';
+            const mark = { ok: '✅', missing: '❌', unknown: '❔' };
+            const rows = [];
+            for (const app of apps.filter(a => !a.isSystem)) {
+                const page = app.url ? await checkPage(resolveAssetPath(app, 'url')) : 'unknown';
+                const icon = isImageIcon(app.icon) ? await checkImage(resolveAssetPath(app, 'icon')) : 'ok';
+                const ext = (page === 'ok' && app.url) ? await detectExternal(resolveAssetPath(app, 'url')) : null;
+                const net = ext && ext.length ? `<div class="text-[10px] text-amber-700">🌐 Precisa de internet: ${esc(ext.join(', '))} — salve uma cópia local na pasta.</div>` : '';
+                rows.push(`<div><div class="text-[11px] flex justify-between gap-2"><span class="truncate">${esc(app.name)}</span><span class="shrink-0">Página ${mark[page]} · Ícone ${mark[icon]}</span></div>${net}</div>`);
+            }
+            out.innerHTML = (rows.join('') || '<div class="text-[11px] text-gray-500">Nenhum app adicionado.</div>')
+                + '<div class="text-[10px] text-gray-400 mt-1">❔ = não foi possível verificar (ex.: arquivo aberto direto do disco).</div>';
+        }
+
+        // ---------- PIN de proteção (Sair, Gerenciador de Apps e Backup) ----------
+        // Trava contra uso acidental/curioso neste aparelho: o PIN fica guardado só como hash com sal aleatório.
+        // (Quem tem acesso ao armazenamento do navegador sempre poderá apagá-lo.)
+        const SHA_PRIMES = (() => { const p = []; for (let n = 2; p.length < 64; n++) { let ok = true; for (let d = 2; d * d <= n; d++) if (n % d === 0) { ok = false; break; } if (ok) p.push(n); } return p; })();
+        const SHA_K = SHA_PRIMES.map(n => Math.floor((Math.cbrt(n) % 1) * 4294967296));
+        const SHA_H0 = SHA_PRIMES.slice(0, 8).map(n => Math.floor((Math.sqrt(n) % 1) * 4294967296));
+        function sha256(bytes) {
+            const H = SHA_H0.slice(), len = bytes.length, total = ((len + 9 + 63) >> 6) << 6;
+            const buf = new Uint8Array(total); buf.set(bytes); buf[len] = 0x80;
+            const dv = new DataView(buf.buffer);
+            dv.setUint32(total - 8, Math.floor(len * 8 / 4294967296)); dv.setUint32(total - 4, (len * 8) >>> 0);
+            const w = new Uint32Array(64);
+            for (let o = 0; o < total; o += 64) {
+                for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+                for (let i = 16; i < 64; i++) {
+                    const a = w[i - 15], b = w[i - 2];
+                    const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);
+                    const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);
+                    w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+                }
+                let [a, b, c, d, e, f, g, h] = H;
+                for (let i = 0; i < 64; i++) {
+                    const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+                    const t1 = (h + S1 + ((e & f) ^ (~e & g)) + SHA_K[i] + w[i]) | 0;
+                    const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+                    const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+                    h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+                }
+                H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+                H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+            }
+            const out = new Uint8Array(32), od = new DataView(out.buffer);
+            H.forEach((v, i) => od.setUint32(i * 4, v >>> 0));
+            return out;
+        }
+        const toHex = u => Array.from(u, b => b.toString(16).padStart(2, '0')).join('');
+        const PIN_ITER = 10000;
+        function pinDigest(pin, saltHex) {
+            const enc = new TextEncoder(), salt = enc.encode(saltHex);
+            let h = sha256(enc.encode(saltHex + ':' + pin));
+            for (let i = 0; i < PIN_ITER; i++) {
+                const m = new Uint8Array(h.length + salt.length); m.set(h); m.set(salt, h.length); h = sha256(m);
+            }
+            return toHex(h);
+        }
+        function makePinHash(pin) {
+            const sb = new Uint8Array(16);
+            if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(sb);
+            else for (let i = 0; i < 16; i++) sb[i] = Math.floor(Math.random() * 256);
+            const salt = toHex(sb);
+            return 'v2$' + salt + '$' + pinDigest(pin, salt);
+        }
+        // Formato antigo (versões anteriores): só serve para reconhecer o PIN e migrá-lo
+        function legacyHashPin(p) {
+            let h = 5381;
+            for (const c of 'ditado-salt' + p) h = ((h << 5) + h + c.charCodeAt(0)) | 0;
+            return String(h);
+        }
+        function checkPin(pin) {
+            const st = store.get(KEYS.pin) || '';
+            if (st.startsWith('v2$')) {
+                const [, salt, hash] = st.split('$');
+                return !!salt && pinDigest(pin, salt) === hash;
+            }
+            if (st && legacyHashPin(pin) === st) { store.set(KEYS.pin, makePinHash(pin)); return true; }
+            return false;
+        }
+        function pinIsSet() {
+            return !!store.get(KEYS.pin);
+        }
+        // Bloqueio temporário após 5 erros seguidos (15 s, dobrando a cada erro, até 15 min)
+        function pinLockLeft() {
+            try { const f = JSON.parse(store.get(KEYS.pinFail) || '{}'); return Math.max(0, Math.ceil(((f.until || 0) - Date.now()) / 1000)); }
+            catch (e) { return 0; }
+        }
+        function pinRegisterFail() {
+            let f; try { f = JSON.parse(store.get(KEYS.pinFail) || '{}'); } catch (e) { f = {}; }
+            f.n = (f.n || 0) + 1;
+            if (f.n >= 5) f.until = Date.now() + Math.min(900, 15 * 2 ** (f.n - 5)) * 1000;
+            store.set(KEYS.pinFail, JSON.stringify(f));
+        }
+        function requirePin(onOk) {
+            if (!pinIsSet()) { onOk(); return; }
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);';
+            ov.innerHTML = `<div style="background:#fff;border-radius:14px;padding:18px;width:min(86vw,280px);text-align:center;font-size:13px;color:#222">
+                <div style="font-weight:600;margin-bottom:8px">Digite o PIN</div>
+                <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" style="width:100%;padding:8px;border:1px solid #bbb;border-radius:8px;text-align:center;font-size:18px;letter-spacing:6px">
+                <div id="pin-err" style="color:#c00;font-size:11px;min-height:16px;margin-top:4px"></div>
+                <div style="display:flex;gap:8px;margin-top:6px">
+                    <button id="pin-cancel" style="flex:1;padding:8px;border-radius:8px;background:#ddd">Cancelar</button>
+                    <button id="pin-ok" style="flex:1;padding:8px;border-radius:8px;background:#155bb5;color:#fff;font-weight:600">OK</button>
+                </div></div>`;
+            document.body.appendChild(ov);
+            const input = ov.querySelector('#pin-input'), err = ov.querySelector('#pin-err');
+            input.focus();
+            const close = () => ov.remove();
+            const submit = () => {
+                const left = pinLockLeft();
+                if (left > 0) { err.textContent = `Muitas tentativas. Aguarde ${left}s.`; input.value = ''; return; }
+                if (checkPin(input.value)) { store.remove(KEYS.pinFail); close(); onOk(); return; }
+                pinRegisterFail();
+                const l = pinLockLeft();
+                err.textContent = l > 0 ? `PIN incorreto. Aguarde ${l}s.` : 'PIN incorreto';
+                input.value = '';
+            };
+            ov.querySelector('#pin-ok').onclick = submit;
+            ov.querySelector('#pin-cancel').onclick = close;
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') close(); });
+        }
+        function savePin() {
+            const v = document.getElementById('pin-new').value.trim();
+            if (!/^\d{4,8}$/.test(v)) { showToast('Use de 4 a 8 números.'); return; }
+            if (store.set(KEYS.pin, makePinHash(v))) { store.remove(KEYS.pinFail); showToast('PIN definido'); } else showToast('Não foi possível salvar o PIN.');
+            refreshAppManager();
+        }
+        function clearPin() {
+            store.remove(KEYS.pin);
+            store.remove(KEYS.pinFail);
+            showToast('PIN removido');
+            refreshAppManager();
+        }
+
+        // ---------- Memória: descarregar apps minimizados, recarregar, limite de janelas ----------
+        const UNLOAD_AFTER_MS = 10 * 60 * 1000;
+        const MAX_WINDOWS = 6;
+
+        function reloadApp(appId) {
+            const w = openWindows[appId];
+            const app = apps.find(a => a.id === appId);
+            if (!w || !app) return;
+            const body = w.element.children[1];
+            if (body) body.innerHTML = getAppBodyHTML(app);
+            w.unloaded = false;
+            verifyAppPage(app, w.element);
+        }
+        function unloadIdleWindows() {
+            const now = Date.now();
+            Object.values(openWindows).forEach(w => {
+                if (!w.minimized || w.unloaded || now - (w.minimizedAt || now) < UNLOAD_AFTER_MS) return;
+                const app = apps.find(a => a.id === w.id);
+                const body = w.element.children[1];
+                // Apps marcados como "manter sempre carregado" nunca são descarregados
+                if (app && app.url && !app.isSystem && !app.keepAlive && body) { body.innerHTML = ''; w.unloaded = true; }
+            });
+        }
+        setInterval(unloadIdleWindows, 60000);
+
+        // Detecta dependências externas (CDN) que não funcionam sem internet
+        async function detectExternal(url) {
+            try {
+                const r = await fetch(url, { cache: 'no-store' });
+                if (!r.ok) return null;
+                const html = await r.text();
+                const hosts = new Set();
+                for (const m of html.matchAll(/<(?:script|link)[^>]+(?:src|href)\s*=\s*["']https?:\/\/([^\/"']+)/gi)) hosts.add(m[1]);
+                return [...hosts];
+            } catch (e) { return null; }
+        }
+
+        function showOnDesktop(app) { return app.onDesktop ?? !app.category; }
+        function showInStartMenu(app) { return app.inStart ?? !app.category; }
+
+        let toastTimer;
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+        }
+
+        function renderBubbles() {
+            const bar = document.getElementById('bubble-bar');
+            bar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const b = document.createElement('button');
+                b.className = 'bubble';
+                b.dataset.cat = cat.key;
+                b.title = cat.name;
+                b.textContent = cat.label;
+                b.onclick = (e) => { e.stopPropagation(); toggleCategory(cat.key); };
+                bar.appendChild(b);
+            });
+        }
+
+        function toggleCategory(key) {
+            if (activeCategory === key) { closeCategoryPanel(); return; }
+            openCategoryPanel(key);
+        }
+
+        function openCategoryPanel(key) {
+            if (!getCategory(key)) return;
+            activeCategory = key;
+            refreshCategoryPanel();
+            document.getElementById('category-panel').classList.remove('panel-hidden');
+            document.querySelectorAll('.bubble').forEach(b => b.classList.toggle('active', b.dataset.cat === key));
+        }
+
+        function refreshCategoryPanel() {
+            const cat = getCategory(activeCategory);
+            if (!cat) return;
+            document.getElementById('category-title').textContent = `${cat.name}  ·  ./${cat.folder}/`;
+            const grid = document.getElementById('category-grid');
+            grid.innerHTML = '';
+            const list = apps.filter(a => a.category === cat.key).slice(0, SLOTS_PER_CATEGORY);
+            for (let i = 0; i < SLOTS_PER_CATEGORY; i++) {
+                const app = list[i];
+                const item = document.createElement(app ? 'button' : 'div');
+                if (app) {
+                    item.className = 'category-item';
+                    item.title = app.name;
+                    item.onclick = () => { openApp(app.id); closeCategoryPanel(); };
+                    item.innerHTML = `
+                        <span class="category-btn">${appIconHTML(app, '', 'text-2xl')}</span>
+                        <span class="category-name">${esc(app.name)}</span>`;
+                } else {
+                    item.className = 'category-item empty';
+                    item.innerHTML = `<span class="category-btn"></span><span class="category-name"></span>`;
+                }
+                grid.appendChild(item);
+            }
+        }
+
+        function closeCategoryPanel() {
+            activeCategory = null;
+            const panel = document.getElementById('category-panel');
+            if (panel) panel.classList.add('panel-hidden');
+            document.querySelectorAll('.bubble').forEach(b => b.classList.remove('active'));
+        }
+
+        document.addEventListener('pointerdown', (e) => {
+            if (!e.target.closest('#start-menu, #taskbar-orb-btn')) closeStartMenu();
+            if (activeCategory && !e.target.closest('#category-panel, #bubble-bar')) closeCategoryPanel();
+        }, { passive: true });
+
+        function deselectAll(e) {
+            closeStartMenu();
+            closeCategoryPanel();
+        }
+
+        function loadSystemSettings() {
+            const saved = store.get(KEYS.settings);
+            let raw = null;
+            if (saved) { try { raw = JSON.parse(saved); } catch(e) {} }
+            systemSettings = sanitizeSettings(raw);
+        }
+
+        function saveSystemSettings() {
+            writeSettings();
+            applySystemTheme();
+        }
+
+        function applySystemTheme() {
+            const root = document.documentElement;
+            // Taskbar CSS Variables
+            root.style.setProperty('--tb-bg', systemSettings.taskbarColor);
+            root.style.setProperty('--tb-blur', `${systemSettings.taskbarBlur}px`);
+            applyWindowTheme();
+            applyWallpaper();
+            applyClockPos();
+
+            // Start Menu Theme
+            const theme = START_MENU_THEMES[systemSettings.startMenuThemeKey] || START_MENU_THEMES['default_dark'];
+            root.style.setProperty('--sm-bg', theme.bg);
+            root.style.setProperty('--sm-blur', theme.blur);
+            root.style.setProperty('--sm-border', theme.border);
+            root.style.setProperty('--sm-text', theme.text);
+
+            // Start Orb Custom Image or Classic
+            const orbBtn = document.getElementById('taskbar-orb-btn');
+            const landingPreview = document.getElementById('landing-orb-preview');
+
+            if (systemSettings.startOrbType === 'image' && systemSettings.startOrbImage) {
+                const imgHTML = `<img src="${esc(systemSettings.startOrbImage)}" class="w-full h-full object-cover rounded-full">`;
+                orbBtn.innerHTML = imgHTML;
+                if (landingPreview) landingPreview.innerHTML = imgHTML;
+            } else {
+                const classicHTML = `
+                    <div class="grid grid-cols-2 gap-0.5 w-5 h-5 transition-transform group-hover:scale-110">
+                        <div class="bg-red-500 rounded-tl-sm"></div>
+                        <div class="bg-green-500 rounded-tr-sm"></div>
+                        <div class="bg-blue-500 rounded-bl-sm"></div>
+                        <div class="bg-yellow-400 rounded-br-md"></div>
+                    </div>
+                `;
+                orbBtn.innerHTML = classicHTML;
+                if (landingPreview) landingPreview.innerHTML = `<div class="grid grid-cols-2 gap-1.5 w-12 h-12"><div class="bg-red-500 rounded-tl-md"></div><div class="bg-green-500 rounded-tr-md"></div><div class="bg-blue-500 rounded-bl-md"></div><div class="bg-yellow-400 rounded-br-md"></div></div>`;
+            }
+        }
+
+        function loadUserProfile() {
+            const saved = store.get(KEYS.profile);
+            let raw = null;
+            if (saved) { try { raw = JSON.parse(saved); } catch(e) {} }
+            userProfile = sanitizeProfile(raw);
+            if (userProfile.name === 'Usuário Windows') userProfile.name = 'Usuário';
+        }
+
+        function saveUserProfile() {
+            if (!store.set(KEYS.profile, JSON.stringify(userProfile))) showToast('Sem espaço para salvar o perfil.');
+            updateProfileUI();
+        }
+
+        function updateProfileUI() {
+            document.getElementById('profile-name-display').innerText = userProfile.name || 'Usuário';
+            const avatarContainer = document.getElementById('profile-avatar-container');
+
+            if (userProfile.avatar) {
+                avatarContainer.innerHTML = `<img src="${esc(userProfile.avatar)}" class="w-full h-full object-cover">`;
+            } else {
+                avatarContainer.innerHTML = `<i class="fa-solid fa-user text-xl text-white"></i>`;
+            }
+        }
+
+        function loadApps() {
+            let list = null;
+            const saved = store.get(KEYS.apps);
+            if (saved) {
+                try { const parsed = JSON.parse(saved); if (Array.isArray(parsed)) list = sanitizeApps(parsed); } catch (e) {}
+            }
+            if (!list) list = sanitizeApps(DEFAULT_APPS);
+            list = list.filter(a => a.id !== 'app_bing'); // Bing removido
+            DEFAULT_APPS.filter(a => a.isSystem).concat([CALENDAR_APP]).forEach(sys => {
+                if (!list.some(a => a.id === sys.id)) list.push({ ...sys });
+            });
+            apps = list;
+            saveApps();
+        }
+
+        function saveApps() {
+            if (!store.set(KEYS.apps, JSON.stringify(apps))) {
+                showToast('Não foi possível salvar os apps neste aparelho.');
+                return false;
+            }
+            return true;
+        }
+
+        // Desktop and Start Menu Renderers
+        function renderDesktopIcons() {
+            const desktop = document.getElementById('desktop');
+            desktop.innerHTML = '';
+
+            apps.filter(showOnDesktop).forEach(app => {
+                const iconBtn = document.createElement('div');
+                iconBtn.className = 'flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/20 active:bg-cyan-300/30 text-white text-center cursor-pointer transition border border-transparent hover:border-white/30 w-20 h-22 group';
+                iconBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openApp(app.id);
+                };
+
+                const iconHTML = appIconHTML(app, 'w-7 h-7 object-contain', 'text-2xl drop-shadow');
+
+                iconBtn.innerHTML = `
+                    <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center border border-white/30 shadow-lg group-hover:scale-105 transition-transform mb-1">
+                        ${iconHTML}
+                    </div>
+                    <span class="text-xs font-normal text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] truncate w-full">${esc(app.name)}</span>
+                `;
+                desktop.appendChild(iconBtn);
+            });
+        }
+
+        function startMenuItem(app) {
+            const item = document.createElement('div');
+            item.className = 'flex items-center gap-3 p-2 hover:bg-blue-100/80 rounded-md cursor-pointer transition';
+            item.dataset.app = app.id;
+            item.onclick = () => { openApp(app.id); closeStartMenu(); };
+            item.innerHTML = `
+                ${appIconHTML(app, 'w-5 h-5 object-contain', 'text-xl w-6 text-center')}
+                <div class="truncate">
+                    <div class="font-medium text-xs text-gray-800">${esc(app.name)}</div>
+                    <div class="text-[10px] text-gray-500 truncate">${esc(app.url || 'Aplicativo do Sistema')}</div>
+                </div>
+            `;
+            return item;
+        }
+
+        function renderStartMenuApps() {
+            const container = document.getElementById('start-menu-apps');
+            container.innerHTML = '';
+            const input = document.getElementById('start-search');
+            const q = normText(input ? input.value.trim() : '');
+            const label = t => {
+                const h = document.createElement('div');
+                h.className = 'px-2 pt-1 text-[10px] font-bold uppercase tracking-wide text-gray-500';
+                h.textContent = t;
+                container.appendChild(h);
+            };
+
+            if (q) {
+                const found = apps.filter(a => normText(a.name).includes(q) || normText(a.url).includes(q));
+                if (!found.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'p-3 text-xs text-gray-500 text-center';
+                    empty.textContent = 'Nenhum app encontrado';
+                    container.appendChild(empty);
+                    return;
+                }
+                found.forEach(a => container.appendChild(startMenuItem(a)));
+                return;
+            }
+
+            const recent = recentApps();
+            if (recent.length) {
+                label('Recentes');
+                recent.forEach(a => container.appendChild(startMenuItem(a)));
+                label('Todos os apps');
+            }
+            apps.filter(showInStartMenu).forEach(a => container.appendChild(startMenuItem(a)));
+        }
+
+        function openApp(appId, pinOk) {
+            if (appId === 'appmanager' && !openWindows[appId] && !pinOk && pinIsSet()) {
+                requirePin(() => openApp(appId, true));
+                return;
+            }
+            if (apps.some(a => a.id === appId)) pushRecent(appId);
+            if (openWindows[appId]) {
+                if (openWindows[appId].minimized) {
+                    restoreWindow(appId);
+                } else {
+                    focusWindow(appId);
+                }
+                return;
+            }
+
+            const app = apps.find(a => a.id === appId);
+            if (!app) return;
+
+            if (app.openMode === 'page' && app.url) {
+                if (!window.open(resolveAssetPath(app, 'url'), '_blank')) showToast('Permita pop-ups para abrir este app.');
+                return;
+            }
+
+            const openIds = Object.keys(openWindows);
+            if (openIds.length >= MAX_WINDOWS) {
+                const old = openIds.find(id => openWindows[id].minimized && id !== 'appmanager');
+                if (old) closeWindow(old, null);
+                else { showToast('Feche uma janela antes de abrir outra.'); return; }
+            }
+
+            zIndexCounter++;
+
+            const win = document.createElement('div');
+            win.id = `win-${appId}`;
+            win.className = `absolute rounded-t-xl rounded-b-md aero-window overflow-hidden shadow-2xl flex flex-col win-transition pointer-events-auto border border-white/60`;
+            
+            const isMobile = window.innerWidth < 640;
+            const defaultWidth = isMobile ? window.innerWidth * 0.94 : 620;
+            const defaultHeight = isMobile ? window.innerHeight * 0.75 : 480;
+            
+            win.style.width = `${defaultWidth}px`;
+            win.style.height = `${defaultHeight}px`;
+            win.style.left = `${Math.max(8, (window.innerWidth - defaultWidth) / 2 + (Object.keys(openWindows).length * 8))}px`;
+            win.style.top = `${Math.max(10, (window.innerHeight - defaultHeight) / 3 + (Object.keys(openWindows).length * 8))}px`;
+            if (appId === 'calendar') {
+                const cr = document.getElementById('clock-widget').getBoundingClientRect();
+                const top = Math.round(cr.bottom + 8);
+                const cw = isMobile ? window.innerWidth * 0.96 : Math.min(window.innerWidth * 0.92, 1000);
+                const bb = document.getElementById('bubble-bar').getBoundingClientRect();
+                const floor = (bb.height > 0 ? bb.top : window.innerHeight - 48) - 8;
+                const ch = Math.max(240, Math.min(isMobile ? window.innerHeight * 0.7 : 640, floor - top));
+                win.style.width = `${cw}px`; win.style.height = `${ch}px`;
+                win.style.left = `${Math.max(4, (window.innerWidth - cw) / 2)}px`; win.style.top = `${top}px`;
+            }
+            const sp = winPos[appId];
+            if (sp) {
+                const c = clampWinPos(sp.l, sp.t, parseFloat(win.style.width) || defaultWidth);
+                win.style.left = `${c.l}px`; win.style.top = `${c.t}px`;
+            }
+            win.style.zIndex = zIndexCounter;
+
+            win.onclick = () => focusWindow(appId);
+
+            const iconHTML = appIconHTML(app, 'w-4 h-4 object-contain', 'text-xs');
+
+            win.innerHTML = `
+                <div id="win-header-${appId}" class="aero-window-header px-3 py-2 flex items-center justify-between cursor-move border-b border-white/40 shrink-0">
+                    <div class="flex items-center gap-2 truncate pr-2">
+                        ${iconHTML}
+                        <span class="text-xs font-semibold text-slate-800 drop-shadow-sm truncate">${esc(app.name)}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        ${app.url && !app.isSystem ? `<button onclick="reloadApp('${appId}'); event.stopPropagation();" title="Recarregar app" class="w-6 h-5 bg-white/40 hover:bg-white/70 active:bg-cyan-200 rounded text-slate-800 text-xs"><i class="fa-solid fa-rotate-right"></i></button>` : ''}
+                        <button onclick="minimizeWindow('${appId}', event)" class="w-6 h-5 bg-white/40 hover:bg-white/70 active:bg-cyan-200 rounded text-slate-800 text-xs flex items-center justify-center font-bold"> - </button>
+                        <button onclick="toggleMaximize('${appId}', event)" class="w-6 h-5 bg-white/40 hover:bg-white/70 active:bg-cyan-200 rounded text-slate-800 text-xs flex items-center justify-center"> ❑ </button>
+                        <button onclick="closeWindow('${appId}', event)" class="w-7 h-5 bg-red-500/80 hover:bg-red-600 text-white rounded text-xs flex items-center justify-center font-bold shadow-sm"> ✕ </button>
+                    </div>
+                </div>
+                <div class="flex-1 win-body overflow-hidden relative text-gray-800">
+                    ${getAppBodyHTML(app)}
+                </div>
+            `;
+
+            document.getElementById('windows-layer').appendChild(win);
+
+            openWindows[appId] = {
+                id: appId,
+                element: win,
+                minimized: false,
+                maximized: false,
+                prevRect: null
+            };
+
+            focusWindow(appId);
+            updateTaskbar();
+            makeDraggable(win, document.getElementById(`win-header-${appId}`));
+            if (appId === 'calendar') mountCalendar(win);
+            verifyAppPage(app, win);
+            if (sp && sp.max) toggleMaximize(appId);
+        }
+
+        function getAppBodyHTML(app) {
+            if (app.id === 'settings') {
+                return renderSettingsHTML();
+            } else if (app.id === 'appmanager') {
+                return renderAppManagerHTML();
+            } else if (app.id === 'calendar') {
+                return '<div id="calendar-host" class="w-full h-full"></div>';
+            } else if (app.url) {
+                const allow = 'fullscreen; autoplay' + (appAllowsMedia(app) ? '; microphone; clipboard-read; clipboard-write' : '');
+                // Sem allow-top-navigation: o app dentro da janela não consegue redirecionar o Windex.
+                const sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-pointer-lock allow-presentation allow-orientation-lock';
+                return `<iframe src="${esc(resolveAssetPath(app, 'url'))}" class="w-full h-full border-none win-iframe" title="${esc(app.name)}" allow="${allow}" sandbox="${sandbox}"></iframe>`;
+            } else {
+                return `<div class="p-4 text-xs text-gray-600">Aplicativo aberto sem URL configurada.</div>`;
+            }
+        }
+
+        // Control Panel / Customization Window
+        function renderSettingsHTML() {
+            let themesOptions = Object.keys(START_MENU_THEMES).map(key => `
+                <option value="${key}" ${systemSettings.startMenuThemeKey === key ? 'selected' : ''}>${START_MENU_THEMES[key].name}</option>
+            `).join('');
+
+            return `
+                <div class="p-3 space-y-4 text-xs h-full overflow-y-auto" style="background: var(--win-body-bg, #f8fafc)">
+                    <!-- Profile Personalization -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear text-blue-600"></i> Perfil de Usuário
+                        </h4>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Nome de Usuário:</label>
+                                <input type="text" id="profile-name-input" value="${esc(userProfile.name)}" class="w-full p-1.5 border rounded">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Foto de Perfil:</label>
+                                <div class="flex gap-2 items-center">
+                                    <input type="file" id="profile-avatar-file" accept="image/*" class="hidden" onchange="handleAvatarFileUpload(event)">
+                                    <button onclick="document.getElementById('profile-avatar-file').click()" class="px-3 py-1.5 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition">
+                                        <i class="fa-solid fa-upload mr-1"></i> Escolher Foto...
+                                    </button>
+                                    <span class="text-[10px] text-gray-500">Selecione uma imagem do seu dispositivo</span>
+                                </div>
+                            </div>
+                            <button onclick="saveUserProfileSettings()" class="w-full py-1.5 bg-slate-800 text-white font-semibold rounded hover:bg-slate-900 transition">Salvar Perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- Taskbar & Start Orb Customization -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-[#00aeff] fa-bars text-cyan-600"></i> Barra de Tarefas e Botão Iniciar (Orb)
+                        </h4>
+                        
+                        <div class="space-y-2">
+                            <label class="block font-semibold text-slate-700">Cor e Transparência da Barra de Tarefas:</label>
+                            <div class="flex gap-2 items-center">
+                                <input type="range" min="10" max="100" value="${systemSettings.taskbarAlpha ?? 45}" oninput="updateTaskbarAlpha(this.value)" class="w-20" title="Transparência da barra">
+                                <input type="color" id="taskbar-color-picker" value="${systemSettings.taskbarHex || '#dcebfc'}" onchange="updateTaskbarColorFromPicker(this.value)" class="w-9 h-8 border rounded cursor-pointer">
+                                <input type="range" id="taskbar-blur-slider" min="0" max="40" value="${systemSettings.taskbarBlur}" oninput="updateTaskbarBlur(this.value)" class="flex-1">
+                                <span class="text-[10px] text-gray-500 w-12 text-right" id="blur-val-display">${systemSettings.taskbarBlur}px blur</span>
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-200">
+
+                        <div class="space-y-2">
+                            <label class="block font-semibold text-slate-700">Botão Iniciar (Orb):</label>
+                            <div class="flex gap-2 items-center">
+                                <select id="orb-type-select" onchange="toggleOrbType(this.value)" class="p-1.5 border rounded flex-1">
+                                    <option value="classic" ${systemSettings.startOrbType === 'classic' ? 'selected' : ''}>Clássico do Windex</option>
+                                    <option value="image" ${systemSettings.startOrbType === 'image' ? 'selected' : ''}>Ícone / Imagem Customizada</option>
+                                </select>
+                            </div>
+                            <div id="orb-file-container" class="${systemSettings.startOrbType === 'image' ? '' : 'hidden'} space-y-2 pt-1">
+                                <div class="flex gap-2 items-center">
+                                    <input type="file" id="orb-image-file" accept="image/*" class="hidden" onchange="handleOrbFileUpload(event)">
+                                    <button onclick="document.getElementById('orb-image-file').click()" class="px-3 py-1.5 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition">
+                                        <i class="fa-solid fa-folder-open mr-1"></i> Selecionar Arquivo de Imagem...
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Start Menu Preset Themes -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-palette text-indigo-600"></i> Modelos Pré-definidos do Menu Iniciar (10 Estilos)
+                        </h4>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Escolher Tema Aero Glass:</label>
+                            <select id="startmenu-theme-select" onchange="applyStartMenuTheme(this.value)" class="w-full p-2 border rounded font-semibold text-blue-900 bg-blue-50/50">
+                                ${themesOptions}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Wallpaper Section -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-2">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2"><i class="fa-solid fa-image text-teal-600"></i> Plano de Fundo da Área de Trabalho</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setWallpaper('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2000')" class="h-14 rounded overflow-hidden border-2 border-transparent hover:border-blue-500 shadow">
+                                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=300" class="w-full h-full object-cover">
+                            </button>
+                            <button onclick="setWallpaper('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=2000')" class="h-14 rounded overflow-hidden border-2 border-transparent hover:border-blue-500 shadow">
+                                <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=300" class="w-full h-full object-cover">
+                            </button>
+                            <button onclick="setWallpaper('https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=2000')" class="h-14 rounded overflow-hidden border-2 border-transparent hover:border-blue-500 shadow">
+                                <img src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=300" class="w-full h-full object-cover">
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="file" id="wallpaper-file" accept="image/*" class="hidden" onchange="handleWallpaperUpload(event)">
+                            <button onclick="document.getElementById('wallpaper-file').click()" class="flex-1 px-3 py-1.5 bg-teal-600 text-white rounded font-medium hover:bg-teal-700 transition"><i class="fa-solid fa-folder-open mr-1"></i> Escolher imagem do aparelho...</button>
+                            <button onclick="resetWallpaper()" class="px-3 py-1.5 bg-slate-200 rounded font-medium hover:bg-slate-300 transition">Padrão</button>
+                        </div>
+                        <p class="text-[10px] text-gray-500">A escolha fica salva e volta na próxima vez que abrir.</p>
+                    </div>
+
+                    <!-- Clock -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-2">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-600"></i> Relógio e Calendário</h4>
+                        <label class="block font-semibold text-slate-700">Altura do relógio (para ficar abaixo da câmera):</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="range" min="0" max="160" value="${systemSettings.clockTop ?? 44}" oninput="setClockTop(this.value); this.nextElementSibling.textContent = this.value + 'px'" class="flex-1">
+                            <span class="text-[10px] text-gray-500 w-10 text-right">${systemSettings.clockTop ?? 44}px</span>
+                        </div>
+                        <label class="block font-semibold text-slate-700 pt-1">Calendário: a semana começa em:</label>
+                        <select onchange="setWeekStart(this.value)" class="w-full p-1.5 border rounded bg-white">
+                            <option value="0" ${systemSettings.weekStart !== 1 ? 'selected' : ''}>Domingo</option>
+                            <option value="1" ${systemSettings.weekStart === 1 ? 'selected' : ''}>Segunda-feira</option>
+                        </select>
+                    </div>
+
+                    <!-- Window Customization -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-3">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2"><i class="fa-solid fa-window-restore text-rose-600"></i> Janelas: Molduras, Vidro e Cores</h4>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Moldura da janela:</label>
+                            <div class="grid grid-cols-3 gap-2">${renderWinFramesGrid()}</div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-2 items-center">
+                            <label class="font-semibold text-slate-700">Cor da moldura:</label>
+                            <input type="color" value="${systemSettings.win.frameColor}" onchange="pickCustomFrameColor(this.value)" class="w-full h-8 border rounded cursor-pointer">
+
+                            <label class="font-semibold text-slate-700">Espessura:</label>
+                            <div class="flex items-center gap-1"><input type="range" min="1" max="16" value="${systemSettings.win.frameW}" oninput="winSet('frameW', +this.value); this.nextElementSibling.textContent = this.value + 'px'" class="flex-1"><span class="text-[10px] text-gray-500 w-8 text-right">${systemSettings.win.frameW}px</span></div>
+
+                            <label class="font-semibold text-slate-700">Arredondamento:</label>
+                            <div class="flex items-center gap-1"><input type="range" min="0" max="28" value="${systemSettings.win.rad}" oninput="winSet('rad', +this.value); this.nextElementSibling.textContent = this.value + 'px'" class="flex-1"><span class="text-[10px] text-gray-500 w-8 text-right">${systemSettings.win.rad}px</span></div>
+                        </div>
+                        <label class="flex items-center gap-2 font-semibold text-slate-700"><input type="checkbox" ${systemSettings.win.anim ? 'checked' : ''} onchange="winSet('anim', this.checked)"> Brilho animado na moldura (usa mais bateria)</label>
+
+                        <hr class="border-gray-200">
+
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-2 items-center">
+                            <label class="font-semibold text-slate-700">Cor do vidro da janela:</label>
+                            <input type="color" value="${systemSettings.win.color}" onchange="winSet('color', this.value)" class="w-full h-8 border rounded cursor-pointer">
+                            <label class="font-semibold text-slate-700">Transparência do vidro:</label>
+                            <div class="flex items-center gap-1"><input type="range" min="10" max="100" value="${systemSettings.win.alpha}" oninput="winSet('alpha', +this.value); this.nextElementSibling.textContent = this.value + '%'" class="flex-1"><span class="text-[10px] text-gray-500 w-8 text-right">${systemSettings.win.alpha}%</span></div>
+                            <label class="font-semibold text-slate-700">Desfoque do vidro:</label>
+                            <div class="flex items-center gap-1"><input type="range" min="0" max="30" value="${systemSettings.win.blur}" oninput="winSet('blur', +this.value); this.nextElementSibling.textContent = this.value + 'px'" class="flex-1"><span class="text-[10px] text-gray-500 w-8 text-right">${systemSettings.win.blur}px</span></div>
+
+                            <label class="font-semibold text-slate-700">Cor da barra de título:</label>
+                            <input type="color" value="${systemSettings.win.hdrColor}" onchange="winSetHeader('hdrColor', this.value)" class="w-full h-8 border rounded cursor-pointer">
+                            <label class="font-semibold text-slate-700">Transparência da barra:</label>
+                            <div class="flex items-center gap-1"><input type="range" min="10" max="100" value="${systemSettings.win.hdrAlpha}" oninput="winSetHeader('hdrAlpha', +this.value); this.nextElementSibling.textContent = this.value + '%'" class="flex-1"><span class="text-[10px] text-gray-500 w-8 text-right">${systemSettings.win.hdrAlpha}%</span></div>
+
+                            <label class="font-semibold text-slate-700">Cor do fundo (conteúdo):</label>
+                            <input type="color" value="${systemSettings.win.bodyColor}" onchange="winSet('bodyColor', this.value)" class="w-full h-8 border rounded cursor-pointer">
+                            <label class="font-semibold text-slate-700">Transparência do fundo:</label>
+                            <div class="flex items-center gap-1"><input type="range" min="10" max="100" value="${systemSettings.win.bodyAlpha}" oninput="winSet('bodyAlpha', +this.value); this.nextElementSibling.textContent = this.value + '%'" class="flex-1"><span class="text-[10px] text-gray-500 w-8 text-right">${systemSettings.win.bodyAlpha}%</span></div>
+                        </div>
+                        <p class="text-[10px] text-gray-500">O fundo transparente só aparece em apps que não definem uma cor de fundo própria.</p>
+                        <button onclick="resetWinTheme()" class="w-full py-1.5 bg-slate-800 text-white font-semibold rounded hover:bg-slate-900 transition">Restaurar janelas ao padrão</button>
+                        <button onclick="resetWinPositions()" class="w-full py-1.5 bg-slate-200 text-slate-800 font-semibold rounded hover:bg-slate-300 transition">Esquecer posições salvas das janelas</button>
+                    </div>
+
+                    <!-- Instalar -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-2">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2"><i class="fa-solid fa-mobile-screen-button text-blue-600"></i> Instalar no aparelho</h4>
+                        <p class="text-[10px] text-gray-500">Instalado, o Windex abre como um app e guarda uma cópia para abrir sem internet.</p>
+                        <div id="install-box">${installBoxHTML()}</div>
+                    </div>
+
+                    <!-- Backup -->
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm space-y-2">
+                        <h4 class="font-bold text-slate-800 border-b pb-1 flex items-center gap-2"><i class="fa-solid fa-floppy-disk text-emerald-600"></i> Backup das configurações</h4>
+                        <p class="text-[10px] text-gray-500">Tudo é salvo automaticamente neste aparelho. O backup guarda uma cópia (perfil, aparência, apps e plano de fundo) para restaurar ou levar a outro aparelho. O PIN não entra no backup.</p>
+                        <div class="flex gap-2">
+                            <button onclick="requirePin(exportBackup)" class="flex-1 px-3 py-1.5 bg-emerald-600 text-white rounded font-medium hover:bg-emerald-700 transition"><i class="fa-solid fa-download mr-1"></i> Exportar</button>
+                            <input type="file" id="backup-file" accept=".json,application/json" class="hidden" onchange="importBackup(event)">
+                            <button onclick="requirePin(() => document.getElementById('backup-file').click())" class="flex-1 px-3 py-1.5 bg-slate-700 text-white rounded font-medium hover:bg-slate-800 transition"><i class="fa-solid fa-upload mr-1"></i> Importar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Settings Actions
+        function exportBackup() {
+            flushPending();
+            const data = {
+                app: 'windex', version: 1, exported: new Date().toISOString(),
+                settings: systemSettings, profile: userProfile, apps: apps,
+                wallpaper: store.get(KEYS.wallpaper)
+            };
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+            a.download = 'windex-backup.json';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            showToast('Backup exportado');
+        }
+
+        function importBackup(e) {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            if (file.size > 25 * 1024 * 1024) { showToast('Arquivo de backup grande demais.'); return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const d = JSON.parse(reader.result);
+                    if (!d || typeof d !== 'object' || d.app !== 'windex') throw new Error('formato');
+                    clearTimeout(persistTimer); settingsDirty = false; // não deixa um salvamento pendente sobrescrever
+                    let ok = true;
+                    if (d.settings) ok = store.set(KEYS.settings, JSON.stringify(sanitizeSettings(d.settings))) && ok;
+                    if (d.profile)  ok = store.set(KEYS.profile, JSON.stringify(sanitizeProfile(d.profile))) && ok;
+                    if (Array.isArray(d.apps)) ok = store.set(KEYS.apps, JSON.stringify(sanitizeApps(d.apps))) && ok;
+                    const wp = cleanUrl(d.wallpaper, 'img');
+                    if (wp) ok = store.set(KEYS.wallpaper, wp) && ok;
+                    loadSystemSettings(); loadUserProfile(); loadApps();
+                    applySystemTheme(); updateProfileUI();
+                    renderDesktopIcons(); renderStartMenuApps(); refreshCategoryPanel(); updateTaskbar();
+                    refreshSettingsWindow(); refreshAppManager();
+                    showToast(ok ? 'Backup restaurado' : 'Restaurado, mas faltou espaço para salvar tudo.');
+                } catch (err) { showToast('Arquivo de backup inválido.'); }
+            };
+            reader.readAsText(file);
+        }
+        function saveUserProfileSettings() {
+            const name = document.getElementById('profile-name-input').value.trim();
+            if (name) userProfile.name = name;
+            saveUserProfile();
+            showToast('Perfil atualizado');
+        }
+
+        function handleAvatarFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            imageFileToDataURL(file, 256, 'image/jpeg', 0.85)
+                .then(d => { userProfile.avatar = d; saveUserProfile(); showToast('Foto salva'); })
+                .catch(() => showToast('Não consegui abrir essa imagem.'));
+        }
+
+        function updateTaskbarColorFromPicker(hex) {
+            // Convert Hex to RGBA with default transparency
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            systemSettings.taskbarHex = hex;
+            systemSettings.taskbarColor = `rgba(${r}, ${g}, ${b}, ${systemSettings.taskbarAlpha / 100})`;
+            saveSystemSettings();
+        }
+
+        function updateTaskbarAlpha(val) {
+            systemSettings.taskbarAlpha = +val;
+            updateTaskbarColorFromPicker(systemSettings.taskbarHex || '#dcebfc');
+        }
+
+        function updateTaskbarBlur(val) {
+            systemSettings.taskbarBlur = val;
+            document.getElementById('blur-val-display').innerText = `${val}px blur`;
+            saveSystemSettings();
+        }
+
+        function toggleOrbType(val) {
+            systemSettings.startOrbType = val;
+            const container = document.getElementById('orb-file-container');
+            if (container) {
+                if (val === 'image') container.classList.remove('hidden');
+                else container.classList.add('hidden');
+            }
+            saveSystemSettings();
+        }
+
+        function handleOrbFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            imageFileToDataURL(file, 256, 'image/png')
+                .then(d => { systemSettings.startOrbImage = d; saveSystemSettings(); showToast('Imagem do botão salva'); })
+                .catch(() => showToast('Não consegui abrir essa imagem.'));
+        }
+
+        function applyStartMenuTheme(key) {
+            if (START_MENU_THEMES[key]) {
+                systemSettings.startMenuThemeKey = key;
+                saveSystemSettings();
+            }
+        }
+
+        function renderAppManagerHTML() {
+            const listHTML = apps.map((app) => {
+                const cat = getCategory(app.category);
+                const where = [
+                    cat ? 'Aba ' + cat.name : null,
+                    app.openMode === 'page' ? 'Página separada' : null,
+                    showOnDesktop(app) ? 'Desktop' : null,
+                    showInStartMenu(app) ? 'Menu' : null
+                ].filter(Boolean).join(' · ');
+                return `
+                <div class="flex items-center justify-between p-2 border rounded text-xs gap-2 ${app.id === editingAppId ? 'bg-amber-50 border-amber-400' : 'bg-gray-50'}">
+                    <div class="flex items-center gap-2 truncate min-w-0">
+                        <span class="w-6 h-6 flex items-center justify-center shrink-0">${appIconHTML(app, 'w-6 h-6 object-contain rounded', 'text-blue-600')}</span>
+                        <div class="truncate">
+                            <div class="font-semibold truncate">${esc(app.name)}</div>
+                            <div class="text-[10px] text-gray-500 truncate">${esc(where)}</div>
+                        </div>
+                    </div>
+                    ${!app.isSystem ? `
+                        <div class="flex gap-1 shrink-0">
+                            <button onclick="startEditApp('${app.id}')" class="px-2 py-1 bg-blue-600 text-white rounded text-[10px] hover:bg-blue-700">Editar</button>
+                            <button onclick="removeApp('${app.id}')" class="px-2 py-1 bg-red-500 text-white rounded text-[10px] hover:bg-red-600">Remover</button>
+                        </div>
+                    ` : '<span class="text-[10px] text-gray-400 font-semibold shrink-0">Sistema</span>'}
+                </div>`;
+            }).join('');
+
+            const catOptions = CATEGORIES.map(c => `<option value="${c.key}">${c.name}  (./${c.folder}/)</option>`).join('');
+
+            return `
+                <div class="p-3 space-y-4 text-xs h-full overflow-y-auto">
+                    <div class="bg-blue-50 p-3 rounded border border-blue-200 space-y-2.5">
+                        <h4 class="font-bold text-blue-900 flex items-center gap-2">
+                            <i class="fa-solid ${editingAppId ? 'fa-pen-to-square' : 'fa-plus-circle'}"></i> ${editingAppId ? 'Editar App' : 'Adicionar Novo App'}
+                        </h4>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-700">Nome do App:</label>
+                            <input type="text" id="new-app-name" placeholder="Ex: Jogo da Tabuada" class="w-full p-1.5 border rounded">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-700">Aba / pasta:</label>
+                            <select id="new-app-cat" onchange="updatePathHint()" class="w-full p-1.5 border rounded bg-white">
+                                ${catOptions}
+                                <option value="">Nenhuma (somente desktop / menu)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-700">Abrir como:</label>
+                            <select id="new-app-mode" class="w-full p-1.5 border rounded bg-white">
+                                <option value="window">Janela do Windex</option>
+                                <option value="page">Página separada (sem iframe)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-700">Microfone e área de transferência:</label>
+                            <select id="new-app-media" class="w-full p-1.5 border rounded bg-white">
+                                <option value="">Automático (local: permitir · externo: bloquear)</option>
+                                <option value="1">Sempre permitir</option>
+                                <option value="0">Sempre bloquear</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="flex items-start gap-1.5 font-semibold text-gray-700"><input type="checkbox" id="new-app-keep" class="mt-0.5"> <span>Manter sempre carregado<span class="block font-normal text-[10px] text-gray-500">Não descarrega o app quando ele fica minimizado por muito tempo (evita perder o que você estava fazendo, mas usa mais memória).</span></span></label>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-700">Arquivo HTML (escolha na pasta) ou URL:</label>
+                            <div class="flex gap-1.5 items-center">
+                                <input type="text" id="new-app-url" oninput="updatePathHint()" placeholder="tabuada.html ou https://..." class="flex-1 p-1.5 border rounded">
+                                <input type="file" id="html-file-picker" accept=".html,.htm" multiple class="hidden" onchange="handleHTMLFileSelect(event)">
+                                <button type="button" onclick="document.getElementById('html-file-picker').click()" title="Escolher o arquivo .html (vários de uma vez adiciona todos). Ele deve estar na pasta da aba." class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs shrink-0"><i class="fa-solid fa-folder-open mr-1"></i>Escolher</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-700">Ícone (opcional — vazio usa o mesmo nome do HTML, em .png):</label>
+                            <div class="flex gap-1.5 items-center">
+                                <input type="text" id="new-app-icon" oninput="updatePathHint()" placeholder="vazio = mesmo nome do HTML .png" class="flex-1 p-1.5 border rounded">
+                                <input type="file" id="icon-file-picker" accept="image/*" class="hidden" onchange="handleIconFileSelect(event)">
+                                <button type="button" onclick="document.getElementById('icon-file-picker').click()" title="Escolher a imagem (usa só o nome; ela deve estar na pasta)" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs shrink-0"><i class="fa-solid fa-image"></i></button>
+                            </div>
+                        </div>
+
+                        <div id="new-app-hint" class="text-[10px] text-blue-900 bg-white/70 border border-blue-100 rounded p-1.5 break-all"></div>
+
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-1.5 font-semibold text-gray-700"><input type="checkbox" id="new-app-desktop"> Área de trabalho</label>
+                            <label class="flex items-center gap-1.5 font-semibold text-gray-700"><input type="checkbox" id="new-app-start"> Menu iniciar</label>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="addNewApp()" class="flex-1 py-2 ${editingAppId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white font-semibold rounded transition shadow">${editingAppId ? 'Salvar alterações' : 'Adicionar App'}</button>
+                            ${editingAppId ? '<button onclick="cancelEditApp()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded transition">Cancelar</button>' : ''}
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-3 rounded border space-y-2">
+                        <h4 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-lock"></i> PIN de proteção ${pinIsSet() ? '<span class="text-[10px] text-emerald-600 font-semibold">ativo</span>' : ''}</h4>
+                        <p class="text-[10px] text-gray-500">Protege o botão Sair, este Gerenciador de Apps e o Exportar/Importar backup.</p>
+                        <div class="flex gap-1.5">
+                            <input type="password" inputmode="numeric" id="pin-new" maxlength="8" placeholder="4 a 8 números" class="flex-1 p-1.5 border rounded">
+                            <button onclick="savePin()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs">Definir</button>
+                            ${pinIsSet() ? '<button onclick="clearPin()" class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded text-xs">Remover</button>' : ''}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-bold text-gray-800">Apps Instalados</h4>
+                            <button onclick="verifyAllApps()" class="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded text-[10px]">Verificar arquivos</button>
+                        </div>
+                        <div id="verify-result" class="mb-2 space-y-0.5"></div>
+                        <div class="space-y-1.5">
+                            ${listHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Ícone padrão: mesmo caminho/nome do HTML, trocando a extensão por .png
+        function defaultIconFor(url) {
+            const u = (url || '').trim();
+            if (!u || /^(https?:|data:|blob:|javascript:)/i.test(u)) return '';
+            const clean = u.split(/[?#]/)[0];
+            return /\.[a-z0-9]+$/i.test(clean) ? clean.replace(/\.[a-z0-9]+$/i, '.png') : clean + '.png';
+        }
+
+        function prettyAppName(file) {
+            const n = file.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+            return n.charAt(0).toUpperCase() + n.slice(1);
+        }
+
+        function newAppId() { return 'app_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+        function updatePathHint() {
+            const hint = document.getElementById('new-app-hint');
+            if (!hint) return;
+            const category = document.getElementById('new-app-cat').value;
+            const url = document.getElementById('new-app-url').value;
+            const typed = document.getElementById('new-app-icon').value.trim();
+            const auto = !typed && !!defaultIconFor(url);
+            const iconVal = typed || defaultIconFor(url);
+            const page = resolveAssetPath({ category, url }, 'url');
+            const icon = isImageIcon(iconVal) ? resolveAssetPath({ category, icon: iconVal }, 'icon') : (iconVal ? 'ícone FontAwesome' : '');
+            hint.innerHTML = `Página: <b>${esc(page ? decodeURI(page) : '—')}</b><br>Ícone: <b>${esc(icon ? decodeURI(icon) : '—')}</b>${auto ? ' <i>(automático)</i>' : ''}`;
+        }
+
+        // O navegador não grava arquivos em pastas: o seletor só preenche o NOME.
+        // O arquivo precisa estar na pasta da aba para carregar (e persistir) corretamente.
+        // Vários arquivos de uma vez = adiciona todos já, com o ícone automático (mesmo nome, .png).
+        function handleHTMLFileSelect(e) {
+            const files = [...e.target.files].filter(f => /\.html?$/i.test(f.name));
+            e.target.value = '';
+            if (!files.length) { showToast('Escolha um arquivo .html'); return; }
+            if (files.length > 1 && !editingAppId) { addAppsFromFiles(files); return; }
+            const file = files[0];
+            document.getElementById('new-app-url').value = file.name;
+            const nameInput = document.getElementById('new-app-name');
+            if (!nameInput.value) nameInput.value = prettyAppName(file.name);
+            updatePathHint();
+        }
+
+        function addAppsFromFiles(files) {
+            const category = document.getElementById('new-app-cat').value;
+            const onDesktop = document.getElementById('new-app-desktop').checked;
+            const inStart = document.getElementById('new-app-start').checked;
+            const openMode = document.getElementById('new-app-mode').value;
+            if (!category && !onDesktop && !inStart) { showToast('Escolha ao menos um local para os apps.'); return; }
+            let added = 0;
+            files.forEach(f => {
+                if (apps.some(a => a.url === f.name && (a.category || '') === category)) return;
+                apps.push({
+                    id: newAppId(), name: prettyAppName(f.name), url: f.name,
+                    icon: defaultIconFor(f.name), iconAuto: true,
+                    category, onDesktop, inStart, openMode,
+                    color: 'text-blue-600', isSystem: false
+                });
+                added++;
+            });
+            finishAppsChange(added ? `${added} app(s) adicionado(s)` : 'Esses apps já estavam na lista');
+        }
+
+        function finishAppsChange(message) {
+            saveApps();
+            renderDesktopIcons();
+            renderStartMenuApps();
+            refreshCategoryPanel();
+            refreshAppManager();
+            showToast(message);
+        }
+
+        function handleIconFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('new-app-icon').value = file.name;
+            updatePathHint();
+        }
+
+        function refreshAppManager() {
+            const win = openWindows['appmanager'];
+            if (win) {
+                win.element.querySelector('.flex-1').innerHTML = renderAppManagerHTML();
+                updatePathHint();
+            }
+        }
+
+        function startEditApp(appId) {
+            const app = apps.find(a => a.id === appId);
+            if (!app || app.isSystem) return;
+            editingAppId = appId;
+            refreshAppManager();
+            document.getElementById('new-app-name').value = app.name || '';
+            document.getElementById('new-app-cat').value = app.category || '';
+            document.getElementById('new-app-mode').value = app.openMode || 'window';
+            document.getElementById('new-app-media').value = app.allowMedia === true ? '1' : app.allowMedia === false ? '0' : '';
+            document.getElementById('new-app-keep').checked = app.keepAlive === true;
+            document.getElementById('new-app-url').value = app.url || '';
+            document.getElementById('new-app-icon').value = app.iconAuto ? '' : (app.icon || '');
+            document.getElementById('new-app-desktop').checked = showOnDesktop(app);
+            document.getElementById('new-app-start').checked = showInStartMenu(app);
+            updatePathHint();
+            const body = openWindows['appmanager'].element.querySelector('.flex-1 > div');
+            if (body) body.scrollTop = 0;
+        }
+
+        function cancelEditApp() {
+            editingAppId = null;
+            refreshAppManager();
+        }
+
+        // Atualiza a janela aberta do app editado (nome, ícone e página)
+        function refreshOpenAppWindow(app) {
+            const w = openWindows[app.id];
+            if (!w) return;
+            const header = w.element.querySelector(`#win-header-${app.id}`);
+            if (header && header.firstElementChild) {
+                header.firstElementChild.innerHTML = `${appIconHTML(app, 'w-4 h-4 object-contain', 'text-xs')}
+                    <span class="text-xs font-semibold text-slate-800 drop-shadow-sm truncate">${esc(app.name)}</span>`;
+            }
+            const body = w.element.children[1];
+            if (body) body.innerHTML = getAppBodyHTML(app);
+            updateTaskbar();
+        }
+
+        function addNewApp() {
+            const name = document.getElementById('new-app-name').value.trim();
+            const rawUrl = document.getElementById('new-app-url').value.trim();
+            const url = cleanUrl(rawUrl, 'url');
+            const rawIcon = document.getElementById('new-app-icon').value.trim();
+            const typedIcon = cleanIcon(rawIcon);
+            const mediaSel = document.getElementById('new-app-media').value;
+            const allowMedia = mediaSel === '1' ? true : mediaSel === '0' ? false : undefined;
+            const keepAlive = document.getElementById('new-app-keep').checked;
+            const autoIcon = defaultIconFor(url);
+            const icon = typedIcon || autoIcon || 'fa-solid fa-window-maximize';
+            const iconAuto = !typedIcon && !!autoIcon;
+            const category = document.getElementById('new-app-cat').value;
+            const onDesktop = document.getElementById('new-app-desktop').checked;
+            const inStart = document.getElementById('new-app-start').checked;
+            const openMode = document.getElementById('new-app-mode').value;
+
+            if (!name || !url) {
+                showToast(rawUrl ? 'Endereço não permitido. Use um arquivo .html ou http(s)://' : 'Informe o nome e o arquivo HTML ou URL.');
+                return;
+            }
+            if (rawIcon && !typedIcon) {
+                showToast('Ícone inválido.');
+                return;
+            }
+            if (!category && !onDesktop && !inStart) {
+                showToast('Escolha ao menos um local para o app.');
+                return;
+            }
+
+            let message = 'App adicionado';
+            const existing = editingAppId ? apps.find(a => a.id === editingAppId) : null;
+
+            if (existing) {
+                Object.assign(existing, { name: cleanText(name, 80), url, icon, iconAuto, category, onDesktop, inStart, openMode, allowMedia, keepAlive });
+                editingAppId = null;
+                message = 'Alterações salvas';
+                refreshOpenAppWindow(existing);
+            } else {
+                apps.push({
+                    id: newAppId(),
+                    name: cleanText(name, 80), url, icon, iconAuto, category,
+                    onDesktop, inStart, openMode, allowMedia, keepAlive,
+                    color: 'text-blue-600',
+                    isSystem: false
+                });
+            }
+
+            finishAppsChange(message);
+        }
+
+        function removeApp(appId) {
+            if (editingAppId === appId) editingAppId = null;
+            apps = apps.filter(a => a.id !== appId);
+            saveApps();
+            renderDesktopIcons();
+            renderStartMenuApps();
+            refreshCategoryPanel();
+
+            if (openWindows[appId]) {
+                closeWindow(appId, null);
+            }
+
+            const win = openWindows['appmanager'];
+            if (win) {
+                win.element.querySelector('.flex-1').innerHTML = renderAppManagerHTML();
+            }
+        }
+
+        function focusWindow(appId) {
+            if (!openWindows[appId]) return;
+            if (activeWindowId === appId && !openWindows[appId].minimized) return; // já em foco: evita reconstruir a barra a cada clique
+            activeWindowId = appId;
+            zIndexCounter++;
+            
+            Object.keys(openWindows).forEach(id => {
+                const w = openWindows[id].element;
+                if (id === appId) {
+                    w.style.zIndex = zIndexCounter;
+                    w.classList.remove('aero-window-inactive');
+                } else {
+                    w.classList.add('aero-window-inactive');
+                }
+            });
+
+            updateTaskbar();
+        }
+
+        function minimizeWindow(appId, e) {
+            if (e) e.stopPropagation();
+            if (!openWindows[appId]) return;
+            openWindows[appId].minimized = true;
+            openWindows[appId].minimizedAt = Date.now();
+            if (activeWindowId === appId) activeWindowId = null;
+            openWindows[appId].element.classList.add('win-minimized');
+            updateTaskbar();
+        }
+
+        function restoreWindow(appId) {
+            if (!openWindows[appId]) return;
+            openWindows[appId].minimized = false;
+            openWindows[appId].element.classList.remove('win-minimized');
+            if (openWindows[appId].unloaded) reloadApp(appId);
+            focusWindow(appId);
+        }
+
+        function toggleMaximize(appId, e) {
+            if (e) e.stopPropagation();
+            const winObj = openWindows[appId];
+            if (!winObj) return;
+
+            const win = winObj.element;
+            if (winObj.maximized) {
+                win.style.width = winObj.prevRect.width;
+                win.style.height = winObj.prevRect.height;
+                win.style.top = winObj.prevRect.top;
+                win.style.left = winObj.prevRect.left;
+                winObj.maximized = false;
+            } else {
+                winObj.prevRect = {
+                    width: win.style.width,
+                    height: win.style.height,
+                    top: win.style.top,
+                    left: win.style.left
+                };
+                win.style.top = '0px';
+                win.style.left = '0px';
+                win.style.width = '100vw';
+                win.style.height = 'calc(100vh - 48px)';
+                winObj.maximized = true;
+            }
+            const pr = winObj.prevRect || {};
+            saveWinPos(appId, { l: parseFloat(pr.left) || 0, t: parseFloat(pr.top) || 0, max: winObj.maximized });
+        }
+
+        function closeWindow(appId, e) {
+            if (e) e.stopPropagation();
+            if (!openWindows[appId]) return;
+            if (appId === 'appmanager') editingAppId = null;
+
+            const win = openWindows[appId].element;
+            win.classList.add('win-minimized');
+            setTimeout(() => {
+                win.remove();
+                delete openWindows[appId];
+                if (activeWindowId === appId) activeWindowId = null;
+                updateTaskbar();
+            }, 200);
+        }
+
+        function showDesktop() {
+            Object.keys(openWindows).forEach(id => {
+                minimizeWindow(id, null);
+            });
+        }
+
+        function updateTaskbar() {
+            const container = document.getElementById('taskbar-apps');
+            container.innerHTML = '';
+
+            Object.keys(openWindows).forEach(id => {
+                const app = apps.find(a => a.id === id);
+                if (!app) return;
+                const winObj = openWindows[id];
+                const isActive = activeWindowId === id && !winObj.minimized;
+
+                const item = document.createElement('button');
+                item.className = `h-9 px-3 rounded-md flex items-center gap-2 border transition text-xs font-medium text-slate-800 ${
+                    isActive ? 'taskbar-item-active' : 'bg-white/20 hover:bg-white/40 border-white/30'
+                }`;
+
+                item.onclick = () => {
+                    if (winObj.minimized) {
+                        restoreWindow(id);
+                    } else if (activeWindowId === id) {
+                        minimizeWindow(id, null);
+                    } else {
+                        focusWindow(id);
+                    }
+                };
+
+                const iconHTML = appIconHTML(app, 'w-4 h-4 object-contain', 'text-base');
+
+                item.innerHTML = `
+                    ${iconHTML}
+                    <span class="hidden sm:inline truncate max-w-[100px]">${esc(app.name)}</span>
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        function makeDraggable(element, header) {
+            const layer = document.getElementById('windows-layer');
+            const appId = element.id.replace(/^win-/, '');
+            let startX = 0, startY = 0, startL = 0, startT = 0, nextL = 0, nextT = 0, raf = 0, dragging = false, moved = false;
+
+            header.style.touchAction = 'none';
+
+            function apply() {
+                raf = 0;
+                element.style.left = nextL + 'px';
+                element.style.top = nextT + 'px';
+            }
+
+            header.addEventListener('pointerdown', (e) => {
+                if (e.button > 0 || e.target.closest('button')) return;
+                const w = openWindows[appId];
+                if (w && w.maximized) return;
+                dragging = true; moved = false;
+                startX = e.clientX; startY = e.clientY;
+                startL = element.offsetLeft; startT = element.offsetTop;
+                header.setPointerCapture(e.pointerId);
+                layer.classList.add('dragging');
+            });
+
+            header.addEventListener('pointermove', (e) => {
+                if (!dragging) return;
+                const maxL = window.innerWidth - 80;
+                const maxT = window.innerHeight - 48 - 32;
+                moved = true;
+                nextL = Math.min(maxL, Math.max(80 - element.offsetWidth, startL + e.clientX - startX));
+                nextT = Math.min(maxT, Math.max(0, startT + e.clientY - startY));
+                if (!raf) raf = requestAnimationFrame(apply);
+            });
+
+            function endDrag(e) {
+                if (!dragging) return;
+                dragging = false;
+                if (raf) { cancelAnimationFrame(raf); apply(); }
+                if (moved) saveWinPos(appId, { l: nextL, t: nextT, max: false });
+                layer.classList.remove('dragging');
+                try { header.releasePointerCapture(e.pointerId); } catch (_) {}
+            }
+            header.addEventListener('pointerup', endDrag);
+            header.addEventListener('pointercancel', endDrag);
+        }
+
+        function changeBg(url) { setWallpaper(url); }
+
+        function exitSession() {
+            endSession();
+            closeStartMenu();
+            closeCategoryPanel();
+            Object.keys(openWindows).forEach(id => closeWindow(id, null));
+
+            if (document.fullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+
+            const landing = document.getElementById('landing-screen');
+            const osContainer = document.getElementById('main-os-container');
+
+            osContainer.classList.add('hidden');
+            landing.classList.remove('hidden');
+            setTimeout(() => {
+                landing.classList.remove('opacity-0');
+            }, 50);
+        }
+    </script>
+</body>
+</html>
