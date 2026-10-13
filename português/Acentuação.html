@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Acentuação Gráfica</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Oswald:wght@500;700&display=swap');
+:root{--gold:linear-gradient(135deg,#fff1a8,#f5c542 25%,#a97a10 50%,#ffe28a 75%,#c9971c);--base:#0b1224;--tint:rgba(56,189,248,.30);--neon:#22d3ee;--panel:#0b1224;--bg:linear-gradient(160deg,#0f172a,#1e293b)}
+*{box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;font-family:'Oswald',sans-serif;color:#f1f5f9;background:var(--bg);background-attachment:fixed}
+body{display:flex;flex-direction:column}
+button{font-family:inherit;color:inherit;cursor:pointer}
+.gold{border:3px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,var(--gold) border-box}
+.digital{font-family:'Chakra Petch',monospace}
+/* topo */
+header{height:60px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-width:0 0 4px;border-radius:0 0 18px 18px;box-shadow:0 0 18px rgba(245,197,66,.55),0 6px 14px rgba(0,0,0,.5);z-index:10;background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 50%) padding-box,linear-gradient(var(--base),var(--base)) padding-box,var(--gold) border-box}
+header nav{display:flex;gap:14px;font-weight:700;font-size:14px;letter-spacing:.06em;color:#ffd75e;text-shadow:0 0 8px rgba(245,197,66,.7)}
+header nav button{background:none;border:0;padding:6px 2px;font-weight:700;font-size:14px;color:#ffd75e}
+.sc{font-weight:700;font-size:13px;display:flex;gap:4px;align-items:center}.sc b{font-size:20px}
+/* teclas de vidro */
+.kiosk-btn{position:relative;overflow:hidden;border:3px solid transparent;border-radius:18px;font-weight:700;font-size:clamp(2rem,11vw,3.4rem);display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.7),0 0 12px rgba(255,255,255,.5);
+background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.06) 49%,rgba(0,0,0,.2) 51%,var(--tint)) padding-box,linear-gradient(var(--base),var(--base)) padding-box,var(--gold) border-box;
+box-shadow:0 0 14px rgba(245,197,66,.5),0 5px 9px rgba(0,0,0,.55),inset 0 2px 3px rgba(255,255,255,.55);transition:transform .05s,filter .05s}
+.kiosk-btn:active,.round:active{transform:translateY(2px) scale(.95);filter:brightness(1.35)}
+.kiosk-btn-blank{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(0,0,0,.35)) padding-box,linear-gradient(var(--base),var(--base)) padding-box,var(--gold) border-box;border-style:dashed}
+.round{width:46px;height:46px;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;position:absolute;top:6px;border:3px solid transparent;color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,.05) 50%,var(--tint)) padding-box,linear-gradient(var(--base),var(--base)) padding-box,var(--gold) border-box;box-shadow:0 0 12px rgba(245,197,66,.5),inset 0 2px 3px rgba(255,255,255,.5)}
+/* palavra neon */
+#word-display{font-family:'Chakra Petch',sans-serif;font-weight:700;text-transform:uppercase;text-align:center;letter-spacing:.08em;line-height:1.1;padding:0 8px;font-size:clamp(2.2rem,12.5vw,4.5rem);cursor:pointer;--n:var(--neon);color:#fff;
+text-shadow:0 0 4px #fff,0 0 12px var(--n),0 0 26px var(--n),0 0 50px var(--n),0 0 90px var(--n);animation:pulse 1.5s ease-in-out infinite}
+#word-display.ok{--n:#00ff88;color:#eafff4;animation:pop .6s ease-out,pulse 1s ease-in-out .6s infinite}
+#word-display.bad{--n:#ff1744;color:#fff0f2;animation:shake .5s,pulse 1s ease-in-out .5s infinite}
+@keyframes pulse{0%,100%{opacity:1;filter:brightness(1.15)}50%{opacity:.78;filter:brightness(.85)}54%{opacity:.55}58%{opacity:.9}}
+@keyframes pop{0%{transform:scale(.7)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-14px)}30%,60%,90%{transform:translateX(14px)}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30;opacity:0}
+#fx.g{background:radial-gradient(circle,rgba(0,255,136,.55),rgba(0,255,136,.2) 60%,transparent);box-shadow:inset 0 0 130px 45px #00ff88;animation:fx .9s ease-out}
+#fx.r{background:radial-gradient(circle,rgba(255,23,68,.55),rgba(255,23,68,.2) 60%,transparent);box-shadow:inset 0 0 130px 45px #ff1744;animation:fx .9s ease-out}
+@keyframes fx{0%{opacity:0}10%{opacity:1}100%{opacity:0}}
+#fb{height:30px;text-align:center;font-weight:700;font-size:16px;opacity:0;transition:opacity .2s;padding:0 8px}
+#fb.ok{color:#00ff88;text-shadow:0 0 10px #00ff88}#fb.bad{color:#ff4d6d;text-shadow:0 0 10px #ff1744}
+/* modais */
+.modal{position:fixed;inset:0;background:rgba(2,6,23,.85);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+.modal.on{display:flex}
+.box{width:100%;max-width:420px;max-height:88%;display:flex;flex-direction:column;border-radius:20px;padding:14px;box-shadow:0 0 22px rgba(245,197,66,.55)}
+.box h2{margin:0 0 8px;color:#ffd75e;font-size:20px;text-shadow:0 0 8px rgba(245,197,66,.6)}
+.scroll{overflow-y:auto;display:flex;flex-direction:column;gap:8px;font-size:14px;color:#cbd5e1}
+.row{display:flex;align-items:center;gap:8px;padding:10px;border-radius:12px;text-align:left;width:100%;font-size:16px}
+.row.sel{box-shadow:0 0 14px var(--neon),inset 0 0 10px rgba(34,211,238,.35)}
+.btn{border-radius:12px;padding:10px;font-weight:700;font-size:15px;color:#ffd75e}
+.tabs{display:flex;gap:8px;margin-bottom:8px}.tabs .btn{flex:1}.tabs .btn.on{box-shadow:0 0 12px var(--neon)}
+input,textarea{width:100%;background:#020617;color:#fff;border:2px solid #a97a10;border-radius:10px;padding:8px;font-size:15px;font-family:inherit;user-select:text;-webkit-user-select:text}
+.x{position:absolute;top:8px;right:14px;background:none;border:0;font-size:28px;color:#94a3b8}
+details.tp{border-radius:12px;padding:0}details.tp>summary{list-style:none;padding:12px;font-weight:700;font-size:16px;color:#ffd75e;display:flex;gap:8px;align-items:center;cursor:pointer}details.tp>summary::-webkit-details-marker{display:none}details.tp[open]>summary .chv{transform:rotate(90deg)}.chv{transition:transform .2s;font-size:12px}
+.tpb{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}.para{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.06);line-height:1.45;color:#e2e8f0;cursor:pointer}.para.talk{box-shadow:0 0 12px var(--neon);background:rgba(34,211,238,.15)}.para i{color:#ffd75e;margin-right:6px;font-size:12px}
+#toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:60;padding:8px 16px;border-radius:14px;font-weight:700;opacity:0;transition:opacity .25s;pointer-events:none}
+#rot{display:none;position:fixed;inset:0;z-index:100;background:#020617;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+@media(orientation:landscape) and (max-height:600px){#rot{display:flex}}
+@media(prefers-reduced-motion:reduce){#word-display{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="rot"><i class="fa-solid fa-mobile-screen-button" style="font-size:40px;color:#22d3ee"></i><p style="font-size:18px;font-weight:700">Gire o aparelho para a posição vertical</p></div>
+<div id="fx"></div><div id="toast" class="gold"></div>
+
+<header>
+ <div class="sc" style="color:#34d399">ACERTOS: <b id="sc-ok" class="digital">0</b></div>
+ <nav><button id="b-lista">LISTA</button><button id="b-fs"><i id="fs-i" class="fa-solid fa-expand" style="font-size:11px"></i> SAIR</button><button id="b-regras">REGRAS</button></nav>
+ <div class="sc" style="color:#fb7185">ERROS: <b id="sc-bad" class="digital">0</b></div>
+</header>
+
+<main id="main" style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;width:100%;position:relative">
+ <div style="flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;min-height:90px">
+  <button id="b-theme" class="round" style="left:10px" title="Trocar estilo"><i class="fa-solid fa-palette"></i></button>
+  <button id="b-speak" class="round" style="right:10px" title="Ouvir"><i class="fa-solid fa-volume-high"></i></button>
+  <div id="word-display">INICIAR</div>
+  <div id="fb">&nbsp;</div>
+ </div>
+ <div style="width:100%;max-width:380px;flex:1.6;min-height:0;display:flex;flex-direction:column;padding:0 10px max(4px,env(safe-area-inset-bottom))">
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,minmax(0,1fr));gap:10px">
+   <button class="kiosk-btn key" data-c="Â">Â</button><button class="kiosk-btn key" data-c="Ã">Ã</button><button class="kiosk-btn key" data-c="Á">Á</button>
+   <button class="kiosk-btn key" data-c="É">É</button><button class="kiosk-btn key" data-c="Ê">Ê</button><button class="kiosk-btn key" data-c="Í">Í</button>
+   <button class="kiosk-btn kiosk-btn-blank key" data-c="SEM_ACENTO" aria-label="Sem acento"></button><button class="kiosk-btn key" data-c="Ú">Ú</button><button class="kiosk-btn key" data-c="Ü">Ü</button>
+   <button class="kiosk-btn key" data-c="Ô">Ô</button><button class="kiosk-btn key" data-c="Õ">Õ</button><button class="kiosk-btn key" data-c="Ó">Ó</button>
+  </div>
+  <div style="text-align:center;padding-top:6px"><span id="media" class="digital" style="font-size:20px;font-weight:700;color:#ef4444;text-shadow:0 0 8px rgba(239,68,68,.6)">Média: 0%</span></div>
+ </div>
+</main>
+
+<div id="m-regras" class="modal"><div class="box gold" style="position:relative"><button class="x close">&times;</button><h2>REGRAS DE ACENTUAÇÃO</h2>
+<p style="margin:0 0 8px;font-size:12px;color:#94a3b8">Toque num tópico para abrir. Toque em um trecho para ouvir.</p>
+<div id="rules" class="scroll"></div></div></div>
+
+<div id="m-lista" class="modal"><div class="box gold" style="position:relative"><button class="x close">&times;</button><h2>LISTAS DE PALAVRAS</h2>
+ <div class="tabs"><button class="btn gold on" id="t-listas">Listas</button><button class="btn gold" id="t-hist">Histórico</button></div>
+ <div id="p-listas" class="scroll"></div>
+ <div id="p-hist" class="scroll" style="display:none"></div>
+ <button id="b-imp" class="btn gold" style="margin-top:10px"><i class="fa-solid fa-file-import"></i> IMPORTAR LISTA</button>
+</div></div>
+
+<div id="m-imp" class="modal"><div class="box gold" style="position:relative"><button class="x close">&times;</button><h2>IMPORTAR LISTA</h2><div class="scroll">
+ <input id="i-nome" placeholder="Nome da lista" maxlength="30">
+ <textarea id="i-txt" rows="7" placeholder="Uma palavra por linha.&#10;Regra opcional após | &#10;Ex.: CAFÉ | Oxítona em E"></textarea>
+ <input id="i-file" type="file" accept=".txt,.csv" style="font-size:13px">
+ <button id="i-save" class="btn gold">SALVAR LISTA</button></div></div></div>
+
+<script>
+const BASE={'Â':'A','Ã':'A','Á':'A','É':'E','Ê':'E','Í':'I','Ú':'U','Ü':'U','Ô':'O','Õ':'O','Ó':'O'};
+const RULES={OX:'Oxítona terminada em A, E, O, EM, ENS',P:'Toda proparoxítona é acentuada',T:'Til: sinal de nasalidade',D:'Paroxítona terminada em ditongo',H:'Hiato com I/U tônico',L:'Paroxítona terminada em L, R, N, X, I, IS, US, PS, UM',U:'Trema em nome próprio',
+S1:'Paroxítona terminada em A, E, O: sem acento',S2:'Oxítona sem acento (L, R, Z, IM…)',EN:'Paroxítona terminada em EM/ENS: sem acento',
+DO:'Ditongo aberto (éu, éi, ói) em oxítona',DF:'Acento diferencial',A9:'Acordo de 1990: sem acento',EE:'Hiato EE/OO: sem acento',Z:'Hiato com I/U tônico + Z: sem acento',PX:'Proparoxítona (ditongo final) é acentuada'};
+function mk(full,rule){const t=[...full].find(c=>BASE[c]);return{full,targetChar:t||'SEM_ACENTO',unaccented:t?full.replace(t,BASE[t]):full,rule:rule||(t?'Leva acento em '+t:'Palavra sem acento gráfico')}}
+const codes=s=>s.trim().split(/\s+/).map(p=>{const[w,c]=p.split(':');return mk(w,RULES[c])});
+const BUILT=[
+{id:'padrao',name:'Padrão',words:codes('CAFÉ:OX LÂMPADA:P CORAÇÃO:T ÁGUA:D AVÔ:OX AVÓ:OX SAÍDA:H BAÚ:H ÔNIBUS:P LIMÃO:T PÊSSEGO:P MÚSICA:P MÜLLER:U PÁTIO:D SABÃO:T ÂMBAR:L PAPEL:S2 MESA:S1 CARRO:S1 COMPUTADOR:S2 LIVRO:S1 CANETA:S1 PORTAL:S2 GATO:S1')},
+{id:'facil',name:'Fácil (dia a dia)',words:codes('CAFÉ:OX SOFÁ:OX JACARÉ:OX VOCÊ:OX BEBÊ:OX AVIÃO:T LIMÃO:T FEIJÃO:T MAÇÃ:T MÃE:T ÁRVORE:P MÚSICA:P LÂMPADA:P MÉDICO:P ÔNIBUS:P ÁGUA:D HISTÓRIA:D TÁXI:L LÁPIS:L FÁCIL:L ÚTIL:L ÁLBUM:L PAÍS:H SAÚDE:H BAÚ:H CASA:S1 MESA:S1 CARRO:S1 LIVRO:S1 ESCOLA:S1 AMIGO:S1 CIDADE:S1 BANANA:S1 TELEFONE:S1 COMPUTADOR:S2 HOTEL:S2 AZUL:S2 BRASIL:S2 JARDIM:S2 ONTEM:EN')},
+{id:'dificil',name:'Difícil (vestibular)',words:codes('ÁGUIA:D HÍFEN:L TÓRAX:L LÁTEX:L REPÓRTER:L CÂNCER:L ÔNUS:L BÔNUS:L VÍRUS:L BÍCEPS:L TÊNIS:L JÚRI:L BIQUÍNI:L ÓBVIO:D MÁGOA:D ÁRDUO:D SUBSÍDIO:D CONSCIÊNCIA:D PACIÊNCIA:D EXPERIÊNCIA:D PRÊMIO:PX ESPÉCIE:PX PARÂMETRO:P ARQUIPÉLAGO:P ESTÔMAGO:P HIPÓTESE:P SÍNDROME:P PERÍODO:P FENÔMENO:P ECONÔMICO:P AÇÚCAR:L ÁLCOOL:L PÓLEN:L ARMAZÉM:OX PARABÉNS:OX REFÉM:OX HERÓI:DO CHAPÉU:DO PAPÉIS:DO TROFÉU:DO CROCHÊ:OX MARACUJÁ:OX PÔR:DF TÊM:DF CAFEÍNA:H EGOÍSTA:H JUÍZO:H AÇAÍ:H RUÍNA:H CORAÇÕES:T LIMÕES:T CIDADÃOS:T IDEIA:A9 ASSEMBLEIA:A9 JIBOIA:A9 HEROICO:A9 PARANOIA:A9 ESTREIA:A9 VOO:EE ENJOO:EE CREEM:EE LEEM:EE VEEM:EE FEIURA:A9 RAIZ:Z JUIZ:Z GRATUITO:A9 FORTUITO:A9 POR:DF PARA:A9 HIFENS:EN JOVENS:EN ORIGENS:EN NUVEM:EN')}];
+/* ----- temas: [nome, fundo, vidro, base, neon] ----- */
+const THEMES=[
+['Meia-noite','linear-gradient(160deg,#0f172a,#1e293b)','rgba(56,189,248,.30)','#0b1224','#22d3ee'],
+['Aurora','linear-gradient(160deg,#042f2e,#312e81 70%,#4c1d95)','rgba(45,212,191,.32)','#06201f','#5eead4'],
+['Esmeralda','radial-gradient(circle at 50% 20%,#065f46,#022c22 75%)','rgba(52,211,153,.32)','#03251b','#34d399'],
+['Rubi','radial-gradient(circle at 50% 20%,#7f1d1d,#2a0808 75%)','rgba(251,113,133,.32)','#2a0a0e','#fb7185'],
+['Safira','linear-gradient(180deg,#1e3a8a,#0b1230)','rgba(96,165,250,.34)','#0a1536','#60a5fa'],
+['Ametista','radial-gradient(circle at 50% 20%,#581c87,#1e0836 75%)','rgba(192,132,252,.34)','#1b0a30','#c084fc'],
+['Âmbar','linear-gradient(160deg,#78350f,#1c1002)','rgba(251,191,36,.30)','#241503','#fbbf24'],
+['Oceano','linear-gradient(180deg,#0e7490,#082f49 60%,#020617)','rgba(103,232,249,.30)','#04202e','#67e8f9'],
+['Grafite','linear-gradient(160deg,#27272a,#09090b)','rgba(228,228,231,.26)','#111113','#e4e4e7'],
+['Synthwave','linear-gradient(180deg,#2e1065,#831843 70%,#be185d)','rgba(244,114,182,.34)','#250a2e','#f472b6']];
+/* ----- persistência ----- */
+const KEY='acentuacao_v2';
+let S={theme:0,list:'padrao',custom:[],ok:0,bad:0,hist:[]};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const allLists=()=>BUILT.concat(S.custom);
+let words=[],idx=0,started=false,busy=false,missed=false;
+function useList(id){const l=allLists().find(x=>x.id===id)||BUILT[0];S.list=l.id;words=l.words.slice();started=false;busy=false;setWord('INICIAR','');$('fb').style.opacity=0;save();return l}
+function applyTheme(){const t=THEMES[S.theme%10],r=document.documentElement.style;r.setProperty('--bg',t[1]);r.setProperty('--tint',t[2]);r.setProperty('--base',t[3]);r.setProperty('--panel',t[3]);r.setProperty('--neon',t[4])}
+function toast(m){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,1400)}
+/* ----- jogo ----- */
+function setWord(t,c){const w=$('word-display');w.textContent=t;w.className=c;void w.offsetWidth}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}}
+function updScore(){$('sc-ok').textContent=S.ok;$('sc-bad').textContent=S.bad;const t=S.ok+S.bad;$('media').textContent='Média: '+(t?Math.round(S.ok/t*100):0)+'%'}
+function tone(ok){try{const A=tone.a||(tone.a=new(window.AudioContext||window.webkitAudioContext)());A.resume();const o=A.createOscillator(),g=A.createGain();o.connect(g);g.connect(A.destination);const n=A.currentTime;o.type=ok?'sine':'sawtooth';o.frequency.setValueAtTime(ok?523:220,n);o.frequency.exponentialRampToValueAtTime(ok?880:110,n+.25);g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.01,n+.25);o.start();o.stop(n+.25)}catch(e){}}
+function speak(w){if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(w.toLowerCase());u.lang='pt-BR';u.rate=.85;speechSynthesis.speak(u)}
+function fx(c){const f=$('fx');f.className='';void f.offsetWidth;f.className=c}
+function load(){if(idx>=words.length){shuffle(words);idx=0}busy=false;missed=false;const it=words[idx];setWord(it.unaccented,'');$('fb').style.opacity=0;speak(it.full)}
+function guess(c){
+ if(!started){started=true;shuffle(words);idx=0;load();return}
+ if(busy)return;busy=true;const it=words[idx],ok=c===it.targetChar,fb=$('fb');
+ S[ok?'ok':'bad']++;tone(ok);fx(ok?'g':'r');fb.style.opacity=1;
+ if(ok){setWord(it.full,'ok');fb.className='ok';fb.textContent='CORRETO! '+it.rule;
+  S.hist.push({w:it.full,ok:!missed,r:it.rule});if(S.hist.length>300)S.hist.shift();
+  setTimeout(()=>{idx++;load()},1400)}
+ else{missed=true;if(navigator.vibrate)navigator.vibrate([120,60,120]);setWord(it.unaccented,'bad');fb.className='bad';fb.textContent='INCORRETO! Tente novamente';
+  setTimeout(()=>{busy=false;setWord(it.unaccented,'');fb.style.opacity=0},1000)}
+ save();updScore()}
+document.querySelectorAll('.key').forEach(b=>b.onclick=()=>guess(b.dataset.c));
+$('word-display').onclick=()=>started?speak(words[idx].full):guess();
+$('b-speak').onclick=()=>started&&speak(words[idx].full);
+$('b-theme').onclick=()=>{S.theme=(S.theme+1)%10;applyTheme();save();toast((S.theme+1)+'/10 · '+THEMES[S.theme][0])};
+/* ----- listas ----- */
+function renderListas(){const p=$('p-listas');p.innerHTML='';allLists().forEach((l,i)=>{const r=document.createElement('div');r.style.cssText='display:flex;gap:6px';
+ const b=document.createElement('button');b.className='row gold'+(l.id===S.list?' sel':'');b.innerHTML=`<i class="fa-solid ${l.id===S.list?'fa-circle-check':'fa-circle'}" style="color:#ffd75e"></i><span style="flex:1">${l.name.replace(/</g,'&lt;')}</span><small style="color:#94a3b8">${l.words.length} palavras</small>`;
+ b.onclick=()=>{useList(l.id);$('m-lista').classList.remove('on');toast('Lista: '+l.name)};r.appendChild(b);
+ if(i>=BUILT.length){const d=document.createElement('button');d.className='btn gold';d.innerHTML='<i class="fa-solid fa-trash"></i>';d.onclick=()=>{if(confirm('Excluir "'+l.name+'"?')){S.custom=S.custom.filter(x=>x.id!==l.id);if(S.list===l.id)useList('padrao');save();renderListas()}};r.appendChild(d)}
+ p.appendChild(r)});
+ if(!S.custom.length){const n=document.createElement('p');n.style.cssText='font-size:12px;color:#94a3b8;margin:2px';n.textContent='Suas listas importadas aparecem aqui, abaixo da lista padrão.';p.appendChild(n)}}
+function renderHist(){const p=$('p-hist');p.innerHTML='';const z=document.createElement('button');z.className='btn gold';z.textContent='ZERAR PLACAR E HISTÓRICO';z.onclick=()=>{if(confirm('Zerar placar e histórico?')){S.ok=S.bad=0;S.hist=[];save();updScore();renderHist()}};p.appendChild(z);
+ if(!S.hist.length){p.insertAdjacentHTML('beforeend','<p style="font-style:italic">Nenhuma palavra jogada ainda.</p>');return}
+ S.hist.slice().reverse().forEach(h=>p.insertAdjacentHTML('beforeend',`<div class="row gold" style="font-size:14px;padding:6px 10px"><b style="flex:1">${h.w}</b><span style="color:${h.ok?'#34d399':'#fb7185'}">${h.ok?'Acerto':'Erro'}</span></div>`))}
+function tab(h){$('p-listas').style.display=h?'none':'flex';$('p-hist').style.display=h?'flex':'none';$('t-listas').classList.toggle('on',!h);$('t-hist').classList.toggle('on',h);h?renderHist():renderListas();$('b-imp').style.display=h?'none':''}
+$('b-lista').onclick=()=>{tab(false);$('m-lista').classList.add('on')};
+$('t-listas').onclick=()=>tab(false);$('t-hist').onclick=()=>tab(true);
+$('b-regras').onclick=()=>$('m-regras').classList.add('on');
+$('b-imp').onclick=()=>{$('m-lista').classList.remove('on');$('m-imp').classList.add('on')};
+document.querySelectorAll('.close').forEach(b=>b.onclick=()=>{stopTalk();document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on'))});
+$('i-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('i-txt').value=r.result;if(!$('i-nome').value)$('i-nome').value=f.name.replace(/\.\w+$/,'')};r.readAsText(f)};
+$('i-save').onclick=()=>{const nome=$('i-nome').value.trim(),seen=new Set(),out=[];
+ if(!nome)return toast('Dê um nome à lista');
+ $('i-txt').value.split(/\r?\n/).forEach(l=>{const parts=/[|;\t]/.test(l)?[l]:l.split(',');parts.forEach(p=>{const[w,...r]=p.split(/[|;\t]/);const W=(w||'').trim().toLocaleUpperCase('pt-BR');if(W&&/^[\p{L}\- ]+$/u.test(W)&&!seen.has(W)){seen.add(W);out.push(mk(W,r.join(' ').trim()))}})});
+ if(!out.length)return toast('Nenhuma palavra válida');
+ S.custom.push({id:'c'+Date.now(),name:nome,words:out});save();$('i-nome').value=$('i-txt').value='';$('m-imp').classList.remove('on');toast(out.length+' palavras importadas');tab(false);$('m-lista').classList.add('on')};
+
+const BOOK=[
+['Sílaba tônica e classificação',['Sílaba tônica é a sílaba pronunciada com mais força na palavra. Para acentuar, primeiro separe as sílabas e descubra qual é a tônica.','Oxítona: a tônica é a última sílaba. Exemplos: café, papel, jardim.','Paroxítona: a tônica é a penúltima sílaba. Exemplos: casa, fácil, lápis.','Proparoxítona: a tônica é a antepenúltima sílaba. Exemplos: música, lâmpada, árvore.','Atenção: palavra sem acento gráfico também tem sílaba tônica. O acento só aparece quando a regra exige.']],
+['Oxítonas',['Acentuam-se as oxítonas terminadas em A, E ou O, seguidas ou não de S. Exemplos: sofá, café, cipó, vocês, avôs.','Também se acentuam as terminadas em EM e ENS. Exemplos: armazém, também, parabéns, reféns.','Oxítonas terminadas em outras letras não levam acento. Exemplos: papel, jardim, comprador, azul, hotel.','Importante: as terminadas em I ou U, como aqui, tatu e urubu, não são acentuadas, a menos que haja hiato.']],
+['Paroxítonas',['Acentuam-se as paroxítonas terminadas em L, N, R, X e PS. Exemplos: fácil, hífen, revólver, tórax, bíceps.','Também as terminadas em I ou IS, e em US. Exemplos: júri, táxi, lápis, vírus, bônus.','Também as terminadas em UM e UNS. Exemplos: álbum, álbuns, fórum.','Também as terminadas em Ã, ÃS, ÃO e ÃOS. Exemplos: ímã, órfã, órgão, bênção.','Também as terminadas em ditongo oral. Exemplos: história, água, jóquei, mágoa, ágeis.','Não se acentuam as paroxítonas terminadas em A, E, O, AS, ES, OS, EM e ENS. Exemplos: casa, mesa, carro, jovem, jovens, origens.','Dica: palavras como série, espécie, prêmio e árduo parecem proparoxítonas, mas são paroxítonas terminadas em ditongo. Por isso levam acento.']],
+['Proparoxítonas',['Todas as proparoxítonas são acentuadas, sem exceção.','Exemplos: música, lâmpada, médico, árvore, pêssego, ônibus, estômago, parâmetro, hipótese.','O acento será agudo ou circunflexo conforme o timbre da vogal tônica: aberta recebe agudo, fechada recebe circunflexo.']],
+['Monossílabos tônicos',['Monossílabos tônicos são palavras de uma sílaba pronunciadas com força, como pá, pé, nó e mês.','Acentuam-se os terminados em A, E ou O, seguidos ou não de S. Exemplos: já, pá, pé, lê, dó, nós, pôs, mês.','Não se acentuam os demais, como sol, mar, paz, bom, luz, mel e pai.','Monossílabos átonos, como o, a, de, me, te e que, nunca são acentuados.']],
+['Ditongos abertos: éi, éu e ói',['Os ditongos abertos ÉI, ÉU e ÓI são acentuados quando estão em palavras oxítonas ou monossílabas tônicas.','Exemplos: chapéu, troféu, céu, papéis, anéis, herói, dói, corrói.','Desde o Acordo de 1990, nas paroxítonas esse acento caiu. Exemplos: ideia, assembleia, estreia, jiboia, heroico, paranoia, alcaloide.','Cuidado: a palavra herói é oxítona e leva acento, mas heroico é paroxítona e não leva.']],
+['Hiatos com I e U',['Hiato é o encontro de duas vogais que ficam em sílabas separadas, como sa-í-da e ba-ú.','Acentuam-se o I e o U tônicos quando formam hiato com a vogal anterior e estão sozinhos na sílaba ou seguidos apenas de S. Exemplos: saída, país, baú, saúde, juízo, egoísta, cafeína, ruína.','Não se acentuam quando seguidos de outra consoante, como em raiz, juiz, paul, ruim, cairmos e contribuinte.','Não se acentuam quando seguidos de NH, como em rainha, bainha e moinho.','Desde 1990, também não se acentua o I ou o U tônico depois de ditongo. Exemplos: feiura, baiuca, bocaiuva.','Os hiatos EE e OO também não levam acento. Exemplos: voo, enjoo, creem, leem, veem, deem.']],
+['Til e nasalidade',['O til indica que a vogal é nasal. Exemplos: maçã, mão, pão, põe, limões.','Quando a sílaba tônica já tem til, não se coloca outro acento nela. Exemplos: coração, irmã, avião, mãe.','O til também pode estar na sílaba átona, mas a palavra ainda precisa seguir as regras de acentuação. Exemplos: órfão, órgão, bênção, que levam acento na tônica e til na final.','O til só aparece sobre as letras A e O, como em ã e õ.']],
+['Agudo ou circunflexo?',['O acento agudo indica vogal tônica aberta: á, é, í, ó, ú. Exemplos: sofá, café, avó, música.','O acento circunflexo indica vogal tônica fechada: â, ê, ô. Exemplos: lâmpada, você, avô, pêssego.','Por isso avó, com som aberto, e avô, com som fechado, têm sentidos diferentes.','As vogais I e U só recebem acento agudo. Não existe î nem û na acentuação do português.','Antes de M ou N, a vogal tônica costuma ser fechada e recebe circunflexo. Exemplos: cômodo, fêmur, ânimo, bônus.']],
+['Acento diferencial',['O acento diferencial distingue palavras iguais na escrita, mas diferentes no sentido.','Pôr, o verbo, leva acento, e por, a preposição, não leva. Exemplo: Vou pôr o livro por cima da mesa.','Tem, no singular, não leva acento, e têm, no plural, leva circunflexo. Exemplo: Ela tem um livro, elas têm dois livros.','Vem e vêm seguem a mesma regra. Também contém e contêm, mantém e mantêm, convém e convêm, detém e detêm.','Pode, no presente, não leva acento. Pôde, no passado, pode levar. Esse acento é facultativo.','Fôrma, de bolo, também é facultativo, para distinguir de forma.','Perderam o acento diferencial: para, pelo, pela, polo, coa e pera.']],
+['O que mudou em 1990',['O Acordo Ortográfico, em vigor no Brasil desde 2009 e obrigatório desde 2016, mudou algumas regras de acentuação.','O trema foi abolido das palavras do português. Escreve-se linguiça, frequência, tranquilo e cinquenta.','O trema permanece apenas em nomes próprios estrangeiros e seus derivados, como Müller.','Os ditongos abertos ÉI e ÓI perderam o acento nas paroxítonas: ideia, jiboia, heroico.','Os hiatos EE e OO perderam o acento: voo, enjoo, creem, leem.','Perdeu acento o I ou U tônico depois de ditongo: feiura.','Perdeu acento o diferencial em para, pelo, polo e coa.']],
+['Macetes para a prova',['Passo um: separe a palavra em sílabas e descubra a tônica.','Passo dois: classifique a palavra em oxítona, paroxítona ou proparoxítona.','Passo três: se for proparoxítona, acentue sempre.','Passo quatro: se for oxítona, observe o final. Acentue se terminar em A, E, O, EM ou ENS.','Passo cinco: se for paroxítona, observe o final. Acentue se terminar em L, N, R, X, PS, I, IS, US, UM, UNS, Ã, ÃO ou em ditongo.','Passo seis: confira os casos especiais, como hiatos, ditongos abertos, monossílabos e acento diferencial.','Lembre-se: na dúvida entre acentuar e não acentuar, a tecla vazia significa sem acento.']]
+];
+let talkTok=0;
+function stopTalk(){talkTok++;try{speechSynthesis.cancel()}catch(e){}document.querySelectorAll('.para.talk').forEach(e=>e.classList.remove('talk'))}
+function talk(list){stopTalk();const tok=talkTok;if(!('speechSynthesis' in window))return toast('Voz indisponível');
+ list.forEach(({el,t})=>{const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=.95;u.onstart=()=>{if(tok===talkTok){el.classList.add('talk');el.scrollIntoView({block:'nearest',behavior:'smooth'})}};u.onend=u.onerror=()=>el.classList.remove('talk');speechSynthesis.speak(u)})}
+function renderRules(){const box=$('rules');BOOK.forEach(([title,ps],i)=>{const d=document.createElement('details');d.className='tp gold';
+ d.innerHTML=`<summary><i class="fa-solid fa-chevron-right chv"></i><span style="flex:1">${i+1}. ${title}</span></summary><div class="tpb"></div>`;
+ const body=d.querySelector('.tpb'),items=[];
+ const all=document.createElement('button');all.className='btn gold';all.innerHTML='<i class="fa-solid fa-volume-high"></i> OUVIR TÓPICO COMPLETO';body.appendChild(all);
+ ps.forEach((t,k)=>{const p=document.createElement('div');p.className='para';p.innerHTML='<i class="fa-solid fa-volume-low"></i>'+t;items.push({el:p,t});p.onclick=()=>talk([{el:p,t}]);body.appendChild(p)});
+ all.onclick=()=>talk(items);
+ d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('details.tp[open]').forEach(o=>{if(o!==d)o.open=false});else stopTalk()});
+ box.appendChild(d)})}
+renderRules();
+/* ----- tela cheia e retrato ----- */
+$('b-fs').onclick=()=>{const d=document,e=d.documentElement;if(!d.fullscreenElement&&!d.webkitFullscreenElement)(e.requestFullscreen||e.webkitRequestFullscreen).call(e);else(d.exitFullscreen||d.webkitExitFullscreen).call(d)};
+function fsIcon(){$('fs-i').className='fa-solid '+((document.fullscreenElement||document.webkitFullscreenElement)?'fa-compress':'fa-expand')}
+function lock(){try{screen.orientation.lock('portrait').catch(()=>{})}catch(e){}}
+['fullscreenchange','webkitfullscreenchange'].forEach(v=>document.addEventListener(v,()=>{fsIcon();lock()}));
+document.addEventListener('click',lock,{once:true});
+/* ----- início ----- */
+applyTheme();useList(S.list);updScore();lock();
+</script>
+</body>
+</html>

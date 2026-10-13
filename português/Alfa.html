@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="w-full h-full m-0 p-0 overflow-hidden bg-black select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alfabetização Infantil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --yellow-border: #E2EC30;
+            --magenta-frame: #D000C0;
+            --green-display: #008811;
+        }
+
+        body {
+            font-family: Arial, Helvetica, "Trebuchet MS", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Moldura e Bordas exatas da imagem */
+        .border-yellow-grid {
+            border: 2px solid #D2E000;
+        }
+
+        .magenta-neon-border {
+            border: 6px solid #D000C0;
+            box-shadow: 0 0 12px #D000C0;
+        }
+
+        /* Gradientes cilíndricos fiéis à foto */
+        .gradient-red {
+            background: linear-gradient(180deg, #8A0000 0%, #D30000 35%, #FF2A2A 50%, #B80000 70%, #520000 100%);
+        }
+
+        .gradient-blue {
+            background: linear-gradient(180deg, #001A75 0%, #003CD3 35%, #1A6CFF 50%, #0031B8 70%, #000E52 100%);
+        }
+
+        .gradient-yellow {
+            background: linear-gradient(180deg, #7A7200 0%, #D3C200 35%, #FFF02A 50%, #B8A800 70%, #524B00 100%);
+        }
+
+        .gradient-green-display {
+            background: radial-gradient(circle at center, #00B517 0%, #008011 60%, #00500A 100%);
+        }
+
+        .gradient-vowel-gray {
+            background: linear-gradient(180deg, #7F8489 0%, #A2A8AE 40%, #767B80 70%, #53575B 100%);
+            color: #111111;
+        }
+
+        .gradient-syllable-blue {
+            background: linear-gradient(180deg, #0088CC 0%, #00A3E0 50%, #0077B3 100%);
+        }
+
+        /* Ajuste fino para a letra central ocupar quase todo o visor verde */
+        .giant-letter {
+            font-size: min(72vh, 42vw);
+            line-height: 0.85;
+        }
+
+        /* Fullscreen button styling - quase invisível */
+        .fs-btn {
+            opacity: 0.08;
+            transition: opacity 0.2s ease;
+        }
+        .fs-btn:hover, .fs-btn:active {
+            opacity: 0.8;
+        }
+
+        /* Orientação warning para telas na vertical */
+        @media screen and (orientation: portrait) {
+            #portrait-warning {
+                display: flex !important;
+            }
+        }
+    </style>
+</head>
+<body class="w-full h-full flex items-center justify-center p-1 box-border">
+
+    <div id="portrait-warning" class="hidden fixed inset-0 z-50 bg-black text-white flex-col items-center justify-center p-6 text-center">
+        <div class="text-6xl mb-4">📱🔄</div>
+        <p class="text-xl font-bold">Por favor, vire o dispositivo para o modo Paisagem (Horizontal).</p>
+    </div>
+
+    <div class="w-full h-full max-w-[100vw] max-h-[100vh] aspect-[16/10] grid grid-cols-12 gap-1 p-1 bg-black box-border">
+
+        <!-- 1. COLUNA ESQUERDA (9 BOTÕES DE CONSOANTE) -->
+        <div id="left-column" class="col-span-2 flex flex-col justify-between gap-1 h-full">
+            <button onclick="setConsonant('B')" class="flex-1 gradient-red text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">B</button>
+            <button onclick="setConsonant('C')" class="flex-1 gradient-blue text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">C</button>
+            <button onclick="setConsonant('D')" class="flex-1 gradient-yellow text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">D</button>
+            <button onclick="setConsonant('F')" class="flex-1 gradient-red text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">F</button>
+            <button onclick="setConsonant('G')" class="flex-1 gradient-blue text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">G</button>
+            <button onclick="setConsonant('H')" class="flex-1 gradient-yellow text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">H</button>
+            <button onclick="setConsonant('J')" class="flex-1 gradient-red text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">J</button>
+            <button onclick="setConsonant('L')" class="flex-1 gradient-blue text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">L</button>
+            <button onclick="setConsonant('M')" class="flex-1 gradient-yellow text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">M</button>
+        </div>
+
+        <!-- 2. PAINEL VERDE CENTRAL (DISPLAY PRINCIPAL COM MOLDURA MAGENTA) -->
+        <div class="col-span-6 h-full magenta-neon-border gradient-green-display relative flex items-center justify-center overflow-hidden cursor-pointer" onclick="speakCurrentDisplay()">
+            
+            <!-- Botão de Fullscreen Suspenso (Invisível no canto superior esquerdo) -->
+            <button onclick="event.stopPropagation(); toggleFullscreen();" class="fs-btn absolute top-1 left-1 z-30 w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold border border-white/40">
+                ⛶
+            </button>
+
+            <!-- Letra Principal no Display (Maximizada proporcionalmente ao visor) -->
+            <span id="giant-display" class="giant-letter font-black text-white select-none tracking-tighter flex items-center justify-center h-full w-full text-center">
+                B
+            </span>
+        </div>
+
+        <!-- 3. COLUNA DO MEIO (VOGAIS E RETÂNGULOS DE SÍLABAS AZUIS) -->
+        <div class="col-span-2 flex flex-col justify-between gap-1 h-full">
+            
+            <!-- Linha A -->
+            <div class="flex-1 grid grid-cols-5 gap-1 h-full">
+                <button onclick="speakVowel('A')" class="col-span-2 gradient-vowel-gray border-yellow-grid text-slate-900 font-extrabold text-3xl md:text-4xl flex items-center justify-center active:brightness-125">A</button>
+                <button onclick="playSyllable(0, 'A')" class="col-span-3 gradient-syllable-blue border-yellow-grid text-white font-extrabold text-2xl md:text-3xl flex items-center justify-center active:brightness-125">
+                    <span id="syllables-0"></span>
+                </button>
+            </div>
+
+            <!-- Linha E -->
+            <div class="flex-1 grid grid-cols-5 gap-1 h-full">
+                <button onclick="speakVowel('E')" class="col-span-2 gradient-vowel-gray border-yellow-grid text-slate-900 font-extrabold text-3xl md:text-4xl flex items-center justify-center active:brightness-125">E</button>
+                <button onclick="playSyllable(1, 'E')" class="col-span-3 gradient-syllable-blue border-yellow-grid text-white font-extrabold text-2xl md:text-3xl flex items-center justify-center active:brightness-125">
+                    <span id="syllables-1"></span>
+                </button>
+            </div>
+
+            <!-- Linha I -->
+            <div class="flex-1 grid grid-cols-5 gap-1 h-full">
+                <button onclick="speakVowel('I')" class="col-span-2 gradient-vowel-gray border-yellow-grid text-slate-900 font-extrabold text-3xl md:text-4xl flex items-center justify-center active:brightness-125">I</button>
+                <button onclick="playSyllable(2, 'I')" class="col-span-3 gradient-syllable-blue border-yellow-grid text-white font-extrabold text-2xl md:text-3xl flex items-center justify-center active:brightness-125">
+                    <span id="syllables-2"></span>
+                </button>
+            </div>
+
+            <!-- Linha O -->
+            <div class="flex-1 grid grid-cols-5 gap-1 h-full">
+                <button onclick="speakVowel('O')" class="col-span-2 gradient-vowel-gray border-yellow-grid text-slate-900 font-extrabold text-3xl md:text-4xl flex items-center justify-center active:brightness-125">O</button>
+                <button onclick="playSyllable(3, 'O')" class="col-span-3 gradient-syllable-blue border-yellow-grid text-white font-extrabold text-2xl md:text-3xl flex items-center justify-center active:brightness-125">
+                    <span id="syllables-3"></span>
+                </button>
+            </div>
+
+            <!-- Linha U -->
+            <div class="flex-1 grid grid-cols-5 gap-1 h-full">
+                <button onclick="speakVowel('U')" class="col-span-2 gradient-vowel-gray border-yellow-grid text-slate-900 font-extrabold text-3xl md:text-4xl flex items-center justify-center active:brightness-125">U</button>
+                <button onclick="playSyllable(4, 'U')" class="col-span-3 gradient-syllable-blue border-yellow-grid text-white font-extrabold text-2xl md:text-3xl flex items-center justify-center active:brightness-125">
+                    <span id="syllables-4"></span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- 4. COLUNA DIREITA (9 BOTÕES DE CONSOANTE) -->
+        <div id="right-column" class="col-span-2 flex flex-col justify-between gap-1 h-full">
+            <button onclick="setConsonant('N')" class="flex-1 gradient-red text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">N</button>
+            <button onclick="setConsonant('P')" class="flex-1 gradient-blue text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">P</button>
+            <button onclick="setConsonant('Q')" class="flex-1 gradient-yellow text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">Q</button>
+            <button onclick="setConsonant('R')" class="flex-1 gradient-red text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">R</button>
+            <button onclick="setConsonant('S')" class="flex-1 gradient-blue text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">S</button>
+            <button onclick="setConsonant('T')" class="flex-1 gradient-yellow text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">T</button>
+            <button onclick="setConsonant('V')" class="flex-1 gradient-red text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">V</button>
+            <button onclick="setConsonant('X')" class="flex-1 gradient-blue text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">X</button>
+            <button onclick="setConsonant('Z')" class="flex-1 gradient-yellow text-white font-black text-2xl md:text-3xl rounded-none border border-black/40 flex items-center justify-center active:brightness-125">Z</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Mapeamento dos nomes exatos das letras para pronúncia clara em português
+        const letterAudioNames = {
+            'B': 'Bê', 'C': 'Cê', 'D': 'Dê', 'F': 'Efe', 'G': 'Gê',
+            'H': 'Agá', 'J': 'Jota', 'L': 'Ele', 'M': 'Eme', 'N': 'Ene',
+            'P': 'Pê', 'Q': 'Quê', 'R': 'Erre', 'S': 'Esse', 'T': 'Tê',
+            'V': 'Vê', 'X': 'Xis', 'Z': 'Zê',
+            'A': 'A', 'E': 'É', 'I': 'I', 'O': 'Ó', 'U': 'U'
+        };
+
+        // Estado da consoante ativa
+        let currentConsonant = 'B';
+
+        // Sintetizador de voz simples
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Parar fala anterior imediatamente
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'pt-BR';
+                msg.rate = 0.9;
+                msg.pitch = 1.1;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        // Alterar Consoante Ativa
+        function setConsonant(letter) {
+            currentConsonant = letter;
+            document.getElementById('giant-display').innerText = letter;
+            clearSyllables();
+            speak(letterAudioNames[letter] || letter);
+        }
+
+        // Falar Consoante exibida no centro ao tocar no display
+        function speakCurrentDisplay() {
+            speak(letterAudioNames[currentConsonant] || currentConsonant);
+        }
+
+        // Pronunciar apenas a Vogal isolada
+        function speakVowel(vowel) {
+            speak(letterAudioNames[vowel] || vowel);
+        }
+
+        // Tocar na caixa azul para formar e falar a sílaba (Ex: BA)
+        function playSyllable(rowIndex, vowel) {
+            clearSyllables();
+            const syllable = currentConsonant + vowel;
+            const targetEl = document.getElementById('syllables-' + rowIndex);
+            if (targetEl) {
+                targetEl.innerText = syllable;
+            }
+            speak(syllable);
+        }
+
+        // Limpar os textos exibidos nos blocos azuis
+        function clearSyllables() {
+            for (let i = 0; i < 5; i++) {
+                const el = document.getElementById('syllables-' + i);
+                if (el) el.innerText = '';
+            }
+        }
+
+        // Alternar modo Fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

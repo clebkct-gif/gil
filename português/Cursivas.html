@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alfabeto Mágico - Aprenda Cursiva e Bastão</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Playwrite BR Guides, Schoolbell e fontes cursivas pontilhadas/escolares -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@700&family=Fredoka:wght@400;600;700&family=Gloria+Hallelujah&family=Handlee&family=Homemade+Apple&family=Kalam:wght@700&family=Playwrite+BR+Guides&family=Schoolbell&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        playwrite: ['"Playwrite BR Guides"', 'cursive', 'sans-serif'],
+                        escolar: ['Schoolbell', 'cursive', 'sans-serif'],
+                        caveat: ['Caveat', 'cursive', 'sans-serif'],
+                        kalam: ['Kalam', 'cursive', 'sans-serif'],
+                        architects: ['"Architects Daughter"', 'cursive', 'sans-serif'],
+                        handlee: ['Handlee', 'cursive', 'sans-serif'],
+                        gloria: ['"Gloria Hallelujah"', 'cursive', 'sans-serif'],
+                        homemade: ['"Homemade Apple"', 'cursive', 'sans-serif']
+                    },
+                    colors: {
+                        magical: {
+                            pink: '#FF6B9B',
+                            yellow: '#FFD166',
+                            green: '#06D6A0',
+                            blue: '#118AB2',
+                            purple: '#8338EC',
+                            orange: '#FF9F1C'
+                        }
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 2s infinite',
+                        'wiggle': 'wiggle 0.5s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 2s infinite'
+                    },
+                    keyframes: {
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { filter: 'drop-shadow(0 0 10px rgba(255, 209, 102, 0.8))' },
+                            '50%': { filter: 'drop-shadow(0 0 22px rgba(255, 107, 155, 0.9))' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+        }
+
+        /* Estilização para o caderno de caligrafia */
+        .calligraphy-paper {
+            background-color: #fffdfa;
+            background-image: 
+                linear-gradient(#e5e7eb 1px, transparent 1px),
+                linear-gradient(#60a5fa 1px, transparent 1px),
+                linear-gradient(#f43f5e 1px, transparent 1px),
+                linear-gradient(#60a5fa 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+            background-position: 0 10%, 0 30%, 0 60%, 0 85%;
+        }
+
+        /* Efeito visual de fonte pontilhada limpa para rastreio */
+        .dotted-guide-font {
+            color: transparent;
+            -webkit-text-stroke: 2px #64748b;
+            text-shadow: 
+                2px 0 0 #cbd5e1,
+                4px 0 0 #cbd5e1;
+        }
+
+        .btn-magical {
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+        }
+        .btn-magical:active {
+            transform: translateY(3px);
+            box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+        }
+
+        .star-bg {
+            position: absolute;
+            pointer-events: none;
+            animation: float 4s infinite ease-in-out;
+            opacity: 0.6;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(10deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 h-screen w-screen text-slate-800 flex flex-col justify-between select-none overflow-hidden">
+
+    <!-- CABEÇALHO / NAVBAR COMPACTO E REORGANIZADO -->
+    <header class="px-3 py-1.5 flex justify-between items-center bg-white/20 backdrop-blur-md border-b border-white/30 shrink-0 z-50">
+        <!-- Somente a bola quicando com emoji. Clique nela para voltar ao início -->
+        <button onclick="showScreen('homeScreen')" title="Voltar ao Início" class="w-9 h-9 bg-yellow-400 hover:bg-yellow-300 text-slate-800 rounded-full flex items-center justify-center text-xl shadow-lg border-2 border-white animate-bounce-slow cursor-pointer transition transform active:scale-95">
+            ✏️
+        </button>
+
+        <!-- Pontuação, Estrelas e Botão Fullscreen -->
+        <div class="flex items-center space-x-2">
+            <div class="flex items-center bg-white/90 px-2.5 py-1 rounded-full shadow-md space-x-1 border-2 border-yellow-300">
+                <span class="text-base">⭐</span>
+                <span id="starCounter" class="text-base font-bold text-purple-700">0</span>
+            </div>
+            <!-- Botão Fullscreen -->
+            <button onclick="toggleFullScreen()" title="Tela Cheia" class="bg-white/30 hover:bg-white/50 text-white w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer text-sm font-bold shadow-md border border-white/40">
+                🖵
+            </button>
+        </div>
+    </header>
+
+    <!-- ESTRELAS ANIMADAS NO FUNDO -->
+    <div id="starsContainer" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
+
+    <!-- MAIN CONTAINER (OCUPA TODA A TELA RESTANTE) -->
+    <main class="flex-1 flex items-center justify-center p-2 sm:p-4 z-10 relative overflow-hidden">
+
+        <!-- 1. TELA INICIAL (HOME) - CARDS MAIORES E MAIS ELEVADOS -->
+        <section id="homeScreen" class="w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center -mt-6 sm:-mt-10 py-2">
+            
+            <!-- MENU PRINCIPAL COM OS MÓDULOS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-3xl px-2">
+                
+                <!-- CARD 1: APRENDER E TREINAR ESCRITA -->
+                <button onclick="startDrawingModule()" class="btn-magical bg-gradient-to-b from-yellow-300 to-amber-400 hover:from-yellow-200 hover:to-amber-300 text-slate-800 p-6 sm:p-8 rounded-3xl flex flex-col items-center justify-center border-4 border-white shadow-xl group cursor-pointer min-h-[190px] sm:min-h-[220px]">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white/80 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl mb-3 group-hover:scale-110 transition-transform shadow-inner">
+                        ✍️
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-amber-900">Treinar Escrita</h3>
+                    <p class="text-xs sm:text-sm text-amber-900/80 font-medium mt-1">Desenhe letras cursivas e bastão no caderno!</p>
+                </button>
+
+                <!-- CARD 2: QUIZ DE ÁUDIO -->
+                <button onclick="startAudioQuizModule()" class="btn-magical bg-gradient-to-b from-pink-400 to-rose-500 hover:from-pink-300 hover:to-rose-400 text-white p-6 sm:p-8 rounded-3xl flex flex-col items-center justify-center border-4 border-white shadow-xl group cursor-pointer min-h-[190px] sm:min-h-[220px]">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white/80 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl mb-3 group-hover:scale-110 transition-transform shadow-inner">
+                        🔊
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-white">Quiz de Áudio</h3>
+                    <p class="text-xs sm:text-sm text-white/90 font-medium mt-1">Escute a letra e adivinhe qual é o som certo!</p>
+                </button>
+
+                <!-- CARD 3: IDENTIFICAR & ASSOCIAR -->
+                <button onclick="startIdentifyModule()" class="btn-magical bg-gradient-to-b from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-white p-6 sm:p-8 rounded-3xl flex flex-col items-center justify-center border-4 border-white shadow-xl group cursor-pointer min-h-[190px] sm:min-h-[220px]">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white/80 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl mb-3 group-hover:scale-110 transition-transform shadow-inner">
+                        🔍
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-white">Encontrar Letras</h3>
+                    <p class="text-xs sm:text-sm text-white/90 font-medium mt-1">Conecte Maiúsculas, Cursivas e figuras!</p>
+                </button>
+            </div>
+        </section>
+
+
+        <!-- 2. MÓDULO: APRENDER E TREINAR ESCRITA (CANVAS EXPANDIDO) -->
+        <section id="drawingScreen" class="hidden w-full max-w-4xl h-full max-h-[90vh] bg-white/95 rounded-3xl p-3 sm:p-4 shadow-2xl border-4 border-yellow-300 flex flex-col items-center justify-between space-y-1">
+            
+            <!-- BARRA SUPERIOR DA TELA DE DESENHO COM LISTA SUSPENSA DE FONTES -->
+            <div class="w-full flex flex-wrap items-center justify-center gap-2 border-b pb-2 border-slate-200 shrink-0">
+                <!-- Seletor Maiúscula / Minúscula -->
+                <div class="flex bg-slate-100 p-0.5 rounded-xl border border-slate-300 text-xs font-bold">
+                    <button id="btnCaseUpper" onclick="setLetterCase('upper')" class="px-2.5 py-1 rounded-lg bg-purple-600 text-white shadow-sm transition cursor-pointer">
+                        MAIÚSCULA
+                    </button>
+                    <button id="btnCaseLower" onclick="setLetterCase('lower')" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer">
+                        minúscula
+                    </button>
+                </div>
+
+                <!-- Lista de Seleção de Fontes (Select) -->
+                <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">
+                    <span>Fonte:</span>
+                    <select id="fontSelect" onchange="changeFontFromSelect(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-bold text-purple-700 focus:outline-none cursor-pointer">
+                        <option value="0">Playwrite BR</option>
+                        <option value="1">Escolar</option>
+                        <option value="2">Caveat</option>
+                        <option value="3">Kalam</option>
+                        <option value="4">Architects</option>
+                        <option value="5">Handlee</option>
+                        <option value="6">Gloria</option>
+                        <option value="7">Homemade</option>
+                    </select>
+                </div>
+
+                <!-- Controle Deslizante de Tamanho da Fonte Guia -->
+                <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">
+                    <span>Tamanho:</span>
+                    <input id="fontSizeRange" type="range" min="100" max="450" value="190" step="10" oninput="updateFontSize(this.value)" class="w-20 sm:w-28 accent-purple-600 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Navegação da Letra e Ouvir -->
+            <div class="flex items-center justify-between w-full max-w-md px-2 shrink-0">
+                <button onclick="prevLetter()" class="w-8 h-8 sm:w-9 sm:h-9 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-bold text-base shadow-lg flex items-center justify-center cursor-pointer">
+                    ◀
+                </button>
+                
+                <div class="flex items-center space-x-2">
+                    <span id="letterDisplayInfo" class="text-xl sm:text-2xl font-black text-purple-700 bg-purple-100 px-3 py-1 rounded-xl border border-purple-300 shadow-sm">A a</span>
+                    <button onclick="speakCurrentLetter()" class="w-8 h-8 sm:w-9 sm:h-9 bg-yellow-400 hover:bg-yellow-500 text-slate-800 rounded-full font-bold text-base shadow-md flex items-center justify-center animate-bounce-slow cursor-pointer" title="Ouvir som da letra">
+                        🔊
+                    </button>
+                </div>
+
+                <button onclick="nextLetter()" class="w-8 h-8 sm:w-9 sm:h-9 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-bold text-base shadow-lg flex items-center justify-center cursor-pointer">
+                    ▶
+                </button>
+            </div>
+
+            <!-- ÁREA DO CANVAS MAXIMIZADA -->
+            <div class="relative flex-1 w-full max-w-2xl rounded-2xl shadow-inner border-2 border-slate-300 overflow-hidden calligraphy-paper flex items-center justify-center my-1">
+                <div id="canvasGuideText" class="absolute inset-0 flex items-center justify-center font-bold dotted-guide-font select-none pointer-events-none transition-all duration-150" style="font-size: 190px; font-family: 'Playwrite BR Guides', cursive, sans-serif;">
+                    A
+                </div>
+                <canvas id="drawCanvas" class="absolute inset-0 w-full h-full cursor-crosshair z-20"></canvas>
+            </div>
+
+            <!-- BARRA DE FERRAMENTAS DE DESENHO COMPACTA -->
+            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full max-w-lg bg-slate-100 p-2 rounded-2xl border border-slate-200 shrink-0 z-30">
+                <div class="flex items-center gap-1.5">
+                    <button onclick="setBrushColor('#8338EC')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-600 border-2 border-white shadow-sm hover:scale-110 transition cursor-pointer"></button>
+                    <button onclick="setBrushColor('#FF6B9B')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-pink-500 border-2 border-white shadow-sm hover:scale-110 transition cursor-pointer"></button>
+                    <button onclick="setBrushColor('#118AB2')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-500 border-2 border-white shadow-sm hover:scale-110 transition cursor-pointer"></button>
+                    <button onclick="setBrushColor('#06D6A0')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500 border-2 border-white shadow-sm hover:scale-110 transition cursor-pointer"></button>
+                    <button onclick="setBrushColor('#FF9F1C')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-orange-500 border-2 border-white shadow-sm hover:scale-110 transition cursor-pointer"></button>
+                    <button onclick="setBrushColor('rainbow')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-red-500 via-green-500 to-blue-500 border-2 border-white shadow-sm hover:scale-110 transition cursor-pointer" title="Pincel Arco-Íris"></button>
+                </div>
+
+                <div class="h-5 w-px bg-slate-300"></div>
+
+                <button onclick="clearCanvas()" class="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl font-bold text-xs flex items-center gap-1 border border-rose-300 transition cursor-pointer">
+                    🧹 Limpar
+                </button>
+
+                <button onclick="completeDrawing()" class="px-4 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-md transition animate-pulse cursor-pointer">
+                    ⭐ Concluir
+                </button>
+            </div>
+        </section>
+
+
+        <!-- 3. MÓDULO: QUIZ DE ÁUDIO LIMPO E EXPANDIDO -->
+        <section id="audioQuizScreen" class="hidden w-full max-w-2xl h-full max-h-[88vh] bg-white/95 rounded-3xl p-4 sm:p-6 shadow-2xl border-4 border-pink-400 flex flex-col items-center justify-between text-center">
+            
+            <div class="w-full shrink-0 pt-1"></div>
+
+            <!-- Botão de Ouvir posicionado mais acima -->
+            <button onclick="playQuizAudio()" class="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-tr from-pink-500 to-yellow-400 rounded-full flex flex-col items-center justify-center text-white text-4xl shadow-xl hover:scale-105 active:scale-95 transition border-4 border-white animate-pulse-glow group cursor-pointer my-1">
+                <span>🔊</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider mt-1 opacity-90 group-hover:underline">Ouvir</span>
+            </button>
+
+            <!-- Controle deslizante -->
+            <div id="quizSliderContainer" class="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 shrink-0 my-1">
+                <span>Tamanho das Letras:</span>
+                <input id="quizFontSizeRange" type="range" min="24" max="90" value="40" step="4" oninput="updateQuizOptionsFontSize(this.value)" class="w-24 accent-pink-500 cursor-pointer">
+            </div>
+
+            <!-- Os 4 botões de resposta -->
+            <div id="quizOptionsContainer" class="grid grid-cols-2 gap-3 w-full flex-1 max-h-[44vh] my-2"></div>
+
+            <div id="quizFeedback" class="h-6 font-bold text-base shrink-0"></div>
+        </section>
+
+
+        <!-- 4. MÓDULO: IDENTIFICAR & ASSOCIAR LIMPO E PROPORCIONAL -->
+        <section id="identifyScreen" class="hidden w-full max-w-2xl h-full max-h-[88vh] bg-white/95 rounded-3xl p-4 sm:p-6 shadow-2xl border-4 border-emerald-400 flex flex-col items-center justify-between text-center">
+            
+            <div class="w-full shrink-0 pt-1"></div>
+
+            <!-- Letra/Figura alvo -->
+            <div class="flex-1 flex items-center justify-center my-2">
+                <div class="bg-emerald-100 border-3 border-emerald-300 px-10 py-6 rounded-3xl shadow-md flex items-center justify-center">
+                    <span id="identifyTargetLetter" class="text-7xl sm:text-8xl font-bold text-emerald-800">
+                        A
+                    </span>
+                </div>
+            </div>
+
+            <!-- Controle deslizante de tamanho das respostas -->
+            <div id="identifySliderContainer" class="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 shrink-0 my-1">
+                <span>Tamanho das Respostas:</span>
+                <input id="identifyFontSizeRange" type="range" min="24" max="90" value="40" step="4" oninput="updateIdentifyOptionsFontSize(this.value)" class="w-24 accent-emerald-500 cursor-pointer">
+            </div>
+
+            <!-- Os 4 botões de resposta (Corrigido e restaurado!) -->
+            <div id="identifyOptionsContainer" class="grid grid-cols-2 gap-3 w-full flex-1 max-h-[44vh] my-2"></div>
+
+            <div id="identifyFeedback" class="h-6 font-bold text-base shrink-0"></div>
+        </section>
+
+    </main>
+
+    <!-- RODAPÉ COMPACTO -->
+    <footer class="py-1 text-center text-white/80 text-[10px] font-medium z-10 shrink-0">
+        <p>Alfabeto Mágico • Aplicativo Educativo Infantil 🎉</p>
+    </footer>
+
+
+    <script>
+        const ALPHABET = [
+            { char: 'A', name: 'Á', word: 'Abelha', emoji: '🐝' },
+            { char: 'B', name: 'Bê', word: 'Bola', emoji: '⚽' },
+            { char: 'C', name: 'Cê', word: 'Casa', emoji: '🏠' },
+            { char: 'D', name: 'Dê', word: 'Dado', emoji: '🎲' },
+            { char: 'E', name: 'É', word: 'Elefante', emoji: '🐘' },
+            { char: 'F', name: 'Efe', word: 'Foca', emoji: '🦭' },
+            { char: 'G', name: 'Gê', word: 'Gato', emoji: '🐱' },
+            { char: 'H', name: 'Agá', word: 'Hipopótamo', emoji: '🦛' },
+            { char: 'I', name: 'Í', word: 'Igreja', emoji: '⛪' },
+            { char: 'J', name: 'Jota', word: 'Jacaré', emoji: '🐊' },
+            { char: 'K', name: 'Cá', word: 'Kiwi', emoji: '🥝' },
+            { char: 'L', name: 'Ele', word: 'Leão', emoji: '🦁' },
+            { char: 'M', name: 'Eme', word: 'Macaco', emoji: '🐒' },
+            { char: 'N', name: 'Ene', word: 'Navio', emoji: '🚢' },
+            { char: 'O', name: 'Ó', word: 'Ovelha', emoji: '🐑' },
+            { char: 'P', name: 'Pê', word: 'Pato', emoji: '🦆' },
+            { char: 'Q', name: 'Quê', word: 'Queijo', emoji: '🧀' },
+            { char: 'R', name: 'Erre', word: 'Rato', emoji: '🖱️' },
+            { char: 'S', name: 'Esse', word: 'Sapo', emoji: '🐸' },
+            { char: 'T', name: 'Tê', word: 'Tubarão', emoji: '🦈' },
+            { char: 'U', name: 'Ú', word: 'Urso', emoji: '🐻' },
+            { char: 'V', name: 'Vê', word: 'Vaca', emoji: '🐄' },
+            { char: 'W', name: 'Dábliu', word: 'Wafer', emoji: '🧇' },
+            { char: 'X', name: 'Xís', word: 'Xícara', emoji: '☕' },
+            { char: 'Y', name: 'Ipsilon', word: 'Yakisoba', emoji: '🍜' },
+            { char: 'Z', name: 'Zê', word: 'Zebra', emoji: '🦓' }
+        ];
+
+        let currentLetterIdx = 0;
+        
+        const fontList = [
+            { name: 'Playwrite BR', family: '"Playwrite BR Guides", cursive, sans-serif' },
+            { name: 'Escolar', family: 'Schoolbell, cursive, sans-serif' },
+            { name: 'Caveat', family: 'Caveat, cursive, sans-serif' },
+            { name: 'Kalam', family: 'Kalam, cursive, sans-serif' },
+            { name: 'Architects', family: '"Architects Daughter", cursive, sans-serif' },
+            { name: 'Handlee', family: 'Handlee, cursive, sans-serif' },
+            { name: 'Gloria', family: '"Gloria Hallelujah", cursive, sans-serif' },
+            { name: 'Homemade', family: '"Homemade Apple", cursive, sans-serif' }
+        ];
+        let currentFontIndex = 0;
+
+        let currentCase = 'upper';
+        let currentBrushColor = '#8338EC';
+        let starsCount = 0;
+
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+        let hue = 0;
+
+        let quizTargetLetter = null;
+        let identifyTargetItem = null;
+
+        let currentQuizFontSize = '40px';
+        let currentIdentifyFontSize = '40px';
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function playSoundEffect(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'success') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                osc.frequency.setValueAtTime(1046.50, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(180, now + 0.15);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        function speakText(text, callback) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'pt-BR';
+                utterance.rate = 0.85;
+                utterance.pitch = 1.1;
+                if (callback) {
+                    utterance.onend = callback;
+                }
+                window.speechSynthesis.speak(utterance);
+            } else if (callback) {
+                callback();
+            }
+        }
+
+        function speakWelcome() {
+            speakText('Bem-vindo ao Alfabeto Mágico! Escolha um módulo para começar a aprender e se divertir.');
+        }
+
+        function speakCurrentLetter() {
+            const item = ALPHABET[currentLetterIdx];
+            speakText(`Letra ${item.name}. ${item.word}!`);
+        }
+
+        function showScreen(screenId) {
+            playSoundEffect('pop');
+            ['homeScreen', 'drawingScreen', 'audioQuizScreen', 'identifyScreen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+
+            if (screenId === 'drawingScreen') {
+                setTimeout(resizeCanvas, 50);
+            }
+        }
+
+        function addStar() {
+            starsCount++;
+            document.getElementById('starCounter').innerText = starsCount;
+            const counterEl = document.getElementById('starCounter').parentElement;
+            counterEl.classList.add('scale-125');
+            setTimeout(() => counterEl.classList.remove('scale-125'), 300);
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 70,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function startDrawingModule() {
+            showScreen('drawingScreen');
+            updateLetterDisplay();
+            speakCurrentLetter();
+        }
+
+        function initCanvas() {
+            canvas = document.getElementById('drawCanvas');
+            ctx = canvas.getContext('2d');
+
+            canvas.onmousedown = null;
+            canvas.onmousemove = null;
+            canvas.onmouseup = null;
+            canvas.onmouseleave = null;
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
+            if (!canvas || !canvas.parentElement) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width || rect.width;
+            tempCanvas.height = canvas.height || rect.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (canvas.width > 0 && canvas.height > 0) {
+                tempCtx.drawImage(canvas, 0, 0);
+            }
+
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            if (ctx) {
+                ctx.drawImage(tempCanvas, 0, 0);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+        }
+
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const coords = getCanvasCoordinates(e);
+            lastX = coords.x;
+            lastY = coords.y;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            startDrawing(e);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const coords = getCanvasCoordinates(e);
+
+            ctx.lineWidth = 16;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (currentBrushColor === 'rainbow') {
+                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                hue = (hue + 5) % 360;
+            } else {
+                ctx.strokeStyle = currentBrushColor;
+            }
+
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+            lastX = coords.x;
+            lastY = coords.y;
+        }
+
+        function stopDrawing() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        function clearCanvas() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            playSoundEffect('pop');
+        }
+
+        function setBrushColor(color) {
+            currentBrushColor = color;
+            playSoundEffect('pop');
+        }
+
+        function setLetterCase(letterCase) {
+            currentCase = letterCase;
+            document.getElementById('btnCaseUpper').className = letterCase === 'upper' ? 
+                'px-2.5 py-1 rounded-lg bg-purple-600 text-white shadow-sm transition cursor-pointer' : 
+                'px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer';
+            
+            document.getElementById('btnCaseLower').className = letterCase === 'lower' ? 
+                'px-2.5 py-1 rounded-lg bg-purple-600 text-white shadow-sm transition cursor-pointer' : 
+                'px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer';
+
+            updateLetterDisplay();
+        }
+
+        function changeFontFromSelect(indexVal) {
+            currentFontIndex = parseInt(indexVal);
+            updateLetterDisplay();
+            playSoundEffect('pop');
+        }
+
+        function updateFontSize(sizeValue) {
+            const guideEl = document.getElementById('canvasGuideText');
+            if (guideEl) {
+                guideEl.style.fontSize = sizeValue + 'px';
+            }
+        }
+
+        function updateQuizOptionsFontSize(sizeVal) {
+            currentQuizFontSize = sizeVal + 'px';
+            document.querySelectorAll('#quizOptionsContainer button').forEach(btn => {
+                btn.style.fontSize = currentQuizFontSize;
+            });
+        }
+
+        function updateIdentifyOptionsFontSize(sizeVal) {
+            currentIdentifyFontSize = sizeVal + 'px';
+            document.querySelectorAll('#identifyOptionsContainer button').forEach(btn => {
+                btn.style.fontSize = currentIdentifyFontSize;
+            });
+        }
+
+        function updateLetterDisplay() {
+            const item = ALPHABET[currentLetterIdx];
+            let displayChar = currentCase === 'upper' ? item.char : item.char.toLowerCase();
+
+            const guideEl = document.getElementById('canvasGuideText');
+            guideEl.innerText = displayChar;
+
+            const selectedFont = fontList[currentFontIndex];
+            guideEl.style.fontFamily = selectedFont.family;
+
+            document.getElementById('letterDisplayInfo').innerText = `${item.char} ${item.char.toLowerCase()}`;
+        }
+
+        function nextLetter() {
+            currentLetterIdx = (currentLetterIdx + 1) % ALPHABET.length;
+            updateLetterDisplay();
+            clearCanvas();
+            speakCurrentLetter();
+        }
+
+        function prevLetter() {
+            currentLetterIdx = (currentLetterIdx - 1 + ALPHABET.length) % ALPHABET.length;
+            updateLetterDisplay();
+            clearCanvas();
+            speakCurrentLetter();
+        }
+
+        function completeDrawing() {
+            playSoundEffect('success');
+            triggerConfetti();
+            addStar();
+            speakText(`Parabéns! Você desenhou a letra ${ALPHABET[currentLetterIdx].name}!`);
+        }
+
+        function startAudioQuizModule() {
+            showScreen('audioQuizScreen');
+            document.getElementById('quizSliderContainer').style.display = 'flex';
+            loadNextQuizQuestion();
+        }
+
+        function loadNextQuizQuestion() {
+            document.getElementById('quizFeedback').innerText = '';
+            document.getElementById('quizSliderContainer').style.display = 'flex';
+            const correctIndex = Math.floor(Math.random() * ALPHABET.length);
+            quizTargetLetter = ALPHABET[correctIndex];
+
+            let options = [quizTargetLetter];
+            while (options.length < 4) {
+                const randItem = ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+                if (!options.includes(randItem)) {
+                    options.push(randItem);
+                }
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('quizOptionsContainer');
+            container.innerHTML = '';
+
+            options.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-magical bg-white hover:bg-yellow-50 text-purple-800 border-3 border-purple-300 rounded-2xl w-full h-full font-bold shadow-md hover:border-purple-500 transition flex items-center justify-center cursor-pointer';
+                btn.style.fontSize = currentQuizFontSize;
+                btn.innerText = item.char;
+                btn.onclick = () => {
+                    document.getElementById('quizSliderContainer').style.display = 'none';
+                    checkQuizAnswer(item, btn);
+                };
+                container.appendChild(btn);
+            });
+
+            setTimeout(() => {
+                playQuizAudio();
+            }, 300);
+        }
+
+        function playQuizAudio() {
+            if (quizTargetLetter) {
+                speakText(`Letra ${quizTargetLetter.name}`, () => {
+                    setTimeout(() => {
+                        speakText(`Letra ${quizTargetLetter.name}`);
+                    }, 600);
+                });
+            }
+        }
+
+        function checkQuizAnswer(selectedItem, buttonEl) {
+            const feedbackEl = document.getElementById('quizFeedback');
+
+            if (selectedItem.char === quizTargetLetter.char) {
+                playSoundEffect('success');
+                triggerConfetti();
+                addStar();
+                buttonEl.className = 'btn-magical bg-emerald-500 text-white border-3 border-emerald-600 rounded-2xl w-full h-full font-bold shadow-md';
+                buttonEl.style.fontSize = currentQuizFontSize;
+                feedbackEl.className = 'text-emerald-600 font-bold text-base sm:text-lg animate-bounce';
+                feedbackEl.innerText = '✨ Muito Bem! Você acertou! 🎉';
+                
+                speakText(`Muito bem! Esta é a letra ${quizTargetLetter.name}!`);
+
+                setTimeout(() => {
+                    loadNextQuizQuestion();
+                }, 2000);
+            } else {
+                playSoundEffect('wrong');
+                buttonEl.className = 'btn-magical bg-rose-100 text-rose-500 border-3 border-rose-300 rounded-2xl w-full h-full font-bold opacity-60';
+                buttonEl.style.fontSize = currentQuizFontSize;
+                feedbackEl.className = 'text-rose-500 font-bold text-base sm:text-lg';
+                feedbackEl.innerText = 'Ops! Tente novamente! 💡';
+                
+                speakText(`Letra ${quizTargetLetter.name}`, () => {
+                    setTimeout(() => {
+                        speakText(`Letra ${quizTargetLetter.name}`);
+                    }, 800);
+                });
+            }
+        }
+
+        function startIdentifyModule() {
+            showScreen('identifyScreen');
+            document.getElementById('identifySliderContainer').style.display = 'flex';
+            loadNextIdentifyQuestion();
+        }
+
+        function loadNextIdentifyQuestion() {
+            document.getElementById('identifyFeedback').innerText = '';
+            document.getElementById('identifySliderContainer').style.display = 'flex';
+            const gameMode = Math.floor(Math.random() * 2); 
+            const correctIndex = Math.floor(Math.random() * ALPHABET.length);
+            identifyTargetItem = ALPHABET[correctIndex];
+
+            document.getElementById('identifyTargetLetter').innerText = identifyTargetItem.char;
+            
+            let options = [identifyTargetItem];
+            while (options.length < 4) {
+                const randItem = ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+                if (!options.includes(randItem)) {
+                    options.push(randItem);
+                }
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('identifyOptionsContainer');
+            container.innerHTML = '';
+
+            if (gameMode === 0) {
+                speakText(`Qual é a versão cursiva da letra ${identifyTargetItem.name}?`);
+
+                options.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-magical bg-white hover:bg-emerald-50 text-emerald-900 border-3 border-emerald-300 rounded-2xl w-full h-full font-bold shadow-md transition flex items-center justify-center cursor-pointer';
+                    btn.style.fontFamily = '"Playwrite BR Guides", cursive, sans-serif';
+                    btn.style.fontSize = currentIdentifyFontSize;
+                    btn.innerText = item.char.toLowerCase();
+                    btn.onclick = () => {
+                        document.getElementById('identifySliderContainer').style.display = 'none';
+                        checkIdentifyAnswer(item, btn);
+                    };
+                    container.appendChild(btn);
+                });
+            } else {
+                speakText(`Qual figura começa com a letra ${identifyTargetItem.name}?`);
+
+                options.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-magical bg-white hover:bg-emerald-50 border-3 border-emerald-300 rounded-2xl w-full h-full flex flex-col items-center justify-center shadow-md transition cursor-pointer';
+                    btn.innerHTML = `
+                        <span class="mb-0.5" style="font-size: calc(${currentIdentifyFontSize} * 1.2);">${item.emoji}</span>
+                        <span class="font-bold text-slate-700 text-xs">${item.word}</span>
+                    `;
+                    btn.onclick = () => {
+                        document.getElementById('identifySliderContainer').style.display = 'none';
+                        checkIdentifyAnswer(item, btn);
+                    };
+                    container.appendChild(btn);
+                });
+            }
+        }
+
+        function checkIdentifyAnswer(selectedItem, buttonEl) {
+            const feedbackEl = document.getElementById('identifyFeedback');
+
+            if (selectedItem.char === identifyTargetItem.char) {
+                playSoundEffect('success');
+                triggerConfetti();
+                addStar();
+                buttonEl.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+                feedbackEl.className = 'text-emerald-600 font-bold text-base sm:text-lg animate-bounce';
+                feedbackEl.innerText = '🌟 Excelente! Você acertou!';
+                
+                speakText(`Excelente! ${identifyTargetItem.char} de ${identifyTargetItem.word}!`);
+
+                setTimeout(() => {
+                    loadNextIdentifyQuestion();
+                }, 2000);
+            } else {
+                playSoundEffect('wrong');
+                buttonEl.classList.add('opacity-50', 'bg-rose-100');
+                feedbackEl.className = 'text-rose-500 font-bold text-base sm:text-lg';
+                feedbackEl.innerText = 'Quase lá! Tente outra vez!';
+                speakText('Tente outra vez!');
+            }
+        }
+
+        function generateBackgroundStars() {
+            const container = document.getElementById('starsContainer');
+            const starEmojis = ['⭐', '✨', '🌟', '☁️', '🎈'];
+            
+            for (let i = 0; i < 15; i++) {
+                const star = document.createElement('div');
+                star.className = 'star-bg';
+                star.innerText = starEmojis[Math.floor(Math.random() * starEmojis.length)];
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.fontSize = `${Math.random() * 20 + 16}px`;
+                star.style.animationDelay = `${Math.random() * 4}s`;
+                container.appendChild(star);
+            }
+        }
+
+        window.onload = function() {
+            generateBackgroundStars();
+            initCanvas();
+            
+            // Fala a saudação automaticamente após o carregamento inicial
+            setTimeout(() => {
+                speakWelcome();
+            }, 800);
+        };
+    </script>
+</body>
+</html>

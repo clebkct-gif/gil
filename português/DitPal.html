@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>DITADO</title>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<style>
+
+:root{
+    --gap:3px;
+    --score-color:#555555;
+    --key-color:#FFFFFF;
+    --btn-control-width:90px;
+}
+
+body{
+    background-color:#333;
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+    width:100vw;
+    height:100dvh;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#app{
+    width:100%;
+    height:100%;
+    background-color:var(--cor-fundo-app,#ADD8E6);
+    display:flex;
+    flex-direction:column;
+    gap:var(--gap);
+    padding:var(--gap);
+    box-sizing:border-box;
+    transition:background-color .3s ease;
+}
+
+/* ================= OVERLAYS ================= */
+
+#StartOverlay, #ScoreOverlay {
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.95);
+    z-index:9999;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+#StartOverlay {
+    justify-content:center;
+    gap:12px;
+}
+
+#ScoreOverlay {
+    justify-content: flex-start;
+    overflow-y: auto;
+}
+
+.mode-grid{
+    display:grid;
+    grid-template-columns:repeat(5,60px);
+    gap:8px;
+}
+
+.mode-btn{
+    height:45px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+.mode-selected{
+    outline:4px solid yellow;
+}
+
+/* ================= BOTÕES ================= */
+
+.ai-button{
+    border:none;
+    cursor:pointer;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:filter .1s, opacity .1s, background-color .1s;
+    user-select:none;
+}
+
+.ai-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    filter: brightness(60%) !important;
+}
+
+.ai-button:active:not(:disabled){
+    filter:brightness(80%);
+}
+
+/* ================= LAYOUT ================= */
+
+#TopArea{
+    flex: 1;
+    display:flex;
+    flex-direction:column;
+    gap:var(--gap);
+}
+
+#KeyboardArea{
+    flex:1.2;
+    display:flex;
+    flex-direction:column;
+    gap:var(--gap);
+}
+
+.h-row{
+    display:flex;
+    gap:var(--gap);
+    width:100%;
+    flex:1;
+}
+
+/* ================= DISPLAY ================= */
+
+#DisplayPalavra{
+    flex: 1;
+    background-color:#333;
+    font-weight:900;
+    text-transform:uppercase;
+    transition: color 0.1s ease;
+}
+
+#DisplayResposta{
+    flex: 1;
+    background-color:#F0F0F0;
+    color: #333333 !important;
+    font-weight:900;
+}
+
+/* ================= TECLADO ================= */
+
+.key-uniform{
+    flex:1;
+    font-weight:900;
+    background-color:var(--key-color);
+}
+
+.key-score-certo {
+    color: #00AA00 !important; 
+}
+
+.key-score-erros {
+    color: #FF0000 !important; 
+}
+
+.key-score-media {
+    color: var(--score-color);
+    font-weight: 900 !important;
+}
+
+/* ================= CONTROLES ================= */
+
+#ButtonCriar,
+#DisplayRestantes,
+#ButtonHifen,
+#ButtonIndicadorTamanho{
+    flex:0 0 var(--btn-control-width);
+    font-weight:bold;
+}
+
+#DisplayRestantes {
+    background-color:#333;
+    color:white;
+    font-size: clamp(24px, 5.25vh, 48px); 
+    font-weight: 900;
+}
+
+#ButtonHifen,
+#ButtonIndicadorTamanho {
+    font-weight: 900;
+    transition: background-color .3s ease;
+}
+
+#ButtonIndicadorTamanho {
+    font-size: clamp(27px, 5.25vh, 48px);
+}
+
+/* ================= PAINÉIS DE AJUSTE (SLIDERS) ================= */
+
+.slider-container {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.slider-label {
+    color: #333;
+    font-weight: bold;
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.slider-input {
+    flex: 1;
+    height: 15px;
+    cursor: pointer;
+}
+
+.slider-btn-ok {
+    height: 100%;
+    padding: 0 25px;
+    font-weight: bold;
+    font-size: 18px;
+    background-color: #333;
+    color: #fff;
+}
+
+/* ================= CATALOGAÇÃO / RELATÓRIO ================= */
+
+.report-header {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.report-btn-back {
+    flex: 1; 
+    height: 55px; 
+    background: #555; 
+    color: white; 
+    font-weight: bold; 
+    font-size: 22px;
+}
+
+.report-grade-box {
+    flex: 0 0 auto; 
+    font-size: 32px; 
+    font-weight: 900;
+    color: #FFFF00; 
+    white-space: nowrap;
+}
+
+.report-container {
+    width: 100%;
+    max-width: 600px;
+    color: white;
+    text-align: left;
+}
+
+.report-section {
+    margin-bottom: 20px;
+}
+
+.report-title {
+    font-size: 18px;
+    font-weight: bold;
+    border-bottom: 2px solid #333;
+    padding-bottom: 3px;
+    margin-bottom: 8px;
+}
+
+.word-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px; 
+    font-weight: bold;
+}
+
+.word-correct {
+    color: #00AA00;
+}
+
+.word-incorrect-base {
+    color: #1E90FF; 
+}
+
+.letter-wrong {
+    color: #FF0000 !important;
+    text-decoration: underline;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="app" :style="{ '--cor-fundo-app': corFundoApp }">
+
+<div id="StartOverlay" v-if="!interagiu">
+
+    <h2 style="color:white; font-size: 30px;">DITADO</h2>
+
+    <div style="color:white;font-weight:bold; font-size: 21px; margin-bottom: 5px;">COMPRIMENTO (1-20)</div>
+
+    <div class="mode-grid">
+        <button v-for="n in 20" :key="n"
+            class="ai-button mode-btn"
+            :class="{ 'mode-selected': modoComprimento===n && escolheuAleat===false }"
+            @click="modoComprimentoSelecionado(n)">
+            {{n}}
+        </button>
+    </div>
+
+    <div style="width: 332px;">
+        <button class="ai-button mode-btn"
+            style="width: 100%; height: 45px;"
+            :class="{ 'mode-selected': escolheuAleat }"
+            @click="modoComprimentoSelecionado(0)">
+            ALEAT
+        </button>
+    </div>
+
+    <label style="color: white; font-weight: bold; font-size: 21px; display: flex; align-items: center; gap: 8px; margin-top: 10px; cursor: pointer;">
+        <input type="checkbox" v-model="palavraVisivelInicio" style="width: 24px; height: 24px;">
+        Deixar visível no início
+    </label>
+
+</div>
+
+<div id="ScoreOverlay" v-if="interagiu && exibindoRelatorio">
+    
+    <div class="report-header">
+        <button class="ai-button report-btn-back" @click="voltarDoRelatorio">
+            VOLTAR
+        </button>
+        <div class="report-grade-box">
+            {{ media }}
+        </div>
+    </div>
+
+    <div class="report-container">
+        
+        <div class="report-section" v-if="historicoAcertos.length > 0">
+            <div class="report-title" style="color: #00AA00;">ACERTOS ({{ historicoAcertos.length }})</div>
+            <div class="word-list">
+                <span v-for="(palavra, index) in historicoAcertos" :key="'c-'+index" class="word-correct">
+                    {{ palavra }}
+                </span>
+            </div>
+        </div>
+
+        <div class="report-section" v-if="historicoErros.length > 0">
+            <div class="report-title" style="color: #FF0000;">ERROS ({{ historicoErros.length }})</div>
+            <div class="word-list">
+                <span v-for="(item, index) in historicoErros" :key="'i-'+index" class="word-incorrect-base">
+                    <template v-for="(char, cIdx) in item.palavraComleta">
+                        <span :class="{'letter-wrong': cIdx === item.indiceErro}">{{ char }}</span>
+                    </template>
+                </span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="TopArea" :style="{ flex: (interagiu && ajustandoTeclado) ? '0.6' : '1' }">
+
+    <div v-if="modoCriacao" style="display:flex;flex-direction:column;gap:var(--gap);height:100%;width:100%;">
+
+        <textarea v-model="entradaExercicios"
+        style="flex:1;font-size:21px;border-radius:8px;border:none;width:100%;box-sizing:border-box;"></textarea>
+
+        <div style="display:flex;gap:var(--gap);height:50px;width:100%;">
+
+            <button class="ai-button"
+                @click="voltarDaCriacao"
+                style="flex:1;background:#555;color:white;">
+                VOLTAR
+            </button>
+
+            <button class="ai-button"
+                @click="importarTXT"
+                style="flex:1;background:#8A2BE2;color:white;font-weight:bold;">
+                CARREGAR TXT
+            </button>
+
+            <button class="ai-button"
+                @click="exportarTXT"
+                style="flex:1;background:#DAA520;color:white;font-weight:bold;">
+                BAIXAR TXT
+            </button>
+
+            <button class="ai-button"
+                @click="salvarLista"
+                style="flex:1;background:#00AA00;color:white;">
+                SALVAR
+            </button>
+
+        </div>
+        <input type="file" id="fileInput" ref="fileInput" accept=".txt" style="display:none;" @change="lerArquivoTXT">
+
+    </div>
+
+    <div v-else style="display:flex; flex-direction:column; gap:var(--gap); height:100%; width:100%;">
+
+        <div class="h-row">
+
+            <button class="ai-button"
+                id="ButtonCriar"
+                @click="abrirCriacao"
+                style="background:#333;color:white;">
+                CRIAR
+            </button>
+
+            <button class="ai-button"
+                id="DisplayPalavra"
+                :style="{ color: estiloCorPalavra, fontSize: fSizeDisplays }"
+                :disabled="blocoTeclado"
+                @mousedown="pressionarMostrar"
+                @mouseup="soltarEsconder"
+                @mouseleave="soltarEsconder"
+                @touchstart="pressionarMostrarMobile"
+                @touchend="soltarEsconderMobile">
+                {{ palavraAlvo ? palavraAlvo : 'PRONTO?' }}
+            </button>
+
+            <button class="ai-button"
+                id="DisplayRestantes">
+                {{ listaFiltrada.length }}
+            </button>
+
+        </div>
+
+        <div class="h-row">
+
+            <button class="ai-button"
+                id="ButtonHifen"
+                @click="inserirHifen"
+                :disabled="blocoTeclado"
+                :style="{ 
+                    backgroundColor: corFundoApp, 
+                    color: hifenAtivo ? '#FF0000' : '#333', 
+                    fontSize: fonteTeclado + 'px' 
+                }">
+                -
+            </button>
+
+            <button class="ai-button"
+                id="DisplayResposta"
+                @click="inserirEspaco"
+                :disabled="blocoTeclado"
+                :style="{backgroundColor:corFundoApp, fontSize: fSizeDisplays, color: '#333333'}">
+                {{ visualDigitacao }}
+            </button>
+
+            <button class="ai-button"
+                id="ButtonIndicadorTamanho"
+                @click="retornarTelaInicial"
+                :disabled="blocoTeclado"
+                :style="{ backgroundColor: corFundoApp, color: '#333' }">
+                {{ textoIndicadorTamanho }}
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div v-if="interagiu && ajustandoTeclado" class="h-row" style="flex: 0 0 55px; margin-bottom: 2px;">
+    <div class="slider-container">
+        <div class="slider-label">LETRA TECLADO: {{ fonteTeclado }}px</div>
+        <input type="range" min="16" max="60" v-model="fonteTeclado" class="slider-input">
+        <button class="ai-button slider-btn-ok" @click="ajustandoTeclado = false">OK</button>
+    </div>
+</div>
+
+<div id="KeyboardArea">
+
+    <div v-if="interagiu && ajustandoDisplays" style="display:flex; height:100%; width:100%;">
+        <div class="slider-container" style="height:100%;">
+            <div class="slider-label">FONTE EXERCÍCIO: {{ fonteDisplays }}px</div>
+            <input type="range" min="20" max="80" v-model="fonteDisplays" class="slider-input">
+            <button class="ai-button slider-btn-ok" style="height:80%;" @click="ajustandoDisplays = false">OK</button>
+        </div>
+    </div>
+
+    <div v-else style="display:flex; flex-direction:column; gap:var(--gap); height:100%; width:100%;">
+        <div class="h-row" v-for="(row, rIdx) in teclado" :key="rIdx">
+
+            <button v-for="tecla in row"
+                :key="tecla"
+                class="ai-button key-uniform"
+                :class="{
+                    'key-score-certo': tecla==='SCORE_CERTO',
+                    'key-score-erros': tecla==='SCORE_ERROS',
+                    'key-score-media': tecla==='SCORE_MEDIA'
+                }"
+                :disabled="blocoTeclado && !tIsScore(tecla)"
+                :style="obterEstiloTecla(tecla)"
+                @click="processarTecla(tecla)">
+
+                <span v-if="tecla==='SCORE_CERTO'">
+                    {{ acertos }}
+                </span>
+
+                <span v-else-if="tecla==='SCORE_MEDIA'">
+                    {{ media }}
+                </span>
+
+                <span v-else-if="tecla==='SCORE_ERROS'">
+                    {{ erros }}
+                </span>
+
+                <span v-else>
+                    {{ tecla }}
+                </span>
+
+            </button>
+
+        </div>
+    </div>
+
+</div>
+
+</div>
+
+<script>
+new Vue({
+
+el:'#app',
+
+data:{
+
+    interagiu:false,
+    modoCriacao:false,
+    jogoAtivo:false, 
+    blocoTeclado:false,
+    exibindoRelatorio:false,
+
+    ajustandoDisplays: false,
+    ajustandoTeclado: false,
+    fonteDisplays: 38, 
+    fonteTeclado: 32,  
+
+    modoComprimento:0,
+    escolheuAleat:false,
+    palavraVisivelInicio:false,
+    forcarExibicaoPressionado:false,
+
+    hifenAtivo: false,
+
+    listaCompleta:[],
+    listaFiltrada:[],
+
+    palavraAlvo:'',
+
+    buffer:'',
+    acentoPendente:'',
+
+    corFundoApp:'#ADD8E6',
+
+    acertos:0,
+    erros:0,
+
+    historicoAcertos:[],
+    historicoErros:[],
+
+    entradaExercicios: `CASA\nGATO\nBOLA\nJANELA\nSAPATO\nCADERNO\nAMIGO\nBALAO\nCACHORRO\nDOCE\nESCOLA\nFACA\nGIRAFA\nHOJE\nIGREJA\nJACARE\nLIMAO\nMACA\nNAVIO\nOVO\nPATO\nQUEIJO\nRATO\nSOL\nTIJOLO\nUVA\nVACA\nXADREZ\nZEBRA\nARVORE\nCOLO\nDADO\nFOGO\nLIVRO\nMONSTRO\nNUVEM\nPIANO\nPORTA\nSORVETE\nTESOURA\nURSO\nVASO\nLUA\nPERNA\nCHAVE\nGUARDA-CHUVA\nBEM-TE-VI\nPE DE MOLEQUE\nCACHORRO-QUENTE`,
+
+    teclado:[
+        ['Q','W','E','R','T','SCORE_CERTO','Y','U','I','O','P'],
+        ['A','S','D','F','G','SCORE_MEDIA','H','J','K','L','Ç'],
+        ['^','Z','X','C','V','SCORE_ERROS','B','N','M','´','~']
+    ]
+},
+
+computed:{
+
+    media(){
+        const t=this.acertos+this.erros;
+        if(t===0) return '0,00';
+        const nota = (this.acertos / t) * 10;
+        return nota.toFixed(2).replace('.', ',');
+    },
+
+    visualDigitacao(){
+        return this.jogoAtivo ? this.buffer : '';
+    },
+
+    estiloCorPalavra() {
+        if (this.forcarExibicaoPressionado) {
+            return '#FFFF00'; 
+        }
+        return this.palavraVisivelInicio ? '#FFFF00' : '#333333'; 
+    },
+
+    textoIndicadorTamanho() {
+        if (this.escolheuAleat) {
+            return 'A';
+        }
+        return this.palavraAlvo ? this.palavraAlvo.length : '';
+    },
+
+    fSizeDisplays() {
+        return this.fonteDisplays + 'px';
+    }
+},
+
+methods:{
+
+    limparEscalaFonte(valor, min, max) {
+        return Math.max(min, Math.min(valor, max));
+    },
+
+    ativarEspelhamentoFullScreen() {
+        const docEl = document.documentElement;
+        let p = null;
+
+        if (docEl.requestFullscreen) {
+            p = docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+            p = docEl.webkitRequestFullscreen();
+        }
+
+        if(p && p.then) {
+            p.then(() => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.log(e));
+                }
+            }).catch(e => console.log(e));
+        } else {
+            setTimeout(() => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.log(e));
+                }
+            }, 300);
+        }
+    },
+
+    modoComprimentoSelecionado(n){
+        this.ativarEspelhamentoFullScreen();
+        this.modoComprimento = n;
+        this.escolheuAleat = (n === 0);
+        this.iniciarAplicativo();
+    },
+
+    abrirCriacao() {
+        this.ativarEspelhamentoFullScreen();
+        this.modoCriacao = true;
+    },
+
+    voltarDaCriacao() {
+        this.ativarEspelhamentoFullScreen();
+        this.modoCriacao = false;
+    },
+
+    voltarDoRelatorio() {
+        this.ativarEspelhamentoFullScreen();
+        this.exibindoRelatorio = false;
+    },
+
+    iniciarAplicativo(){
+        this.processanEntradaTexto();
+        this.filtrarListaPorTamanho();
+        this.interagiu=true;
+        this.proximaPalavra();
+    },
+
+    processanEntradaTexto(){
+        this.listaCompleta = this.entradaExercicios
+            .toUpperCase()
+            .split('\n')
+            .map(v => v.replace(/[^A-ZÇÁÉÍÓÚÂÊÔÃÕ\-\s]/g, '').trim())
+            .filter(v => v.length > 0); // Filtro de strings limpas otimizado
+    },
+
+    filtrarListaPorTamanho(){
+        if(this.modoComprimento>0){
+            this.listaFiltrada = this.listaCompleta.filter(p => p.length === this.modoComprimento);
+        } else {
+            this.listaFiltrada = [...this.listaCompleta];
+        }
+
+        if(this.listaFiltrada.length === 0){
+            alert('Aviso: Nenhuma palavra correspondente encontrada. Carregando modo Aleatório.');
+            this.listaFiltrada = [...this.listaCompleta];
+            this.modoComprimento = 0;
+            this.escolheuAleat = true;
+        }
+    },
+
+    salvarLista(){
+        this.processanEntradaTexto();
+        this.filtrarListaPorTamanho();
+        this.modoCriacao=false;
+        this.proximaPalavra();
+    },
+
+    proximaPalavra(){
+        if(this.listaFiltrada.length===0){
+            alert('Fim das palavras disponíveis! Reiniciando lista.');
+            this.filtrarListaPorTamanho();
+            if(this.listaFiltrada.length===0) return;
+        }
+
+        const idx=Math.floor(Math.random()*this.listaFiltrada.length);
+        this.palavraAlvo=this.listaFiltrada.splice(idx,1)[0];
+
+        this.buffer='';
+        this.acentoPendente='';
+        this.hifenAtivo=false;
+        this.jogoAtivo=true; 
+        this.blocoTeclado=false;
+        this.corFundoApp='#ADD8E6';
+
+        this.falar(this.palavraAlvo);
+    },
+
+    obterEstiloTecla(tecla) {
+        let estilo = { 
+            fontSize: this.fonteTeclado + 'px'
+        };
+        
+        if (tecla === 'SCORE_MEDIA') {
+            estilo.fontSize = '21px'; 
+            estilo.color = 'var(--score-color)';
+            return estilo;
+        }
+
+        if (this.tIsScore(tecla)) {
+            return estilo;
+        }
+
+        // Aplica a cor preta padrão apenas se NÃO estiver ativa em vermelho
+        if (['^', '´', '~'].includes(tecla) && this.acentoPendente === tecla) {
+            estilo.color = '#FF0000';
+        } else {
+            estilo.color = '#333333';
+        }
+        
+        return estilo;
+    },
+
+    processarTecla(tecla){
+        if(tecla === 'SCORE_CERTO') {
+            this.ajustandoDisplays = true;
+            return;
+        }
+        
+        if(tecla === 'SCORE_ERROS') {
+            this.ajustandoTeclado = true;
+            return;
+        }
+
+        if(tecla === 'SCORE_MEDIA') {
+            if(this.acertos > 0 || this.erros > 0) {
+                this.exibindoRelatorio = true;
+            }
+            return;
+        }
+
+        if(!this.jogoAtivo || this.blocoTeclado) return;
+
+        if(['^','´','~'].includes(tecla)){
+            this.acentoPendente=tecla;
+            return;
+        }
+
+        let letra=tecla;
+        if(this.acentoPendente){
+            letra=this.combinarAcento(tecla,this.acentoPendente);
+            this.acentoPendente=''; 
+        }
+
+        this.buffer+=letra;
+        this.validarEmTempoReal();
+    },
+
+    inserirHifen() {
+        if(!this.jogoAtivo || this.blocoTeclado) return;
+        this.hifenAtivo = true; 
+        this.buffer += '-';
+        this.validarEmTempoReal();
+    },
+
+    inserirEspaco() {
+        if(!this.jogoAtivo || this.blocoTeclado) return;
+        this.buffer += ' ';
+        this.validarEmTempoReal();
+    },
+
+    validarEmTempoReal(){
+        const esperado=this.palavraAlvo.toUpperCase();
+        const digitado=this.buffer.toUpperCase();
+
+        if(digitado===esperado){
+            this.acertos++;
+            this.historicoAcertos.push(esperado);
+
+            this.corFundoApp='#00AA00';
+            this.jogoAtivo=false;
+            this.blocoTeclado=true;
+
+            this.falar("Correto! " + esperado);
+
+            setTimeout(()=>{
+                this.proximaPalavra();
+            },1200);
+            return;
+        }
+
+        if (digitado.length < esperado.length) {
+            if(esperado.startsWith(digitado)){
+                return;
+            }
+        }
+
+        this.erros++;
+        
+        let indiceErroDetectado = digitado.length - 1;
+        for(let i = 0; i < digitado.length; i++) {
+            if(digitado[i] !== esperado[i]) {
+                indiceErroDetectado = i;
+                break;
+            }
+        }
+
+        this.historicoErros.push({
+            palavraComleta: esperado,
+            indiceErro: indiceErroDetectado
+        });
+
+        this.buffer = this.buffer.slice(0, -1);
+
+        this.corFundoApp='#FF0000';
+        this.blocoTeclado=true;
+        
+        // Inconsistência de Feedback Visual corrigida: O acento limpa na hora do erro
+        this.acentoPendente=''; 
+
+        this.falar('Tente novamente');
+
+        setTimeout(()=>{
+            this.corFundoApp='#ADD8E6';
+            this.blocoTeclado=false;
+            this.hifenAtivo=false;  
+        },600);
+    },
+
+    ouvirNovamente(){
+        if(this.palavraAlvo && !this.blocoTeclado){
+            this.falar(this.palavraAlvo);
+        }
+    },
+
+    pressionarMostrar(e) {
+        if(this.blocoTeclado) return;
+        this.forcarExibicaoPressionado = true;
+        this.ouvirNovamente();
+    },
+
+    soltarEsconder() {
+        this.forcarExibicaoPressionado = false;
+    },
+
+    pressionarMostrarMobile(e) {
+        if(this.blocoTeclado) return;
+        this.forcarExibicaoPressionado = true;
+        this.ouvirNovamente();
+    },
+
+    soltarEsconderMobile(e) {
+        this.forcarExibicaoPressionado = false;
+    },
+
+    retornarTelaInicial() {
+        if (this.blocoTeclado) return;
+        this.interagiu = false;
+        this.jogoAtivo = false;
+        this.palavraAlvo = '';
+        this.buffer = '';
+        this.acertos = 0;
+        this.erros = 0;
+        this.acentoPendente = '';
+        this.hifenAtivo = false;
+        this.ajustandoDisplays = false;
+        this.ajustandoTeclado = false;
+        this.historicoAcertos = [];
+        this.historicoErros = [];
+    },
+
+    falar(texto){
+        try {
+            if(window.speechSynthesis.speaking){
+                window.speechSynthesis.cancel();
+            }
+            const u=new SpeechSynthesisUtterance(texto);
+            u.lang='pt-BR';
+            u.rate=0.8;
+            window.speechSynthesis.speak(u);
+        } catch(e) {
+            console.error("Erro no motor de voz: ", e);
+        }
+    },
+
+    tIsScore(t){
+        return String(t).startsWith('SCORE');
+    },
+
+    combinarAcento(l,a){
+        const m={
+            '´':{'A':'Á','E':'É','I':'Í','O':'Ó','U':'Ú'},
+            '~':{'A':'Ã','O':'Õ'},
+            '^':{'A':'Â','E':'Ê','O':'Ô'}
+        };
+        return (m[a] && m[a][l]) ? m[a][l] : l;
+    },
+
+    /* ================= PERSISTÊNCIA TXT ================= */
+    exportarTXT() {
+        this.processanEntradaTexto();
+        const conteudo = this.listaCompleta.join('\n');
+        const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'lista_ditado.txt';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    },
+
+    importarTXT() {
+        this.$refs.fileInput.click();
+    },
+
+    lerArquivoTXT(event) {
+        const arquivo = event.target.files[0];
+        if (!arquivo) return;
+
+        const leitor = new FileReader();
+        leitor.onload = (e) => {
+            this.entradaExercicios = e.target.result;
+            this.processanEntradaTexto();
+            alert("Lista importada com sucesso!");
+        };
+        leitor.readAsText(arquivo);
+        event.target.value = '';
+    }
+}
+
+});
+</script>
+
+</body>
+</html>
