@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora Científica & Gráfica PWA</title>
+    <!-- Web App Manifest for PWA installation -->
+    <link rel="manifest" href="data:application/manifest+json,{
+        %22name%22:%22Calculadora%20Cient%C3%ADfica%20PWA%22,
+        %22short_name%22:%22Calculadora%22,
+        %22start_url%22:%22.%22,
+        %22display%22:%22standalone%22,
+        %22background_color%22:%22%230f172a%22,
+        %22theme_color%22:%22%230f172a%22,
+        %22icons%22:[{%22src%22:%22https://placehold.co/192x192/1e293b/10b981?text=CALC%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22}]
+    }">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Math.js for robust calculations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <!-- Chart.js for 2D graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for hardware icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- LCD Digital and Clean Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .lcd-screen {
+            font-family: 'Share Tech Mono', monospace;
+            background: linear-gradient(180deg, #8fa382 0%, #7d936f 100%);
+            color: #111a0e;
+            text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.15);
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.4), inset 0 -1px 2px rgba(255,255,255,0.2);
+        }
+        .lcd-screen.dark-lcd {
+            background: linear-gradient(180deg, #0d1520 0%, #080d14 100%);
+            color: #34d399;
+            text-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+            box-shadow: inset 0 3px 10px rgba(0,0,0,0.8);
+        }
+        .calc-chassis {
+            background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.07);
+        }
+        .btn-key {
+            transition: all 0.06s ease;
+            box-shadow: 0 4px 0px #090d16, 0 5px 8px rgba(0, 0, 0, 0.4);
+        }
+        .btn-key:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0px #090d16, 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .btn-shift-active {
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 4px 0px #090d16 !important;
+        }
+        .btn-alpha-active {
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6), 0 4px 0px #090d16 !important;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 selection:bg-emerald-500 selection:text-black">
+
+    <header class="w-full max-w-4xl flex items-center justify-between py-2 px-4 mb-2 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl">
+        <div class="flex items-center space-x-3">
+            <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50" title="Status de Conexão"></div>
+            <span id="status-text" class="text-xs font-mono tracking-widest text-slate-400 uppercase">OFFLINE PRONTO</span>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <nav class="flex flex-wrap gap-1">
+            <button onclick="mudarModo('cientifica')" id="aba-cientifica" class="px-2.5 py-1 text-xs font-mono rounded-lg bg-emerald-600 text-white font-semibold transition">CIENTÍFICA</button>
+            <button onclick="mudarModo('grafica')" id="aba-grafica" class="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">GRÁFICA 2D</button>
+            <button onclick="mudarModo('calculo')" id="aba-calculo" class="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">MATRIZ/CÁLCULO</button>
+            <button onclick="mudarModo('estatistica')" id="aba-estatistica" class="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">ESTATÍSTICA</button>
+            <button onclick="mudarModo('conversor')" id="aba-conversor" class="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">CONVERSOR</button>
+            <button onclick="mudarModo('constantes')" id="aba-constantes" class="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">CONSTANTES</button>
+        </nav>
+    </header>
+
+    <main class="w-full max-w-4xl calc-chassis border border-slate-800/80 rounded-3xl p-3 sm:p-6 flex flex-col relative my-auto shadow-2xl">
+
+        <!-- Physical LCD Screen Box -->
+        <div id="lcd-container" class="lcd-screen rounded-xl p-3 sm:p-4 mb-4 flex flex-col justify-between border-2 border-slate-800 relative overflow-hidden min-h-[120px] transition-all">
+            <div class="flex justify-between items-center text-[11px] font-mono opacity-90 border-b border-black/10 dark:border-white/10 pb-1 mb-1">
+                <div class="flex items-center space-x-2">
+                    <span id="indicador-modo" class="font-bold">ALG</span>
+                    <span id="indicador-angulo" class="cursor-pointer font-bold px-1 rounded bg-black/10 dark:bg-white/10 hover:opacity-80" onclick="alternarAngulo()">GRAUS</span>
+                    <span id="indicador-shift" class="hidden text-amber-600 dark:text-amber-400 font-bold">2ndF</span>
+                    <span id="indicador-alpha" class="hidden text-blue-600 dark:text-blue-400 font-bold">ALPHA</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="alternarTemaLcd()" class="hover:opacity-75" title="Alternar Modo do Visor">
+                        <i class="fa-solid fa-circle-half-stroke"></i>
+                    </button>
+                    <span id="indicador-mem" class="text-[10px]">MEM: 0</span>
+                </div>
+            </div>
+
+            <!-- Expression & Main Result Lines -->
+            <div id="lcd-expressao" class="text-right text-xs sm:text-sm opacity-80 truncate font-mono tracking-wider min-h-[18px]"></div>
+            <div id="lcd-resultado" class="text-right text-2xl sm:text-4xl font-bold tracking-wider truncate font-mono">0</div>
+        </div>
+
+        <!-- ================= MODO 1: CIENTÍFICA & PROGRAMÁVEL ================= -->
+        <div id="view-cientifica" class="modo-view grid grid-cols-6 gap-1.5 sm:gap-2">
+            
+            <!-- Row 1: Hardware Control Keys -->
+            <button onclick="ativarShift()" id="btn-shift" class="btn-key bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm py-2 rounded-lg font-mono font-bold">2ndF</button>
+            <button onclick="ativarAlpha()" id="btn-alpha" class="btn-key bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm py-2 rounded-lg font-mono font-bold">ALPHA</button>
+            <button onclick="alternarNotacaoRpn()" id="btn-rpn" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2 rounded-lg font-mono">RPN/ALG</button>
+            <button onclick="inserirFuncao('(')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2 rounded-lg font-mono">(</button>
+            <button onclick="inserirFuncao(')')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2 rounded-lg font-mono">)</button>
+            <button onclick="limparTudo()" class="btn-key bg-rose-900 hover:bg-rose-800 text-rose-200 text-xs sm:text-sm py-2 rounded-lg font-mono font-bold">AC</button>
+
+            <!-- Row 2: Trig Functions -->
+            <button onclick="executarTecla('sin')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2.5 rounded-lg font-mono">
+                <span>sin</span><span class="text-[9px] text-amber-400 block -mt-1">asin</span>
+            </button>
+            <button onclick="executarTecla('cos')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2.5 rounded-lg font-mono">
+                <span>cos</span><span class="text-[9px] text-amber-400 block -mt-1">acos</span>
+            </button>
+            <button onclick="executarTecla('tan')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2.5 rounded-lg font-mono">
+                <span>tan</span><span class="text-[9px] text-amber-400 block -mt-1">atan</span>
+            </button>
+
+            <!-- Row 2.5: Powers & Logs -->
+            <button onclick="executarTecla('ln')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2.5 rounded-lg font-mono">
+                <span>ln</span><span class="text-[9px] text-amber-400 block -mt-1">eˣ</span>
+            </button>
+            <button onclick="executarTecla('log')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2.5 rounded-lg font-mono">
+                <span>log</span><span class="text-[9px] text-amber-400 block -mt-1">10ˣ</span>
+            </button>
+            <button onclick="executarTecla('pot')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2.5 rounded-lg font-mono">
+                <span>xʸ</span><span class="text-[9px] text-amber-400 block -mt-1">ⁿ√x</span>
+            </button>
+
+            <!-- Row 3: Advanced Sci Ops -->
+            <button onclick="executarTecla('sqrt')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2 rounded-lg font-mono">√x</button>
+            <button onclick="executarTecla('sqr')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2 rounded-lg font-mono">x²</button>
+            <button onclick="inserirFuncao('pi')" class="btn-key bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs sm:text-sm py-2 rounded-lg font-mono">π</button>
+            <button onclick="inserirFuncao('e')" class="btn-key bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs sm:text-sm py-2 rounded-lg font-mono">e</button>
+            <button onclick="executarTecla('fat')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm py-2 rounded-lg font-mono">n!</button>
+            <button onclick="apagarDigito()" class="btn-key bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs sm:text-sm py-2 rounded-lg font-mono font-bold">⌫</button>
+
+            <!-- Row 4: Digits & Basic Ops -->
+            <button onclick="inserirFuncao('7')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">7</button>
+            <button onclick="inserirFuncao('8')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">8</button>
+            <button onclick="inserirFuncao('9')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">9</button>
+            <button onclick="inserirFuncao('X')" class="btn-key bg-slate-800 hover:bg-slate-700 text-blue-400 py-3 rounded-lg font-mono text-sm">X</button>
+            <button onclick="atribuirVariavel()" class="btn-key bg-slate-800 hover:bg-slate-700 text-amber-300 py-3 rounded-lg font-mono text-xs">STO</button>
+            <button onclick="inserirOp('/')" class="btn-key bg-slate-800 hover:bg-slate-700 text-emerald-400 py-3 rounded-lg font-mono text-lg font-bold">÷</button>
+
+            <!-- Row 5 -->
+            <button onclick="inserirFuncao('4')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">4</button>
+            <button onclick="inserirFuncao('5')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">5</button>
+            <button onclick="inserirFuncao('6')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">6</button>
+            <button onclick="inserirFuncao('Y')" class="btn-key bg-slate-800 hover:bg-slate-700 text-blue-400 py-3 rounded-lg font-mono text-sm">Y</button>
+            <button onclick="recuperarVariavel()" class="btn-key bg-slate-800 hover:bg-slate-700 text-amber-300 py-3 rounded-lg font-mono text-xs">RCL</button>
+            <button onclick="inserirOp('*')" class="btn-key bg-slate-800 hover:bg-slate-700 text-emerald-400 py-3 rounded-lg font-mono text-lg font-bold">×</button>
+
+            <!-- Row 6 -->
+            <button onclick="inserirFuncao('1')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">1</button>
+            <button onclick="inserirFuncao('2')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">2</button>
+            <button onclick="inserirFuncao('3')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">3</button>
+            <button onclick="inserirFuncao('Z')" class="btn-key bg-slate-800 hover:bg-slate-700 text-blue-400 py-3 rounded-lg font-mono text-sm">Z</button>
+            <button onclick="inserirFuncao('Ans')" class="btn-key bg-slate-800 hover:bg-slate-700 text-amber-300 py-3 rounded-lg font-mono text-xs">Ans</button>
+            <button onclick="inserirOp('-')" class="btn-key bg-slate-800 hover:bg-slate-700 text-emerald-400 py-3 rounded-lg font-mono text-lg font-bold">-</button>
+
+            <!-- Row 7 -->
+            <button onclick="inserirFuncao('0')" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">0</button>
+            <button onclick="inserirSeparadorDecimal()" class="btn-key bg-slate-700/70 hover:bg-slate-700 text-white py-3 rounded-lg font-mono text-base font-medium">,</button>
+            <button onclick="inserirFuncao('EE')" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 py-3 rounded-lg font-mono text-xs">EXP</button>
+            <button onclick="inverterSinal()" class="btn-key bg-slate-800 hover:bg-slate-700 text-slate-200 py-3 rounded-lg font-mono text-xs">(-)</button>
+            <button onclick="inserirOp('+')" class="btn-key bg-slate-800 hover:bg-slate-700 text-emerald-400 py-3 rounded-lg font-mono text-lg font-bold">+</button>
+            <button onclick="calcularResultado()" class="btn-key bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg font-mono text-xl shadow-lg shadow-emerald-900/40">=</button>
+
+        </div>
+
+        <!-- ================= MODO 2: GRÁFICA 2D ================= -->
+        <div id="view-grafica" class="modo-view hidden flex flex-col space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-mono text-emerald-400 font-bold">f(x) =</span>
+                    <input type="text" id="graf-f1" value="sin(x)" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-mono text-blue-400 font-bold">g(x) =</span>
+                    <input type="text" id="graf-f2" value="cos(x) * 0.5" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-blue-400 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+                <div class="flex items-center space-x-2 text-xs font-mono">
+                    <span class="text-slate-400">Domínio [Xmin, Xmax]:</span>
+                    <input type="number" id="graf-xmin" value="-10" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center">
+                    <input type="number" id="graf-xmax" value="10" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center">
+                </div>
+                <button onclick="gerarGrafico()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold rounded-lg shadow">GERAR GRÁFICO</button>
+            </div>
+
+            <div class="relative w-full h-[320px] bg-slate-950 rounded-xl border border-slate-800 p-2">
+                <canvas id="canvasGrafico"></canvas>
+            </div>
+        </div>
+
+        <!-- ================= MODO 3: MATRIZES E CÁLCULO ================= -->
+        <div id="view-calculo" class="modo-view hidden flex flex-col space-y-4">
+            <div class="text-xs font-mono text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                Motor de Álgebra Linear, Derivadas e Integrais Definidas.
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+                <div class="flex flex-col space-y-1">
+                    <label class="text-slate-400">Matriz A (Sintaxe [[a,b],[c,d]]):</label>
+                    <textarea id="matriz-a" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-emerald-400 focus:outline-none h-20">[[2, 1], [4, 3]]</textarea>
+                </div>
+                <div class="flex flex-col space-y-1">
+                    <label class="text-slate-400">Matriz B (opcional):</label>
+                    <textarea id="matriz-b" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-emerald-400 focus:outline-none h-20">[[1, 0], [2, 1]]</textarea>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button onclick="calcularMatriz('somar')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-mono rounded-lg text-emerald-400 border border-slate-700">A + B</button>
+                <button onclick="calcularMatriz('multiplicar')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-mono rounded-lg text-emerald-400 border border-slate-700">A × B</button>
+                <button onclick="calcularMatriz('det')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-mono rounded-lg text-emerald-400 border border-slate-700">det(A)</button>
+                <button onclick="calcularMatriz('inversa')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-mono rounded-lg text-emerald-400 border border-slate-700">Inversa(A)</button>
+                <button onclick="calcularMatriz('transposta')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-mono rounded-lg text-emerald-400 border border-slate-700">Transposta(A)</button>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3">
+                <label class="text-xs font-mono text-slate-400 block mb-1">Cálculo Numérico:</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onclick="executarDerivada()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200 border border-slate-700">Derivada d/dx f(x)</button>
+                    <button onclick="executarIntegral()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200 border border-slate-700">Integral Definida ∫ f(x)dx</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODO 4: ESTATÍSTICA & REGRESSÃO ================= -->
+        <div id="view-estatistica" class="modo-view hidden flex flex-col space-y-3">
+            <div class="text-xs font-mono text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                Análise Estatística e Regressão Linear. Insira os valores separados por vírgula.
+            </div>
+
+            <div class="flex flex-col space-y-1">
+                <label class="text-xs font-mono text-slate-400">Conjunto de Dados (Valores X):</label>
+                <input type="text" id="dados-estatistica" value="10, 15, 20, 25, 30, 35, 40" class="bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs font-mono text-emerald-400 focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button onclick="processarEstatistica('media')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200 border border-slate-700">Média (x̄)</button>
+                <button onclick="processarEstatistica('mediana')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200 border border-slate-700">Mediana</button>
+                <button onclick="processarEstatistica('desvio')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200 border border-slate-700">Desvio Padrão (s)</button>
+                <button onclick="processarEstatistica('resumo')" class="p-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs font-mono">Resumo Completo</button>
+            </div>
+
+            <div id="saida-estatistica" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 min-h-[90px]">
+                Aguardando entrada de dados...
+            </div>
+        </div>
+
+        <!-- ================= MODO 5: CONVERSOR DE UNIDADES ================= -->
+        <div id="view-conversor" class="modo-view hidden flex flex-col space-y-4 font-mono text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <select id="conv-tipo" onchange="atualizarOpcoesConversor()" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-emerald-400">
+                    <option value="comprimento">Comprimento</option>
+                    <option value="massa">Massa</option>
+                    <option value="temperatura">Temperatura</option>
+                    <option value="energia">Energia</option>
+                </select>
+                <select id="conv-de" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
+                <select id="conv-para" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <input type="number" id="conv-valor" value="1" oninput="executarConversao()" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-emerald-400 text-sm">
+                <button onclick="executarConversao()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg">CONVERTER</button>
+            </div>
+
+            <div id="conv-resultado" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-sm font-bold text-center text-emerald-400">
+                1 Metro = 100 Centímetros
+            </div>
+        </div>
+
+        <!-- ================= MODO 6: CONSTANTES FÍSICAS ================= -->
+        <div id="view-constantes" class="modo-view hidden grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs max-h-[300px] overflow-y-auto pr-1">
+            <button onclick="inserirConstante('299792458')" class="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 text-left flex justify-between">
+                <span>Velocidade da Luz (c)</span><span class="text-emerald-400">2.997e8 m/s</span>
+            </button>
+            <button onclick="inserirConstante('6.62607015e-34')" class="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 text-left flex justify-between">
+                <span>Constante de Planck (h)</span><span class="text-emerald-400">6.626e-34 J·s</span>
+            </button>
+            <button onclick="inserirConstante('9.80665')" class="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 text-left flex justify-between">
+                <span>Aceleração da Gravidade (g)</span><span class="text-emerald-400">9.806 m/s²</span>
+            </button>
+            <button onclick="inserirConstante('6.02214076e23')" class="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 text-left flex justify-between">
+                <span>Número de Avogadro (N₇)</span><span class="text-emerald-400">6.022e23 mol⁻¹</span>
+            </button>
+            <button onclick="inserirConstante('1.602176634e-19')" class="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 text-left flex justify-between">
+                <span>Carga Elementar (e)</span><span class="text-emerald-400">1.602e-19 C</span>
+            </button>
+            <button onclick="inserirConstante('8.314462618')" class="p-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 text-left flex justify-between">
+                <span>Constante dos Gases (R)</span><span class="text-emerald-400">8.314 J/(mol·K)</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer Status -->
+    <footer class="w-full text-center py-2 text-[11px] text-slate-500 font-mono">
+        Engenharia & Científica PWA &bull; Funcionamento 100% Offline
+    </footer>
+
+    <script>
+        // State variables
+        let expressaoAtual = '';
+        let ultimoAns = 0;
+        let modoAngulo = 'GRAUS'; // 'GRAUS' ou 'RAD'
+        let modoRpn = false; // RPN vs Algébrico
+        let pilhaRpn = [];
+        let modoShift = false;
+        let modoAlpha = false;
+        let variaveis = { X: 0, Y: 0, Z: 0 };
+        let graficoChart = null;
+
+        // Offline PWA Service Worker Registration using Data Blob
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swContent = `
+                    const CACHE_NAME = 'calc-pwa-v1';
+                    self.addEventListener('install', e => {
+                        e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./'])));
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('activate', e => {
+                        e.waitUntil(self.clients.claim());
+                    });
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+                    });
+                `;
+                const blob = new Blob([swContent], { type: 'text/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+            });
+        }
+
+        // Online / Offline Monitor
+        function atualizarStatusConexao() {
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            if (navigator.onLine) {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50';
+                txt.innerText = 'ONLINE / OFFLINE PRONTO';
+            } else {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50';
+                txt.innerText = 'MODO OFFLINE ATIVO';
+            }
+        }
+        window.addEventListener('online', atualizarStatusConexao);
+        window.addEventListener('offline', atualizarStatusConexao);
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            atualizarStatusConexao();
+            atualizarOpcoesConversor();
+
+            // Keyboard listener
+            window.addEventListener('keydown', (e) => {
+                if (e.key >= '0' && e.key <= '9') inserirFuncao(e.key);
+                else if (e.key === '.') inserirSeparadorDecimal();
+                else if (e.key === ',') inserirSeparadorDecimal();
+                else if (['+', '-', '*', '/'].includes(e.key)) inserirOp(e.key);
+                else if (e.key === 'Enter') calcularResultado();
+                else if (e.key === 'Backspace') apagarDigito();
+                else if (e.key === 'Escape') limparTudo();
+            });
+        });
+
+        // Navigation tab handler
+        function mudarModo(modo) {
+            document.querySelectorAll('.modo-view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${modo}`).classList.remove('hidden');
+
+            const abas = ['cientifica', 'grafica', 'calculo', 'estatistica', 'conversor', 'constantes'];
+            abas.forEach(a => {
+                const btn = document.getElementById(`aba-${a}`);
+                if (a === modo) {
+                    btn.className = 'px-2.5 py-1 text-xs font-mono rounded-lg bg-emerald-600 text-white font-semibold transition shadow';
+                } else {
+                    btn.className = 'px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+                }
+            });
+
+            if (modo === 'grafica') setTimeout(gerarGrafico, 100);
+        }
+
+        function alternarAngulo() {
+            modoAngulo = modoAngulo === 'GRAUS' ? 'RAD' : 'GRAUS';
+            document.getElementById('indicador-angulo').innerText = modoAngulo;
+        }
+
+        function alternarTemaLcd() {
+            const lcd = document.getElementById('lcd-container');
+            lcd.classList.toggle('dark-lcd');
+        }
+
+        function ativarShift() {
+            modoShift = !modoShift;
+            modoAlpha = false;
+            document.getElementById('indicador-shift').classList.toggle('hidden', !modoShift);
+            document.getElementById('indicador-alpha').classList.add('hidden');
+            document.getElementById('btn-shift').classList.toggle('btn-shift-active', modoShift);
+            document.getElementById('btn-alpha').classList.remove('btn-alpha-active');
+        }
+
+        function ativarAlpha() {
+            modoAlpha = !modoAlpha;
+            modoShift = false;
+            document.getElementById('indicador-alpha').classList.toggle('hidden', !modoAlpha);
+            document.getElementById('indicador-shift').classList.add('hidden');
+            document.getElementById('btn-alpha').classList.toggle('btn-alpha-active', modoAlpha);
+            document.getElementById('btn-shift').classList.remove('btn-shift-active');
+        }
+
+        function alternarNotacaoRpn() {
+            modoRpn = !modoRpn;
+            document.getElementById('indicador-modo').innerText = modoRpn ? 'RPN' : 'ALG';
+            pilhaRpn = [];
+            limparTudo();
+        }
+
+        function inserirFuncao(val) {
+            expressaoAtual += val;
+            atualizarVisor();
+        }
+
+        function inserirOp(op) {
+            expressaoAtual += ' ' + op + ' ';
+            atualizarVisor();
+        }
+
+        function inserirSeparadorDecimal() {
+            if (!expressaoAtual.endsWith('.')) {
+                expressaoAtual += '.';
+                atualizarVisor();
+            }
+        }
+
+        function apagarDigito() {
+            expressaoAtual = expressaoAtual.trimEnd().slice(0, -1);
+            atualizarVisor();
+        }
+
+        function limparTudo() {
+            expressaoAtual = '';
+            document.getElementById('lcd-expressao').innerText = '';
+            document.getElementById('lcd-resultado').innerText = '0';
+        }
+
+        function atualizarVisor() {
+            document.getElementById('lcd-expressao').innerText = expressaoAtual.replace(/\./g, ',');
+        }
+
+        function executarTecla(tipo) {
+            let func = tipo;
+            if (modoShift) {
+                if (tipo === 'sin') func = 'asin';
+                else if (tipo === 'cos') func = 'acos';
+                else if (tipo === 'tan') func = 'atan';
+                else if (tipo === 'ln') func = 'exp';
+                else if (tipo === 'log') func = '10^';
+                modoShift = false;
+                document.getElementById('indicador-shift').classList.add('hidden');
+                document.getElementById('btn-shift').classList.remove('btn-shift-active');
+            }
+
+            if (['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'ln', 'log', 'sqrt'].includes(func)) {
+                expressaoAtual += func + '(';
+            } else if (func === 'sqr') {
+                expressaoAtual += '^2';
+            } else if (func === 'pot') {
+                expressaoAtual += '^';
+            } else if (func === 'fat') {
+                expressaoAtual += '!';
+            }
+            atualizarVisor();
+        }
+
+        function calcularResultado() {
+            if (!expressaoAtual.trim()) return;
+
+            try {
+                let expr = expressaoAtual;
+
+                // Adjust trigonometric units
+                if (modoAngulo === 'GRAUS') {
+                    expr = expr
+                        .replace(/sin\(/g, 'sin(deg * ')
+                        .replace(/cos\(/g, 'cos(deg * ')
+                        .replace(/tan\(/g, 'tan(deg * ');
+                }
+
+                // Variable replacements
+                expr = expr.replace(/Ans/g, ultimoAns)
+                           .replace(/X/g, variaveis.X)
+                           .replace(/Y/g, variaveis.Y)
+                           .replace(/Z/g, variaveis.Z);
+
+                let res = math.evaluate(expr);
+                if (typeof res === 'number') {
+                    res = parseFloat(res.toFixed(10));
+                }
+
+                document.getElementById('lcd-resultado').innerText = String(res).replace(/\./g, ',');
+                ultimoAns = res;
+            } catch (err) {
+                document.getElementById('lcd-resultado').innerText = 'ERRO DE SINTAXE';
+            }
+        }
+
+        function atribuirVariavel() {
+            try {
+                let val = parseFloat(document.getElementById('lcd-resultado').innerText.replace(',', '.'));
+                variaveis.X = val;
+                document.getElementById('indicador-mem').innerText = `MEM: ${val}`;
+            } catch (e) {}
+        }
+
+        function recuperarVariavel() {
+            expressaoAtual += 'X';
+            atualizarVisor();
+        }
+
+        // 2D Graph Plotter
+        function gerarGrafico() {
+            const f1Str = document.getElementById('graf-f1').value;
+            const f2Str = document.getElementById('graf-f2').value;
+            const xmin = parseFloat(document.getElementById('graf-xmin').value) || -10;
+            const xmax = parseFloat(document.getElementById('graf-xmax').value) || 10;
+
+            const xValues = [];
+            const y1Values = [];
+            const y2Values = [];
+
+            try {
+                const c1 = math.compile(f1Str);
+                const c2 = f2Str ? math.compile(f2Str) : null;
+
+                const passo = (xmax - xmin) / 100;
+                for (let x = xmin; x <= xmax; x += passo) {
+                    xValues.push(parseFloat(x.toFixed(2)));
+                    let y1 = c1.evaluate({ x: x });
+                    y1Values.push(typeof y1 === 'number' && !isNaN(y1) ? y1 : null);
+
+                    if (c2) {
+                        let y2 = c2.evaluate({ x: x });
+                        y2Values.push(typeof y2 === 'number' && !isNaN(y2) ? y2 : null);
+                    }
+                }
+            } catch (e) {}
+
+            const ctx = document.getElementById('canvasGrafico').getContext('2d');
+            if (graficoChart) graficoChart.destroy();
+
+            const datasets = [{
+                label: 'f(x) = ' + f1Str,
+                data: y1Values,
+                borderColor: '#10b981',
+                borderWidth: 2,
+                pointRadius: 0
+            }];
+
+            if (f2Str) {
+                datasets.push({
+                    label: 'g(x) = ' + f2Str,
+                    data: y2Values,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    pointRadius: 0
+                });
+            }
+
+            graficoChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: xValues, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    },
+                    plugins: { legend: { labels: { color: '#f8fafc' } } }
+                }
+            });
+        }
+
+        // Matrix Calculator
+        function calcularMatriz(operacao) {
+            try {
+                let A = math.evaluate(document.getElementById('matriz-a').value);
+                let B = document.getElementById('matriz-b').value ? math.evaluate(document.getElementById('matriz-b').value) : null;
+                let res;
+
+                if (operacao === 'somar') res = math.add(A, B);
+                else if (operacao === 'multiplicar') res = math.multiply(A, B);
+                else if (operacao === 'det') res = math.det(A);
+                else if (operacao === 'inversa') res = math.inv(A);
+                else if (operacao === 'transposta') res = math.transpose(A);
+
+                document.getElementById('lcd-resultado').innerText = JSON.stringify(res);
+            } catch (e) {
+                document.getElementById('lcd-resultado').innerText = 'ERRO MATRIZ';
+            }
+        }
+
+        // Statistics
+        function processarEstatistica(tipo) {
+            try {
+                let txt = document.getElementById('dados-estatistica').value;
+                let arr = txt.split(',').map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
+
+                if (tipo === 'media') {
+                    document.getElementById('saida-estatistica').innerText = `Média (x̄) = ${math.mean(arr)}`;
+                } else if (tipo === 'mediana') {
+                    document.getElementById('saida-estatistica').innerText = `Mediana = ${math.median(arr)}`;
+                } else if (tipo === 'desvio') {
+                    document.getElementById('saida-estatistica').innerText = `Desvio Padrão = ${math.std(arr)}`;
+                } else if (tipo === 'resumo') {
+                    document.getElementById('saida-estatistica').innerText = 
+                        `Nº de Amostras: ${arr.length}\nMédia: ${math.mean(arr)}\nMediana: ${math.median(arr)}\nDesvio Padrão: ${math.std(arr)}\nMínimo: ${math.min(arr)}\nMáximo: ${math.max(arr)}`;
+                }
+            } catch (e) {
+                document.getElementById('saida-estatistica').innerText = 'Erro ao processar dados.';
+            }
+        }
+
+        // Unit Converter Logic
+        const unidadesConfig = {
+            comprimento: { 'Metro': 1, 'Quilômetro': 1000, 'Centímetro': 0.01, 'Milímetro': 0.001, 'Polegada': 0.0254 },
+            massa: { 'Quilograma': 1, 'Grama': 0.001, 'Tonelada': 1000, 'Libras': 0.453592 },
+            temperatura: { 'Celsius': 'C', 'Fahrenheit': 'F', 'Kelvin': 'K' },
+            energia: { 'Joule': 1, 'Quilojoule': 1000, 'Caloria': 4.184 }
+        };
+
+        function atualizarOpcoesConversor() {
+            const tipo = document.getElementById('conv-tipo').value;
+            const de = document.getElementById('conv-de');
+            const para = document.getElementById('conv-para');
+
+            de.innerHTML = '';
+            para.innerHTML = '';
+
+            Object.keys(unidadesConfig[tipo]).forEach(u => {
+                de.add(new Option(u, u));
+                para.add(new Option(u, u));
+            });
+            executarConversao();
+        }
+
+        function executarConversao() {
+            const tipo = document.getElementById('conv-tipo').value;
+            const de = document.getElementById('conv-de').value;
+            const para = document.getElementById('conv-para').value;
+            const val = parseFloat(document.getElementById('conv-valor').value) || 0;
+
+            let res = 0;
+            if (tipo === 'temperatura') {
+                if (de === 'Celsius' && para === 'Fahrenheit') res = (val * 9/5) + 32;
+                else if (de === 'Fahrenheit' && para === 'Celsius') res = (val - 32) * 5/9;
+                else if (de === 'Celsius' && para === 'Kelvin') res = val + 273.15;
+                else res = val;
+            } else {
+                const fatorDe = unidadesConfig[tipo][de];
+                const fatorPara = unidadesConfig[tipo][para];
+                res = (val * fatorDe) / fatorPara;
+            }
+
+            document.getElementById('conv-resultado').innerText = `${val} ${de} = ${res.toFixed(4)} ${para}`;
+        }
+
+        function inserirConstante(valor) {
+            expressaoAtual += valor;
+            atualizarVisor();
+            mudarModo('cientifica');
+        }
+    </script>
+</body>
+</html>
