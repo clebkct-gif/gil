@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full w-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Digitando</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"Roboto Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Reset & Base Rules */
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030712;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Zero Gap Layout for Landscape Studio */
+    #studio-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    }
+    #studio-container.hidden, .keyboard-row.hidden { display: none; }
+
+    #studio-toolbar {
+      height: 2.5rem;
+      background: #0b0f19;
+      border-bottom: 1px solid #111827;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    #studio-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 0;
+    }
+
+    /* 50/50 Split */
+    #exercise-stage {
+      flex: 1;
+      height: 50%;
+      background: #030712;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8px 16px;
+    }
+
+    #keyboard-stage {
+      flex: 1;
+      height: 50%;
+      background: #080d1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border-top: 1px solid #111827;
+      pointer-events: none; /* Reference only */
+    }
+
+    /* Target Text Highlight Styles */
+    .char-done { 
+      color: #34d399; 
+      background-color: rgba(52, 211, 153, 0.12); 
+      border-radius: 4px;
+    }
+      .char-fixed { color: #fbbf24; background-color: rgba(248,113,113,0.18); text-decoration: underline wavy #f87171; border-radius: 4px; }
+    .char-error { 
+      color: #f87171; 
+      background-color: rgba(248, 113, 113, 0.25); 
+      text-decoration: underline; 
+      border-radius: 4px;
+    }
+    .char-current { 
+      color: #030712; 
+      background-color: #38bdf8; 
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.9);
+      animation: pulse-bg 0.8s infinite alternate; 
+      border-radius: 4px;
+      font-weight: 800;
+    }
+
+    @keyframes pulse-bg {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.04); opacity: 0.85; }
+    }
+
+    /* Visual Keyboard Layout */
+    .keyboard-wrapper {
+      width: 100%;
+      max-width: 1900px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      gap: 3px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      gap: 3px;
+      width: 100%;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .key {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      font-family: 'Roboto Mono', monospace;
+      font-size: clamp(12px, 2.6vh, 34px);
+      font-weight: 800;
+      flex: 1;
+      min-width: 0;
+      transition: all 0.08s ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .key-w-1-25 { flex: 1.25; }
+    .key-w-1-5  { flex: 1.5; }
+    .key-w-1-75 { flex: 1.75; }
+    .key-w-2    { flex: 2; }
+    .key-w-2-25 { flex: 2.25; }
+    .key-w-space { flex: 6.5; }
+
+    .key-target {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.8) !important;
+      animation: key-pulse 0.7s infinite alternate;
+    }
+
+    .key.active-pressed {
+      transform: translateY(2px);
+      background: #0369a1 !important;
+      color: #ffffff !important;
+    }
+
+    @keyframes key-pulse {
+      0% { opacity: 0.85; filter: brightness(1); }
+      100% { opacity: 1; filter: brightness(1.3); }
+    }
+
+    .finger-highlight {
+      fill: #38bdf8 !important;
+      filter: drop-shadow(0px 0px 8px #38bdf8);
+      transition: all 0.25s ease;
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+  
+    :root { color-scheme: dark; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+    input, textarea { user-select: text; -webkit-user-select: text; }
+    #exercise-stage, #keyboard-stage { min-height: 0; }
+    .word { display: inline-block; white-space: pre; }
+    .animate-spin-slow { animation: spin 6s linear infinite; }
+    .animate-fade-in { animation: fadein 0.3s ease; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+    /* Menu de atividades */
+    #portrait-hub { padding: 0.75rem 1rem; scroll-behavior: smooth;
+      background: radial-gradient(1100px 480px at 8% -8%, rgba(56,189,248,.13), transparent 60%), radial-gradient(900px 480px at 100% 0, rgba(168,85,247,.10), transparent 55%), #030712; }
+    #portrait-hub > header { border-bottom: 1px solid rgba(148,163,184,.12); }
+    /* Fonte das teclas proporcional a altura de cada tecla (a tecla nao muda de tamanho) */
+    @supports (container-type: size) {
+      .keyboard-row { container-type: size; }
+      .key { font-size: calc(var(--kf, 112) * 1cqh); line-height: 1; }
+      .key.key-sp { font-size: calc(var(--kf, 112) * 0.34cqh); letter-spacing: 0; }
+    }
+
+    /* Adaptacao a celular, tablet e TV: tudo escala com a tela */
+    html { font-size: clamp(14px, 2.2vmin, 30px); }
+    #text-container { position: relative; }
+    #exercise-stage { flex: 1 1 0; height: auto; }
+    #keyboard-stage { flex: 1 1 0; height: auto; }
+    @media (max-height: 520px) { #exercise-stage { flex-grow: 1.5; } }
+    @media (min-width: 1280px) { #portrait-hub { max-width: 72rem; } }
+
+    /* Icones embutidos (sem dependencia externa) */
+    .fa-solid { font-style: normal; display: inline-block; line-height: 1; }
+    .fa-user-gear::before{content:"\1F464"} .fa-chevron-down::before{content:"\25BE"} .fa-rotate::before{content:"\27F3"}
+    .fa-arrow-right::before{content:"\2192"} .fa-arrow-left::before{content:"\2190"} .fa-bug::before{content:"\1F41E"}
+    .fa-scroll::before{content:"\1F4DC"} .fa-mobile-screen-button::before{content:"\1F4F1"} .fa-keyboard::before{content:"\2328\FE0E"}
+    .fa-check::before{content:"\2713"} .fa-xmark::before{content:"\2715"} .fa-triangle-exclamation::before{content:"\26A0\FE0E"}
+    .fa-expand::before{content:"\2922"} .fa-compress::before{content:"\2921"} .fa-hand::before{content:"\270B"}
+    .fa-stopwatch::before{content:"\23F1\FE0E"} .fa-volume-high::before{content:"\1F50A"} .fa-volume-xmark::before{content:"\1F507"}
+    .fa-rotate-right::before{content:"\21BB"} .fa-users::before{content:"\1F465"} .fa-plus::before{content:"+"}
+    .fa-trophy::before{content:"\1F3C6"} .fa-trash::before{content:"\1F5D1"}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+
+  <!-- ========================================== -->
+  <!-- 1. PORTRAIT VIEW: HUB / DASHBOARD & PROFILES -->
+  <!-- ========================================== -->
+  <div id="portrait-hub" class="w-full h-full flex flex-col bg-slate-950 overflow-y-auto p-4 sm:p-6 max-w-4xl mx-auto">
+    
+    <!-- Top Bar / App Brand -->
+    <header class="flex items-center justify-between gap-2 pb-3 mb-3 shrink-0">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 via-indigo-500 to-fuchsia-500 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-sky-500/30">D</div>
+        <h1 class="text-xl font-black tracking-tight text-white">Digitando</h1>
+        <button onclick="toggleFullscreen()" title="Tela cheia" class="w-6 h-6 rounded-md text-slate-500 hover:text-sky-400 text-xs flex items-center justify-center transition"><i id="hub-fs-icon" class="fa-solid fa-expand"></i></button>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openCreator()" class="px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-sky-500/50 text-slate-300 text-xs font-bold transition"><i class="fa-solid fa-plus mr-1"></i> Minhas lições</button>
+        <button onclick="openModal('modal-users')" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition active:scale-95">
+          <i class="fa-solid fa-user-gear text-sky-400 text-xs"></i>
+          <span id="current-user-name" class="text-xs font-bold text-slate-200">Sem Aluno</span>
+          <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 flex flex-col gap-3">
+      <!-- Hero -->
+      <div class="rounded-3xl p-4 bg-gradient-to-br from-indigo-600/30 via-sky-600/15 to-slate-900/80 border border-sky-400/20 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="w-full text-center sm:text-left">
+          <h2 class="text-lg font-black text-white">Pronto para treinar?</h2>
+          <p class="text-xs text-slate-300 mt-0.5">Conecte um teclado e use o aparelho na <strong class="text-sky-300">horizontal</strong>.</p>
+          <div class="mt-2 h-2 rounded-full bg-slate-800 overflow-hidden"><div id="overall-bar" class="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all" style="width:0%"></div></div>
+          <p id="overall-text" class="text-[10px] text-slate-400 mt-1"></p>
+        </div>
+        <button onclick="startRecommendedLesson()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 hover:brightness-110 text-white font-black text-sm transition shrink-0 shadow-lg shadow-sky-600/30 active:scale-95 whitespace-nowrap">
+          Continuar treino <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+
+      <!-- Quick Metrics Cards -->
+      <section class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="rounded-2xl p-3 bg-gradient-to-br from-amber-500/15 to-slate-900/80 border border-amber-500/20">
+          <div class="flex items-center gap-1.5 text-[10px] font-bold text-amber-300/80 uppercase"><i class="fa-solid fa-stopwatch"></i> Tempo total</div>
+          <div id="dash-total-time" class="text-xl font-black font-mono text-amber-300">00:00:00</div>
+        </div>
+        <div class="rounded-2xl p-3 bg-gradient-to-br from-sky-500/15 to-slate-900/80 border border-sky-500/20">
+          <div class="flex items-center gap-1.5 text-[10px] font-bold text-sky-300/80 uppercase"><i class="fa-solid fa-scroll"></i> Lições feitas</div>
+          <div id="dash-total-completed" class="text-xl font-black font-mono text-sky-300">0</div>
+        </div>
+        <div class="rounded-2xl p-3 bg-gradient-to-br from-emerald-500/15 to-slate-900/80 border border-emerald-500/20">
+          <div class="flex items-center gap-1.5 text-[10px] font-bold text-emerald-300/80 uppercase"><i class="fa-solid fa-check"></i> Precisão média</div>
+          <div id="dash-avg-acc" class="text-xl font-black font-mono text-emerald-300">100%</div>
+        </div>
+        <div class="rounded-2xl p-3 bg-gradient-to-br from-purple-500/15 to-slate-900/80 border border-purple-500/20">
+          <div class="flex items-center gap-1.5 text-[10px] font-bold text-purple-300/80 uppercase"><i class="fa-solid fa-keyboard"></i> PPM máximo</div>
+          <div id="dash-max-ppm" class="text-xl font-black font-mono text-purple-300">0</div>
+        </div>
+      </section>
+
+      <!-- Atividades -->
+      <section>
+        <h3 class="text-sm font-black text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-scroll text-sky-400"></i> Atividades</h3>
+        <div id="modules-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5"></div>
+      </section>
+
+      <!-- Diagnostic & Weak Keys Section -->
+      <section class="grid grid-cols-1 gap-4">
+        
+        <!-- Error Diagnostic Panel -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-bug text-rose-400"></i>
+                Diagnóstico de Erros Frequentes
+              </h3>
+              <span class="text-[10px] text-slate-500">Top 5 Teclas</span>
+            </div>
+
+            <div id="weak-keys-container" class="flex flex-wrap gap-2 py-2">
+              <span class="text-xs text-slate-500 italic">Nenhum erro registrado ainda. Treine para gerar estatísticas!</span>
+            </div>
+          </div>
+
+          <!-- Smart Recommendation -->
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-amber-400 uppercase">Treino Recomendado:</span>
+              <p id="recommended-lesson-text" class="text-xs text-slate-300 font-medium">1. Fileira Guia (Iniciante)</p>
+            </div>
+            <button onclick="startRecommendedLesson()" class="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30 transition">
+              Praticar
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. PHYSICAL KEYBOARD & ORIENTATION OVERLAY -->
+  <!-- ========================================== -->
+  <div id="intro-overlay" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center p-6 text-center transition-all duration-300 hidden">
+    
+    <!-- Portrait State Warning -->
+    <div id="orientation-warning" class="flex flex-col items-center justify-center gap-4">
+      <div class="w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-4xl animate-bounce">
+        <i class="fa-solid fa-mobile-screen-button rotate-90"></i>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-black text-white max-w-sm">
+        Coloque o celular em modo paisagem para treinar.
+      </h2>
+      <p class="text-xs text-slate-400">Gire seu dispositivo para a posição horizontal.</p>
+      <button onclick="closeOrientationOverlay()" class="mt-2 text-xs text-slate-500 underline hover:text-slate-300">
+        Voltar ao Painel Geral
+      </button>
+    </div>
+
+    <!-- Landscape State Options -->
+    <div id="keyboard-check-panel" class="hidden flex-col items-center justify-center gap-5 max-w-md w-full">
+      <div class="w-16 h-16 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-3xl mb-1">
+        <i class="fa-solid fa-keyboard"></i>
+      </div>
+      
+      <div>
+        <h2 class="text-xl sm:text-2xl font-black text-white">Verificação de Teclado</h2>
+        <p class="text-xs text-slate-400 mt-1">Sua experiência necessita de um teclado físico para digitação.</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 w-full mt-2">
+        <button onclick="confirmPhysicalKeyboard()" class="flex-1 py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm transition shadow-lg shadow-sky-600/20 flex items-center justify-center gap-2 active:scale-95">
+          <i class="fa-solid fa-check"></i>
+          Tenho teclado Físico Conectado
+        </button>
+
+        <button onclick="denyPhysicalKeyboard()" class="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-rose-300 font-bold text-sm transition border border-rose-500/20 flex items-center justify-center gap-2 active:scale-95">
+          <i class="fa-solid fa-xmark"></i>
+          Não tenho teclado
+        </button>
+      </div>
+
+      <div id="no-keyboard-alert" class="hidden w-full p-4 rounded-xl bg-rose-950/80 border border-rose-600/50 text-rose-200 text-xs text-left flex items-start gap-3 mt-2 shadow-xl animate-fade-in">
+        <i class="fa-solid fa-triangle-exclamation text-rose-400 text-lg mt-0.5 shrink-0"></i>
+        <span>Não pode treinar digitação sem um teclado físico, conecte um por bluetooth ou USB.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. LANDSCAPE VIEW: TYPING STUDIO -->
+  <!-- ========================================== -->
+  <div id="studio-container" class="hidden">
+
+    <!-- 1. MINIMALIST SINGLE-LINE TOOLBAR -->
+    <header id="studio-toolbar">
+      
+      <!-- Left: Screen Controls & Unified Dropdown -->
+      <div class="flex items-center gap-1.5 min-w-0">
+        <button onclick="exitStudio()" title="Voltar ao Painel" class="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-rose-400 text-xs transition active:scale-95">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+
+        <button onclick="toggleFullscreen()" title="Tela Cheia" class="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-sky-400 text-xs transition active:scale-95">
+          <i id="fullscreen-icon" class="fa-solid fa-expand"></i>
+        </button>
+
+        <button onclick="openHandsGuide()" title="Guia das Mãos" class="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-amber-400 text-xs transition active:scale-95">
+          <i class="fa-solid fa-hand"></i>
+        </button>
+
+        <button id="btn-fontsize" onclick="toggleFontMenu(event,'text')" title="Tamanho da fonte do texto" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-emerald-400 text-xs font-mono font-bold transition active:scale-95">28</button>
+        <button id="btn-keyfont" onclick="toggleFontMenu(event,'key')" title="Tamanho da fonte das teclas" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-amber-400 text-xs font-mono font-bold transition active:scale-95">112</button>
+        <select id="select-unified-lesson" onchange="onUnifiedLessonChange()" class="bg-slate-800/90 border border-slate-700/60 text-sky-400 text-xs font-semibold rounded px-2 py-0.5 focus:outline-none focus:border-sky-500 max-w-[200px] sm:max-w-[260px] truncate cursor-pointer">
+          <!-- Dynamically Populated -->
+        </select>
+      </div>
+
+      <!-- Center: Metrics & Exercise Timer -->
+      <div class="flex items-center gap-1.5 text-xs font-mono shrink-0">
+        <!-- Timer Display -->
+        <div class="bg-slate-950 px-2 py-0.5 rounded flex items-center gap-1 border border-slate-900">
+          <i class="fa-solid fa-stopwatch text-amber-400 text-[10px]"></i>
+          <span id="stat-timer" class="text-amber-400 font-bold">00:00</span>
+        </div>
+
+        <div class="bg-slate-950 px-2 py-0.5 rounded flex items-center gap-1 border border-slate-900">
+          <span class="text-[10px] text-slate-500 font-sans font-bold">PPM:</span>
+          <span id="stat-ppm" class="text-sky-400 font-bold">0</span>
+        </div>
+
+        <div class="bg-slate-950 px-2 py-0.5 rounded flex items-center gap-1 border border-slate-900">
+          <span class="text-[10px] text-slate-500 font-sans font-bold">CPM:</span>
+          <span id="stat-cpm" class="text-slate-300 font-bold">0</span>
+        </div>
+
+        <div class="bg-slate-950 px-2 py-0.5 rounded flex items-center gap-1 border border-slate-900">
+          <span class="text-[10px] text-slate-500 font-sans font-bold">P:</span>
+          <span id="stat-acc" class="text-emerald-400 font-bold">100%</span>
+        </div>
+
+        <div class="bg-slate-950 px-2 py-0.5 rounded flex items-center gap-1 border border-slate-900">
+          <span class="text-[10px] text-slate-500 font-sans font-bold">Er:</span>
+          <span id="stat-errors" class="text-rose-400 font-bold">0</span>
+        </div>
+
+        <div class="bg-slate-950 px-2 py-0.5 rounded flex items-center gap-1 border border-slate-900">
+          <span class="text-[10px] text-slate-400 font-sans font-bold">M:</span>
+          <span id="target-acc-display" class="text-white font-bold">90%</span>
+        </div>
+      </div>
+
+      <!-- Right: Sound & Reset -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button id="btn-sound" onclick="toggleSound()" title="Som" class="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-sky-400 text-xs transition active:scale-95">
+          <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+        </button>
+
+        <button onclick="resetLesson()" title="Reiniciar (Esc)" class="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center gap-1 px-2 font-sans font-bold active:scale-95">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span class="hidden md:inline text-[10px]">Reiniciar</span>
+        </button>
+      </div>
+
+    </header>
+
+    <!-- 2. MAIN 100% CONTENT CONTAINER -->
+    <div id="studio-main">
+      
+      <!-- TOP 50%: EXERCISE CANVAS -->
+      <main id="exercise-stage">
+        <div class="w-full max-w-5xl h-full flex flex-col justify-center items-center relative">
+          <div id="error-hint" class="absolute top-0 left-0 right-0 text-center text-xs sm:text-sm font-bold text-rose-400 min-h-[1.25rem] pointer-events-none"></div>
+          <div id="text-container" class="font-mono text-2xl sm:text-3xl md:text-4xl leading-relaxed tracking-wider overflow-y-auto max-h-full p-2 text-center flex flex-wrap items-center justify-center content-center gap-x-1 gap-y-2">
+            <!-- Char Spans Inserted Here -->
+          </div>
+        </div>
+
+        <!-- Progress Line -->
+        <div class="absolute bottom-0 left-0 w-full h-1 bg-slate-950">
+          <div id="lesson-progress-bar" class="bg-sky-500 h-full w-0 transition-all duration-150"></div>
+        </div>
+      </main>
+
+      <!-- BOTTOM 50%: VISUAL REFERENCE KEYBOARD -->
+      <footer id="keyboard-stage">
+        <div class="keyboard-wrapper">
+          
+          <!-- Row 0: Numbers -->
+          <div id="row-numbers" class="keyboard-row hidden">
+            <div data-key="'" class="key">"</div>
+            <div data-key="1" class="key">1</div>
+            <div data-key="2" class="key">2</div>
+            <div data-key="3" class="key">3</div>
+            <div data-key="4" class="key">4</div>
+            <div data-key="5" class="key">5</div>
+            <div data-key="6" class="key">6</div>
+            <div data-key="7" class="key">7</div>
+            <div data-key="8" class="key">8</div>
+            <div data-key="9" class="key">9</div>
+            <div data-key="0" class="key">0</div>
+            <div data-key="-" class="key">-</div>
+            <div data-key="=" class="key">=</div>
+            <div data-key="Backspace" class="key key-w-2 text-[11px]">Backspace</div>
+          </div>
+
+          <!-- Row 1: Top Letter Row -->
+          <div class="keyboard-row">
+            <div class="key key-w-1-5 text-[11px]">Tab</div>
+            <div data-key="q" class="key">Q</div>
+            <div data-key="w" class="key">W</div>
+            <div data-key="e" class="key">E</div>
+            <div data-key="r" class="key">R</div>
+            <div data-key="t" class="key">T</div>
+            <div data-key="y" class="key">Y</div>
+            <div data-key="u" class="key">U</div>
+            <div data-key="i" class="key">I</div>
+            <div data-key="o" class="key">O</div>
+            <div data-key="p" class="key">P</div>
+            <div data-key="´" class="key">´</div>
+            <div data-key="[" class="key">[</div>
+            <div data-key="Enter" class="key key-w-1-75 text-[11px]">Enter</div>
+          </div>
+
+          <!-- Row 2: Home Row -->
+          <div class="keyboard-row">
+            <div class="key key-w-1-75 text-[11px]">Fixa</div>
+            <div data-key="a" class="key border-b-2 border-b-sky-500">A</div>
+            <div data-key="s" class="key">S</div>
+            <div data-key="d" class="key">D</div>
+            <div data-key="f" class="key border-b-2 border-b-amber-500">F</div>
+            <div data-key="g" class="key">G</div>
+            <div data-key="h" class="key">H</div>
+            <div data-key="j" class="key border-b-2 border-b-amber-500">J</div>
+            <div data-key="k" class="key">K</div>
+            <div data-key="l" class="key">L</div>
+            <div data-key="ç" class="key border-b-2 border-b-sky-500">Ç</div>
+            <div data-key="~" class="key">~</div>
+            <div data-key="]" class="key">]</div>
+          </div>
+
+          <!-- Row 3: Bottom Row -->
+          <div class="keyboard-row">
+            <div data-key="Shift" class="key key-w-1-25 text-[11px]">Shift</div>
+            <div data-key="\" class="key">\</div>
+            <div data-key="z" class="key">Z</div>
+            <div data-key="x" class="key">X</div>
+            <div data-key="c" class="key">C</div>
+            <div data-key="v" class="key">V</div>
+            <div data-key="b" class="key">B</div>
+            <div data-key="n" class="key">N</div>
+            <div data-key="m" class="key">M</div>
+            <div data-key="," class="key">,</div>
+            <div data-key="." class="key">.</div>
+            <div data-key=";" class="key">;</div>
+            <div data-key="/" class="key">/</div>
+            <div data-key="Shift" class="key key-w-2-25 text-[11px]">Shift</div>
+          </div>
+
+          <!-- Row 4: Spacebar -->
+          <div class="keyboard-row">
+            <div data-key=" " class="key key-w-space text-[11px] tracking-widest uppercase">Espaço</div>
+          </div>
+
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALS: USER MANAGER, HANDS GUIDE, RESULTS -->
+  <!-- ========================================== -->
+
+  <!-- 1. USER PROFILE MANAGEMENT MODAL -->
+  <div id="modal-creator" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-3 hidden">
+    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-4 flex flex-col gap-2 shadow-2xl max-h-[95vh] overflow-y-auto">
+      <button onclick="closeModal('modal-creator')" class="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="text-base font-black text-white">Criar lição própria</h3>
+      <input id="cr-title" maxlength="60" placeholder="Título da lição" class="w-full px-3 py-2 rounded bg-slate-950 border border-slate-800 text-sm text-white outline-none focus:border-sky-500">
+      <textarea id="cr-text" rows="4" maxlength="600" placeholder="Texto que o aluno vai digitar (até 600 caracteres)" class="w-full px-3 py-2 rounded bg-slate-950 border border-slate-800 text-sm text-white outline-none focus:border-sky-500"></textarea>
+      <div id="cr-msg" class="text-[11px] text-amber-400 min-h-[1rem]"></div>
+      <button onclick="saveCustom()" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs">Salvar lição</button>
+      <div class="text-[9px] font-bold text-slate-500 uppercase mt-1">Minhas lições</div>
+      <div id="cr-list" class="flex flex-col gap-1"></div>
+    </div>
+  </div>
+
+  <div id="modal-users" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-3 hidden">
+    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5 flex flex-col shadow-2xl">
+      
+      <button onclick="closeModal('modal-users')" class="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+        <i class="fa-solid fa-users text-sky-400"></i>
+        Gerenciar Alunos
+      </h3>
+      <p class="text-xs text-slate-400 mb-4">Cadastre ou selecione um perfil para salvar o progresso.</p>
+
+      <!-- Add New User Form -->
+      <form onsubmit="addUserProfile(event)" class="flex gap-2 mb-4">
+        <input id="input-new-user" type="text" placeholder="Nome do Aluno..." required maxlength="20" class="flex-1 bg-slate-950 border border-slate-800 text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500">
+        <button type="submit" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs transition shrink-0">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </form>
+
+      <!-- Profiles List -->
+      <div id="profiles-list-container" class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+        <!-- Dynamically Inserted -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. HANDS GUIDE MODAL -->
+  <div id="modal-hands" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2 hidden">
+    <div class="relative bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-3 flex flex-col items-center shadow-2xl">
+      <button onclick="closeModal('modal-hands')" class="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="text-center mb-2">
+        <h4 id="hands-modal-title" class="text-sm font-bold text-sky-400">Posicionamento das Mãos</h4>
+        <p id="hands-finger-desc" class="text-xs text-slate-300 font-medium">Dedo Recomendado: <span id="hands-finger-name" class="text-amber-400 font-bold uppercase">Mínimo Esquerdo</span></p>
+      </div>
+
+      <div class="w-full h-36 bg-slate-950 rounded-lg border border-slate-800/80 p-2 flex items-center justify-center overflow-hidden">
+        <svg viewBox="0 0 500 200" class="w-full h-full">
+          <g id="left-hand" transform="translate(40, 20)">
+            <path d="M 30,160 C 30,120 50,110 80,110 C 110,110 130,120 130,160 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+            <rect id="finger-L-pinky" x="25" y="45" width="16" height="65" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-L-ring" x="46" y="30" width="16" height="80" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-L-middle" x="67" y="20" width="16" height="90" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-L-index" x="88" y="32" width="16" height="78" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-L-thumb" x="110" y="75" width="16" height="50" rx="8" transform="rotate(-30 110 75)" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <text x="80" y="150" fill="#64748b" font-size="10" font-weight="bold" text-anchor="middle">MÃO ESQUERDA</text>
+          </g>
+          <g id="right-hand" transform="translate(260, 20)">
+            <path d="M 30,160 C 30,120 50,110 80,110 C 110,110 130,120 130,160 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+            <rect id="finger-R-thumb" x="34" y="75" width="16" height="50" rx="8" transform="rotate(30 34 75)" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-R-index" x="56" y="32" width="16" height="78" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-R-middle" x="77" y="20" width="16" height="90" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-R-ring" x="98" y="30" width="16" height="80" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <rect id="finger-R-pinky" x="119" y="45" width="16" height="65" rx="8" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <text x="80" y="150" fill="#64748b" font-size="10" font-weight="bold" text-anchor="middle">MÃO DIREITA</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. LESSON RESULT MODAL -->
+  <div id="modal-result" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xs p-4 flex flex-col items-center text-center shadow-2xl max-h-[95vh] overflow-y-auto">
+      <div id="result-badge-icon" class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl mb-1.5">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+
+      <div id="result-stars" class="text-2xl text-amber-400 tracking-widest mb-0.5"></div>
+      <h3 id="result-title" class="text-lg font-black text-white mb-0.5">Excelente!</h3>
+      <p id="result-subtitle" class="text-[11px] text-slate-400 mb-3">Meta atingida com sucesso.</p>
+
+      <div class="grid grid-cols-2 gap-1.5 w-full mb-3 text-left">
+        <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+          <div class="text-[8px] font-bold text-slate-500 uppercase">Velocidade</div>
+          <div id="result-ppm" class="text-base font-bold text-sky-400 font-mono">0 PPM</div>
+        </div>
+        <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+          <div class="text-[8px] font-bold text-slate-500 uppercase">Precisão</div>
+          <div id="result-accuracy" class="text-base font-bold text-emerald-400 font-mono">0%</div>
+        </div>
+        <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+          <div class="text-[8px] font-bold text-slate-500 uppercase">Tempo</div>
+          <div id="result-time" class="text-sm font-bold text-amber-400 font-mono">00:00</div>
+        </div>
+        <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+          <div class="text-[8px] font-bold text-slate-500 uppercase">Erros</div>
+          <div id="result-errors" class="text-sm font-bold text-rose-400 font-mono">0</div>
+        </div>
+      </div>
+
+      <div id="result-error-box" class="w-full mb-3 text-left hidden">
+        <div class="text-[8px] font-bold text-slate-500 uppercase mb-1">Teclas com erro</div>
+        <div id="result-error-list" class="flex flex-wrap gap-1"></div>
+      </div>
+
+      <div class="flex gap-1.5 w-full">
+        <button onclick="resetLesson(); closeModal('modal-result');" class="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700">
+          <i class="fa-solid fa-rotate-right mr-1"></i> Repetir
+        </button>
+        <button onclick="nextLesson()" class="flex-1 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition shadow">
+          Próxima <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+      <button onclick="exitStudio()" class="w-full mt-1.5 py-1.5 rounded bg-slate-950 hover:bg-slate-800 text-sky-400 font-bold text-xs transition border border-slate-800">
+        <i class="fa-solid fa-arrow-left mr-1"></i> Menu principal
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* DATASET & MODULES */
+    const MODULES = (() => {
+      let n = 0;
+      let mn = 0;
+      const plain = id => /^(test|weak)/.test(id);
+      const tx = (id, x) => x;
+      const M = (id, title, acc, num, items) => ({ id, title: plain(id) ? title : `${++mn}: ${title}`, minAccuracy: acc, needsNumberRow: num,
+        lessons: items.map(([t, x, ex], i) => ({ id: id + '_' + (i + 1), title: plain(id) ? t : `${++n}. ${t}`, text: tx(id, x), timeLimit: Math.max(60, Math.ceil(tx(id, x).length * 1.6) + 30), ...ex })) });
+      const TEST = `A prática diária é o segredo de quem aprende a digitar. Mantenha as costas retas, os punhos relaxados e os olhos na tela. Primeiro busque a precisão; a velocidade vem com o tempo. Cada erro mostra qual tecla precisa de mais treino, e cada acerto fortalece a memória dos dedos.`;
+      const mods = [
+        M('test_in', 'Teste Inicial', 0, false, [['Teste de 1 minuto (inicial)', TEST, { isTest: 'initial', timeLimit: 60 }]]),
+        M('home', 'Fileira Guia', 90, false, [
+          ['Postura e posição das mãos', `fj fj fj jf jf fj jf fj fj jf`, { tip: 'Costas retas, pés no chão, punhos soltos. Indicadores nas marcas do F e do J; polegares no espaço.' }],
+          ['Indicadores F e J', `fff jjj fjf jfj fjfj jfjf ffjj jjff fjfj jfjf`],
+          ['Teclas A S D F', `asdf asdf fdsa fdsa afsd dsaf asdf fdsa fads sadf`],
+          ['Teclas J K L Ç', `jklç jklç çlkj çlkj jçlk lkçj jklç çlkj kjçl çjlk`],
+          ['Alternando as mãos', `af jç sk dl fj ak sl dç fl as kç jd la fk sç`],
+          ['Teclas G e H', `ggg hhh fgf jhj gfg hjh fghj hjgf gh gh fg jh ghgh`],
+          ['Palavras da fileira guia', `sala fala gala lado dado fada salsa alça galho jaça`],
+          ['Frase da fileira guia', `a gaja salga a salsa; a fada fala; ala da sala; alga`]
+        ]),
+        M('top', 'Fileira Superior', 90, false, [
+          ['Teclas E e I', `eee iii ede iki ded kik eded ikik dede kiki eid`],
+          ['Teclas R e U', `rrr uuu frf juj rfr uju frfr juju rufr urju`],
+          ['Teclas T e Y', `ttt yyy ftf jyj tgt yhy tyty yhyh tyfj ytjf`],
+          ['Teclas W e O', `www ooo sws lol wsw olo wowo sows owlo wols`],
+          ['Teclas Q e P', `qqq ppp aqa çpç qaq pçp qpqp aqça pqaç qaçp`],
+          ['Palavras da fileira superior', `que dia ser ter por ver aqui folha terra outro porte quero`],
+          ['Palavras mais longas', `poeta pedra tigre outubro quatro porteiro ouro troque pouco`]
+        ]),
+        M('bottom', 'Fileira Inferior', 90, false, [
+          ['Teclas Z e X', `zzz xxx aza sxs zaz xsx zxzx xzxz zaxs xszx`],
+          ['Teclas C e V', `ccc vvv dcd fvf cdc vfv cvcv vcvc cdvf vfcd`],
+          ['Teclas B e N', `bbb nnn gbg jnj bgb njn bnbn nbnb gbnj`],
+          ['Teclas M, vírgula e ponto', `mmm ,,, ... jmj k,k l.l mjm ,k, .l. m,m. j,m.`],
+          ['Ponto e vírgula e barra', `;;; /// ç;ç ;/; /;/ ;/;/ a;s/ d/f;`],
+          ['Palavras da fileira inferior', `caixa vazio zebra bomba nuvem mundo cabo vaca bruxa nave`],
+          ['Teclado completo', `o rato roeu a roupa do rei de roma com rapidez e vigor`]
+        ]),
+        M('words', 'Palavras e Combinações', 90, false, [
+          ['Sílabas comuns', `ra re ri ro ru la le li lo lu ma me mi mo mu na ne ni no nu`],
+          ['Terminações', `ente ando endo indo ado ido mente ura eza`],
+          ['Palavras do dia a dia', `casa mesa porta janela cadeira carro barco livro caneta papel`],
+          ['Palavras do dia a dia 2', `amigo escola cidade parque jardim flores chuva vento tempo mundo`],
+          ['Palavras do dia a dia 3', `trabalho viagem comida bebida roupa sapato chave dinheiro`]
+        ]),
+        M('caps', 'Letras Maiúsculas', 90, false, [
+          ['Shift com a mão direita', `Ana Bia Caio Davi Eva Gabi Beto Dora Edu Fred`],
+          ['Shift com a mão esquerda', `Jonas Kelly Lara Marta Nuno Olga Paulo Rita Sara Tiago`],
+          ['Shift na fileira guia', `Af Sd Fj Gk Hl Jç As Dk Fg Ja Sal Alga Fada Gala Haja Jaça`],
+          ['Shift na fileira superior', `Qe Wr Et Ry Tu Yi Uo Ip Pq Quero Porte Tigre Peru Outro Ouro`],
+          ['Shift na fileira inferior', `Za Xs Cd Vf Bg Nh Mj Zebra Xuxa Cabo Vaca Bola Nave Mala`],
+          ['Países e cidades', `Brasil Chile Peru Cuba Canada Mexico Uruguai Paraguai Natal Recife`],
+          ['Frases com maiúscula', `Ana viu o mar. Beto leu um livro. Lara comprou uma flor.`]
+        ]),
+        M('punct', 'Pontuação', 90, true, [
+          ['Vírgula', `sol, mar, rio, lago, chuva, vento, neve, areia.`],
+          ['Ponto final', `Ele chegou. Ela saiu. Eu fiquei. O dia acabou.`],
+          ['Interrogação e exclamação', `Quem chegou? Que dia lindo! Tudo bem? Sim, tudo!`],
+          ['Dois pontos e ponto e vírgula', `Compre: leite, ovos, sal; depois, volte.`],
+          ['Hífen', `guarda-chuva beija-flor segunda-feira porta-retrato`]
+        ]),
+        M('acute', 'Acento Agudo (´)', 90, false, [
+          ['Vogais com acento agudo', `á á é é í í ó ó ú ú á é í ó ú ú ó í é á`],
+          ['Palavras com agudo', `sofá café jacaré até país útil lá já`],
+          ['Agudo em frases', `O café está quente. Já fui lá. Ela é uma boa pessoa.`]
+        ]),
+        M('tilde', 'Til (~) e Cedilha', 90, false, [
+          ['Vogais com til', `ã ã õ õ ã õ ão ão õe õe ão õe`],
+          ['Palavras com til', `maçã irmã mãe pão limão botões ações mamão`],
+          ['Cedilha', `caça praça braço laço traço açúcar maçaneta cabeça`],
+          ['Til e cedilha em frases', `A criança comeu pão com maçã e limão na manhã de domingo.`]
+        ]),
+        M('circ', 'Circunflexo (^) e Crase (`)', 90, false, [
+          ['Circunflexo', `â â ê ê ô ô â ê ô ê â ô ê ô â`],
+          ['Palavras com circunflexo', `você bebê pôr avô tênis ônibus lâmpada fênix`],
+          ['Crase', `vou à praia, volto à escola, fui à feira`],
+          ['Todos os acentos', `Você precisa ir à escola amanhã, não é? Eu também irei.`]
+        ]),
+        M('common', 'Palavras Mais Comuns', 92, false, [
+          ['Artigos e pronomes 1', `de a o que e do da em um para com não uma os no se na por mais as dos como mas foi ao ele das tem seu sua ou ser quando muito nos já está eu também só pelo pela até isso ela entre`],
+          ['Artigos e pronomes 2', `era depois sem mesmo aos ter seus quem nas me esse eles estão você tinha foram essa num nem suas meu às minha têm numa pelos elas havia seja qual será nós tenho lhe deles essas esses pelas este fosse dele`],
+          ['Substantivos', `dia ano vez casa vida tempo mundo homem mulher filho pai mãe amigo trabalho água terra país cidade governo parte forma lugar mão olho noite manhã semana mês hora história nome número palavra pessoa gente coisa caso`],
+          ['Verbos', `fazer dizer ver dar saber querer poder ir vir ficar falar pensar deixar passar chegar levar olhar encontrar começar viver sentir ouvir escrever ler comer beber andar correr abrir fechar esperar`],
+          ['Adjetivos e advérbios', `grande novo bom melhor pequeno primeiro último outro próprio certo velho longo pouco tanto sempre agora aqui ali hoje ontem amanhã depois antes muito menos cedo tarde bem mal rápido lento`]
+        ]),
+        M('bigrams', 'Pares de Letras e Terminações', 92, false, [
+          ['NH e LH', `ninho linha vinho unha galinha banho filho velho olho milho folha trabalho`],
+          ['CH', `chave chuva chefe achar bicho cachorro chá machado`],
+          ['RR e SS', `carro terra barra correr passo massa isso posso pássaro`],
+          ['QU e GU', `que quando quanto aqui queijo guerra seguir foguete`],
+          ['Ção e ções', `ção ção ções ações nação canção razões estações`],
+          ['ÃO, ÕE e ÃE', `mão pão cão botões mães irmão leões pães`]
+        ]),
+        M('nums', 'Números', 92, true, [
+          ['Números 1 a 5', `1 2 3 4 5 5 4 3 2 1 12 23 34 45 54 43 32 21 123 345`],
+          ['Números 6 a 0', `6 7 8 9 0 0 9 8 7 6 67 78 89 90 09 98 87 76 678 890`],
+          ['Todos os números', `1234567890 0987654321 1357924680 2468013579 102938475610`],
+          ['Datas e horas', `18/10/2026 25/12/2025 01/01/2027 14:30 08:15 23:59`],
+          ['Valores', `Pagou R$ 15,90 por 3 itens e R$ 120,00 pelo total.`]
+        ]),
+        M('numpad', 'Teclado Numérico', 92, true, [
+          ['Teclas 4, 5 e 6', `456 654 445 566 465 546 4545 5656 456456`, { tip: 'Teclado numérico: dedo médio no 5 (tem uma marca), indicador no 4, anelar no 6.' }],
+          ['Teclas 1, 2 e 3', `123 321 112 223 132 213 1212 2323 123123`, { tip: 'Indicador no 1, médio no 2, anelar no 3.' }],
+          ['Teclas 7, 8 e 9', `789 987 778 889 798 879 7878 8989 789789`, { tip: 'Indicador no 7, médio no 8, anelar no 9.' }],
+          ['Zero e operadores', `0 00 000 10 20 30 10+5 8-3 4*2 9/3 40+20 70-35`, { tip: 'Polegar no zero; mindinho nos operadores.' }],
+          ['Contas rápidas', `125+340=465 98-47=51 12*6=72 144/12=12 305+695=1000`, { tip: 'Mantenha os olhos na tela e os dedos sobre as marcas.' }]
+        ]),
+        M('symbols', 'Símbolos', 92, true, [
+          ['Símbolos com Shift', `! @ # $ % & * ( ) ! @ # $ % & * ( ) ( ) * &`],
+          ['Parênteses e operadores', `(a + b) * c = 10; (x - y) / z = 5; 2 + 3 = 5`],
+          ['Aspas e apóstrofo', `"Olá," disse ela. "Tudo bem?" Ele respondeu: "Sim!" O 'sim' dela soou como "talvez".`],
+          ['E-mail e porcentagem', `contato@digitando.com.br - desconto de 25% em 3x & frete grátis`],
+          ['Sublinhado e comparações', `nome_usuario = "ana"; total >= 10 && saldo <= 5`]
+        ]),
+        M('phrases', 'Frases e Provérbios', 92, true, [
+          ['Provérbios 1', `água mole em pedra dura tanto bate até que fura.`],
+          ['Provérbios 2', `quem não tem cão caça com gato.`],
+          ['Provérbios 3', `a prática constante leva à perfeição na digitação.`],
+          ['Provérbios 4', `Mais vale um pássaro na mão do que dois voando.`],
+          ['Provérbios 5', `Cada macaco no seu galho, cada coisa em seu lugar.`],
+          ['Provérbios 6', `Quem ri por último ri melhor; devagar se vai ao longe.`]
+        ]),
+        M('paras', 'Parágrafos', 92, true, [
+          ['Tecnologia e futuro', `A tecnologia da informação transforma o mercado global diariamente em 2026.`],
+          ['Eficiência de escritório', `Aprender a digitar sem olhar para o teclado aumenta a produtividade em até 300%.`],
+          ['Dez dedos', `Digitar com os dez dedos exige paciência: primeiro vem a precisão, depois vem a velocidade. Quem treina um pouco todos os dias melhora rápido.`],
+          ['Agenda da semana', `Segunda-feira, às 9h30, a reunião começa. Leve o relatório do mês, as planilhas e a lista com 12 pendências.`]
+        ]),
+        M('adv', 'Textos Avançados', 95, true, [
+          ['Dom Casmurro (Machado de Assis)', `Mudaria a direção da minha vida? Esta era a questão que eu me fazia naquelas horas lentas.`],
+          ['Código e símbolos', `if (velocidade >= 60 && precisao >= 95) { alert("Parabéns pelo excelente desempenho!"); }`],
+          ['Texto corrido', `Não há caminho curto para a fluência: a cada exercício, os dedos aprendem onde estão as teclas, e a mente fica livre para pensar no que importa - o texto.`]
+        ]),
+        M('weak', 'Treino das Teclas Fracas', 90, false, [['Treino personalizado', 'treino personalizado das teclas fracas', { dynamic: true }]]),
+        M('test_out', 'Teste Final', 0, false, [['Teste de 1 minuto (final)', TEST, { isTest: 'final', timeLimit: 60 }]])
+      ];
+      const REV = {
+        home: `a sala da fada; jaça fala gala; alga galha; af jç sk dl fj gh`,
+        top: `que dia o porte pouco tigre quero outro poeta ter por ver o quatro`,
+        bottom: `a nave vaza no mundo; bomba, caixa, zebra, cabo, vaca e bruxa.`,
+        words: `o amigo viaja com a comida na chuva; o livro e a caneta na mesa.`,
+        caps: `Ana e Beto viram o Brasil. Lara foi ao Chile; Paulo ficou no Peru.`,
+        punct: `Quem chegou? Que dia lindo! Compre: leite, ovos, sal; depois, volte.`,
+        acute: `Já fui lá, até o café está pronto. O país é útil e forte.`,
+        tilde: `A criança comeu pão com maçã. As irmãs e as mães compraram limão.`,
+        circ: `Você vai à praia? Eu também irei, pôr do sol, tênis e bebê.`
+      };
+      mods.forEach(m => { if (REV[m.id]) m.lessons.push({ id: m.id + '_rev', title: `★ Revisão do módulo`, text: tx(m.id, REV[m.id]), timeLimit: Math.max(60, Math.ceil(tx(m.id, REV[m.id]).length * 1.6) + 30) }); });
+      const FILL = ['home', 'top', 'bottom', 'words', 'caps', 'punct', 'acute', 'tilde', 'circ', 'common', 'bigrams', 'nums', 'numpad', 'symbols', 'weak'];
+      mods.forEach(m => { if (FILL.includes(m.id)) m.lessons.forEach(l => { l.fill = true; }); });
+      return mods;
+    })();
+
+    const SHIFT_BASE = { '!':'1','@':'2','#':'3','$':'4','%':'5','&':'7','*':'8','(':'9',')':'0','"':"'",'_':'-','+':'=','{':'[','}':']',':':';','<':',','>':'.','?':'/','|':'\\' };
+
+    /* Layout ABNT2 por posição física da tecla (funciona em teclados ABNT2 e US) */
+    const CODE_MAP = {
+      Semicolon:['ç','Ç'], Backquote:["'",'"'], Slash:[';',':'], IntlRo:['/','?'], IntlBackslash:['\\','|'],
+      BracketRight:['[','{'], Backslash:[']','}'], Minus:['-','_'], Equal:['=','+'],
+      Comma:[',','<'], Period:['.','>'], Space:[' ',' ']
+    };
+    const DEAD_MAP = { BracketLeft:['\u0301','\u0300'], Quote:['\u0303','\u0302'] };
+    const ACCENT = {
+      '\u0301': { key:'´', shift:false }, '\u0300': { key:'´', shift:true },
+      '\u0303': { key:'~', shift:false }, '\u0302': { key:'~', shift:true }
+    };
+    const DIGIT_SHIFT = ['!','@','#','$','%','¨','&','*','(',')'];
+
+    function tokenFromEvent(e) {
+      const c = e.code || '', sh = e.shiftKey, raw = `${e.key}/${c || '?'}`;
+      const k = e.key.length === 1 ? e.key : null;
+      if (e.key === 'Dead') {            // tecla morta: aceita mesmo que o código da tecla varie entre teclados
+        const g = DEAD_MAP[c];
+        return { dead: g ? g[sh ? 1 : 0] : (sh ? '\u0300' : '\u0301'), anyDead: true, raw };
+      }
+      if (DEAD_MAP[c]) return { dead: DEAD_MAP[c][sh ? 1 : 0], alt: k, raw };
+      let ch = null, m;
+      if (CODE_MAP[c]) ch = CODE_MAP[c][sh ? 1 : 0];
+      else if ((m = c.match(/^Digit(\d)$/))) ch = sh ? DIGIT_SHIFT[(+m[1] + 9) % 10] : m[1];
+      else ch = k;
+      if (!ch) return null;
+      return { char: ch, alt: k && k !== ch ? k : null, raw };
+    }
+
+    function tokenKey(t) {
+      if (t.dead) return ACCENT[t.dead].key;
+      return baseKey(t.char).key;
+    }
+    function nextTarget(ch) {
+      const n = ch.normalize('NFD');
+      if (n.length === 2 && /[\u0300-\u0303]/.test(n[1])) {
+        if (!pendingAccent) return ACCENT[n[1]];
+        return baseKey(n[0]);
+      }
+      return baseKey(ch);
+    }
+
+    const FINGER_MAP = {
+      '/': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '\\': { name: 'Mínimo Esquerdo', id: 'finger-L-pinky' },
+      'a': { name: 'Mínimo Esquerdo', id: 'finger-L-pinky' },
+      'q': { name: 'Mínimo Esquerdo', id: 'finger-L-pinky' },
+      'z': { name: 'Mínimo Esquerdo', id: 'finger-L-pinky' },
+      '1': { name: 'Mínimo Esquerdo', id: 'finger-L-pinky' },
+      '\'': { name: 'Mínimo Esquerdo', id: 'finger-L-pinky' },
+      's': { name: 'Anelar Esquerdo', id: 'finger-L-ring' },
+      'w': { name: 'Anelar Esquerdo', id: 'finger-L-ring' },
+      'x': { name: 'Anelar Esquerdo', id: 'finger-L-ring' },
+      '2': { name: 'Anelar Esquerdo', id: 'finger-L-ring' },
+      'd': { name: 'Médio Esquerdo', id: 'finger-L-middle' },
+      'e': { name: 'Médio Esquerdo', id: 'finger-L-middle' },
+      'c': { name: 'Médio Esquerdo', id: 'finger-L-middle' },
+      '3': { name: 'Médio Esquerdo', id: 'finger-L-middle' },
+      'f': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      'r': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      'v': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      't': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      'g': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      'b': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      '4': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      '5': { name: 'Indicador Esquerdo', id: 'finger-L-index' },
+      'j': { name: 'Indicador Direito', id: 'finger-R-index' },
+      'u': { name: 'Indicador Direito', id: 'finger-R-index' },
+      'm': { name: 'Indicador Direito', id: 'finger-R-index' },
+      'y': { name: 'Indicador Direito', id: 'finger-R-index' },
+      'h': { name: 'Indicador Direito', id: 'finger-R-index' },
+      'n': { name: 'Indicador Direito', id: 'finger-R-index' },
+      '6': { name: 'Indicador Direito', id: 'finger-R-index' },
+      '7': { name: 'Indicador Direito', id: 'finger-R-index' },
+      'k': { name: 'Médio Direito', id: 'finger-R-middle' },
+      'i': { name: 'Médio Direito', id: 'finger-R-middle' },
+      ',': { name: 'Médio Direito', id: 'finger-R-middle' },
+      '8': { name: 'Médio Direito', id: 'finger-R-middle' },
+      'l': { name: 'Anelar Direito', id: 'finger-R-ring' },
+      'o': { name: 'Anelar Direito', id: 'finger-R-ring' },
+      '.': { name: 'Anelar Direito', id: 'finger-R-ring' },
+      '9': { name: 'Anelar Direito', id: 'finger-R-ring' },
+      'ç': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      'p': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      ';': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '0': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '-': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '=': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '[': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      ']': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '~': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      '´': { name: 'Mínimo Direito', id: 'finger-R-pinky' },
+      ' ': { name: 'Polegares', id: 'finger-L-thumb' }
+    };
+
+    /* APP PERSISTENT STATE */
+    const store = {
+      get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    };
+    const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let usersData = [];
+    try { usersData = JSON.parse(store.get('angelica_users') || store.get('digitando_users')) || []; } catch (e) { usersData = []; }
+    if (!Array.isArray(usersData) || !usersData.length) {
+      usersData = [{ id: 'u1', name: 'Aluno Padrão', totalTime: 0, completedLessons: 0, maxPPM: 0, weakKeys: {}, history: [] }];
+    }
+    usersData.forEach(u => { u.weakKeys = u.weakKeys || {}; u.history = u.history || []; });
+    let currentUserId = store.get('angelica_active_user') || store.get('digitando_active_user') || usersData[0].id;
+    let sessionErrors = [], errPos = new Set();
+    let pendingAccent = null, correctKeystrokes = 0;
+    let studioOpen = false, lessonFinished = false, errorFlag = false;
+
+    /* STUDIO STATE */
+    let currentModuleIndex = 0;
+    let currentLessonIndex = 0;
+    let currentCharIndex = 0;
+    let lessonActive = false;
+    let startTime = null;
+    let timerInterval = null;
+    let timeRemaining = 0;
+    let totalErrors = 0;
+    let totalKeystrokes = 0;
+    let sessionWeakKeys = {};
+    let audioEnabled = true;
+    let audioCtx = null;
+
+    /* PROFILES LOGIC */
+    function getCurrentUser() {
+      return usersData.find(u => u.id === currentUserId) || usersData[0];
+    }
+
+    function saveUserData() {
+      store.set('angelica_users', JSON.stringify(usersData));
+      store.set('angelica_active_user', currentUserId);
+      renderDashboard();
+    }
+
+    function addUserProfile(e) {
+      e.preventDefault();
+      const input = document.getElementById('input-new-user');
+      const name = input.value.trim();
+      if (!name) return;
+
+      const newUser = {
+        id: 'u_' + Date.now(),
+        name: name,
+        totalTime: 0,
+        completedLessons: 0,
+        maxPPM: 0,
+        weakKeys: {},
+        history: []
+      };
+
+      usersData.push(newUser);
+      currentUserId = newUser.id;
+      input.value = '';
+      saveUserData();
+      renderProfilesList();
+      closeModal('modal-users');
+    }
+
+    function switchUser(userId) {
+      currentUserId = userId;
+      saveUserData();
+      renderProfilesList();
+      closeModal('modal-users');
+    }
+
+    function deleteUser(userId, event) {
+      event.stopPropagation();
+      if (usersData.length <= 1) return;
+      usersData = usersData.filter(u => u.id !== userId);
+      if (currentUserId === userId) {
+        currentUserId = usersData[0].id;
+      }
+      saveUserData();
+      renderProfilesList();
+    }
+
+    function renderProfilesList() {
+      const container = document.getElementById('profiles-list-container');
+      container.innerHTML = '';
+
+      usersData.forEach(u => {
+        const isSelected = u.id === currentUserId;
+        const item = document.createElement('div');
+        item.className = `p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+          isSelected ? 'bg-sky-500/10 border-sky-500/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+        }`;
+        item.onclick = () => switchUser(u.id);
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg ${isSelected ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-bold text-xs">
+              ${esc(u.name.charAt(0).toUpperCase())}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">${esc(u.name)}</div>
+              <div class="text-[10px] text-slate-400">${u.completedLessons} lições • ${u.maxPPM} PPM max</div>
+            </div>
+          </div>
+          ${usersData.length > 1 ? `
+            <button onclick="deleteUser('${u.id}', event)" class="text-slate-500 hover:text-rose-400 text-xs p-1">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    const keyLabel = k => k === ' ' ? 'ESPAÇO' : k.toUpperCase();
+
+    /* DASHBOARD RENDER */
+    function renderDashboard() {
+      const user = getCurrentUser();
+      document.getElementById('current-user-name').innerText = user.name;
+
+      // Format Total Time
+      const totalSecs = Math.floor(user.totalTime || 0);
+      const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+      const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+      const s = String(totalSecs % 60).padStart(2, '0');
+      document.getElementById('dash-total-time').innerText = `${h}:${m}:${s}`;
+
+      document.getElementById('dash-total-completed').innerText = Object.values(user.stars || {}).filter(v => v > 0).length;
+      document.getElementById('dash-max-ppm').innerText = user.maxPPM || 0;
+
+      // Calculate Average Accuracy
+      if (user.history && user.history.length > 0) {
+        const avgAcc = Math.round(user.history.reduce((a, b) => a + b.accuracy, 0) / user.history.length);
+        document.getElementById('dash-avg-acc').innerText = `${avgAcc}%`;
+      } else {
+        document.getElementById('dash-avg-acc').innerText = '100%';
+      }
+
+      // Render Weak Keys
+      const weakContainer = document.getElementById('weak-keys-container');
+      weakContainer.innerHTML = '';
+      
+      const sortedWeak = Object.entries(user.weakKeys || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+      if (sortedWeak.length > 0) {
+        sortedWeak.forEach(([key, val]) => {
+          const tag = document.createElement('div');
+          tag.className = 'px-2.5 py-1 rounded-lg bg-rose-950/60 border border-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center gap-1.5';
+          tag.innerHTML = `<span>Tecla “${esc(keyLabel(key))}”</span> <span class="text-[10px] bg-rose-600/40 px-1.5 py-0.2 rounded-full">${val}x</span>`;
+          weakContainer.appendChild(tag);
+        });
+
+        // Smart Recommendation
+        const topWeakKey = sortedWeak[0][0];
+        document.getElementById('recommended-lesson-text').innerText = recommendedLabel();
+      } else {
+        weakContainer.innerHTML = `<span class="text-xs text-slate-500 italic">Nenhum erro acumulado. Excelente precisão!</span>`;
+        document.getElementById('recommended-lesson-text').innerText = recommendedLabel();
+      }
+    }
+
+    function getRecommended() {
+      const user = getCurrentUser(), stars = user.stars || {};
+      const weakTop = Object.entries(user.weakKeys || {}).filter(([k]) => k.trim()).sort((a, b) => b[1] - a[1])[0];
+      const wi = MODULES.findIndex(m => m.id === 'weak');
+      if (weakTop && weakTop[1] >= 5 && wi >= 0 && Object.keys(stars).length) return [wi, 0];
+      for (let m = 0; m < MODULES.length; m++) {
+        if (['weak', 'custom', 'test_out'].includes(MODULES[m].id)) continue;
+        const l = MODULES[m].lessons.findIndex(x => !stars[x.id]);
+        if (l >= 0) return [m, l];
+      }
+      const fi = MODULES.findIndex(m => m.id === 'test_out');
+      return [fi >= 0 && !stars[MODULES[fi].lessons[0].id] ? fi : Math.max(0, wi), 0];
+    }
+    function recommendedLabel() {
+      const [m, l] = getRecommended();
+      if (MODULES[m].id === 'weak') {
+        const keys = Object.entries(getCurrentUser().weakKeys || {}).filter(([k]) => k.trim()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => keyLabel(x[0]));
+        return 'Treino das teclas fracas: ' + keys.join(', ');
+      }
+      return MODULES[m].lessons[l].title;
+    }
+    function startRecommendedLesson() {
+      [currentModuleIndex, currentLessonIndex] = getRecommended();
+      forceLandscapeCheck();
+    }
+
+    /* ORIENTATION & OVERLAY FLOW */
+    function isLandscape() {
+      return window.innerWidth > window.innerHeight;
+    }
+    function checkOrientation() {
+      const overlay = document.getElementById('intro-overlay');
+      const warningEl = document.getElementById('orientation-warning');
+      const panelEl = document.getElementById('keyboard-check-panel');
+      if (studioOpen) {
+        if (isLandscape()) {
+          overlay.classList.add('hidden');
+          if (lessonActive && !lessonFinished && !timerInterval) {
+            if (window.__pausedAt && startTime) startTime = new Date(startTime.getTime() + (Date.now() - window.__pausedAt));
+            window.__pausedAt = null; startTimer();
+          }
+        }
+        else {
+          overlay.classList.remove('hidden');
+          warningEl.classList.remove('hidden'); panelEl.classList.add('hidden'); panelEl.classList.remove('flex');
+          if (lessonActive && !lessonFinished && timerInterval) { stopTimer(); window.__pausedAt = Date.now(); }
+        }
+      } else if (!overlay.classList.contains('hidden')) {
+        forceLandscapeCheck();
+      }
+    }
+
+    function forceLandscapeCheck() {
+      const overlay = document.getElementById('intro-overlay');
+      const warningEl = document.getElementById('orientation-warning');
+      const panelEl = document.getElementById('keyboard-check-panel');
+      overlay.classList.remove('hidden');
+      document.getElementById('no-keyboard-alert').classList.add('hidden');
+      if (!isLandscape()) {
+        warningEl.classList.remove('hidden');
+        panelEl.classList.add('hidden'); panelEl.classList.remove('flex');
+      } else {
+        warningEl.classList.add('hidden');
+        panelEl.classList.remove('hidden'); panelEl.classList.add('flex');
+      }
+    }
+
+    function closeOrientationOverlay() {
+      document.getElementById('intro-overlay').classList.add('hidden');
+      if (studioOpen) exitStudio();
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function denyPhysicalKeyboard() {
+      speakText("Não pode treinar digitação sem um teclado físico, conecte um por bluetooth ou USB.");
+      document.getElementById('no-keyboard-alert').classList.remove('hidden');
+    }
+
+    function confirmPhysicalKeyboard() {
+      if (!document.fullscreenElement) tryFullscreen();
+      document.getElementById('intro-overlay').classList.add('hidden');
+      document.getElementById('portrait-hub').classList.add('hidden');
+      document.getElementById('studio-container').classList.remove('hidden');
+      studioOpen = true;
+      rebuildCustomModule();
+      populateUnifiedDropdown();
+      loadLesson(currentModuleIndex, currentLessonIndex);
+    }
+
+    function exitStudio() {
+      stopTimer();
+      studioOpen = false;
+      closeModal('modal-result'); closeModal('modal-hands');
+      document.getElementById('intro-overlay').classList.add('hidden');
+      document.getElementById('studio-container').classList.add('hidden');
+      document.getElementById('portrait-hub').classList.remove('hidden');
+      renderDashboard();
+    }
+
+    /* FULLSCREEN TOGGLE */
+    function tryFullscreen() {
+      try {
+        const el = document.documentElement;
+        const req = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (req) { const r = req.call(el); if (r && r.catch) r.catch(() => {}); }
+      } catch (e) {}
+    }
+    function toggleFullscreen() {
+      try {
+        if (!document.fullscreenElement) tryFullscreen();
+        else if (document.exitFullscreen) document.exitFullscreen();
+      } catch (e) {}
+    }
+    document.addEventListener('fullscreenchange', () => {
+      ['fullscreen-icon', 'hub-fs-icon'].forEach(id => { const icon = document.getElementById(id); if (icon) icon.className = document.fullscreenElement ? 'fa-solid fa-compress' : 'fa-solid fa-expand'; });
+    });
+
+    /* AUDIO SYNTHESIZER */
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+    }
+
+    function playClickSound(isError = false) {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (isError) {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.08);
+        } else {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(580, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.04);
+        }
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      audioEnabled = !audioEnabled;
+      const btn = document.getElementById('btn-sound');
+      const icon = document.getElementById('sound-icon');
+      if (audioEnabled) {
+        icon.className = 'fa-solid fa-volume-high';
+        btn.classList.remove('opacity-50');
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark';
+        btn.classList.add('opacity-50');
+      }
+    }
+
+    /* STUDIO DROPDOWN & LESSON ENGINE */
+    function populateUnifiedDropdown() {
+      const select = document.getElementById('select-unified-lesson');
+      select.innerHTML = '';
+
+      MODULES.forEach((mod, mIdx) => {
+        const group = document.createElement('optgroup');
+        group.label = mod.title;
+
+        mod.lessons.forEach((les, lIdx) => {
+          const opt = document.createElement('option');
+          opt.value = `${mIdx}-${lIdx}`;
+          const st = (getCurrentUser().stars || {})[les.id] || 0;
+          opt.innerText = les.title + (st && !les.isTest ? ' ' + '★'.repeat(st) : '');
+          group.appendChild(opt);
+        });
+
+        select.appendChild(group);
+      });
+
+      select.value = `${currentModuleIndex}-${currentLessonIndex}`;
+    }
+
+    function onUnifiedLessonChange() {
+      const select = document.getElementById('select-unified-lesson');
+      const [mIdx, lIdx] = select.value.split('-').map(Number);
+      select.blur();
+      loadLesson(mIdx, lIdx);
+    }
+
+    function getCurrentLesson() {
+      return MODULES[currentModuleIndex].lessons[currentLessonIndex];
+    }
+
+    function loadLesson(modIdx, lesIdx) {
+      currentModuleIndex = modIdx;
+      currentLessonIndex = lesIdx;
+      { const L = MODULES[modIdx].lessons[lesIdx];
+        if (L.dynamic) L.base = buildWeakText(); else if (L.fill && !L.base) L.base = L.text;
+        if (L.fill || L.dynamic) { L.text = expandText(L.base); L.timeLimit = Math.max(60, Math.ceil(L.text.length * 1.6) + 30); } }
+      currentCharIndex = 0;
+      lessonActive = false;
+      lessonFinished = false;
+      errorFlag = false;
+      pendingAccent = null;
+      correctKeystrokes = 0;
+      sessionErrors = []; errPos = new Set();
+      setHint(MODULES[modIdx].lessons[lesIdx].tip || '', false);
+      startTime = null;
+      totalErrors = 0;
+      totalKeystrokes = 0;
+      sessionWeakKeys = {};
+      stopTimer();
+
+      const les = getCurrentLesson();
+      timeRemaining = les.timeLimit || 60;
+      updateTimerDisplay();
+
+      document.getElementById('select-unified-lesson').value = `${modIdx}-${lesIdx}`;
+      const mod = MODULES[currentModuleIndex];
+      document.getElementById('target-acc-display').innerText = `${mod.minAccuracy}%`;
+
+      const numRow = document.getElementById('row-numbers');
+      if (mod.needsNumberRow) {
+        numRow.classList.remove('hidden');
+        numRow.classList.add('flex');
+      } else {
+        numRow.classList.add('hidden');
+        numRow.classList.remove('flex');
+      }
+
+      renderText();
+      updateMetrics();
+      highlightActiveKey();
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        updateMetrics();
+        if (timeRemaining <= 0) { stopTimer(); finishLesson(true); }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function updateTimerDisplay() {
+      const t = Math.max(0, timeRemaining);
+      const m = String(Math.floor(t / 60)).padStart(2, '0');
+      const s = String(t % 60).padStart(2, '0');
+      document.getElementById('stat-timer').innerText = `${m}:${s}`;
+    }
+
+    function renderText() {
+      const les = getCurrentLesson();
+      const container = document.getElementById('text-container');
+      const prevScroll = currentCharIndex === 0 ? 0 : container.scrollTop;
+      container.innerHTML = '';
+      container.className = 'font-mono leading-relaxed tracking-wider overflow-y-auto max-h-full p-2 text-center w-full';
+      container.style.fontSize = fontSize + 'px';
+      let word = null, activeSpan = null;
+      for (let i = 0; i < les.text.length; i++) {
+        if (!word) { word = document.createElement('span'); word.className = 'word'; container.appendChild(word); }
+        const span = document.createElement('span');
+        span.textContent = les.text[i];
+        if (i < currentCharIndex) span.className = (errPos.has(i) ? 'char-fixed' : 'char-done') + ' px-0.5';
+        else if (i === currentCharIndex) { span.className = (errorFlag ? 'char-error' : 'char-current') + ' px-1'; activeSpan = span; }
+        else span.className = 'text-slate-500 px-0.5';
+        word.appendChild(span);
+        if (les.text[i] === ' ') word = null;
+      }
+      container.scrollTop = prevScroll;
+      if (activeSpan && container.scrollHeight > container.clientHeight) {
+        const top = activeSpan.offsetTop, h = activeSpan.offsetHeight;
+        if (top < container.scrollTop || top + h * 2 > container.scrollTop + container.clientHeight) container.scrollTop = Math.max(0, top - container.clientHeight / 2);
+      }
+      document.getElementById('lesson-progress-bar').style.width = `${(currentCharIndex / les.text.length) * 100}%`;
+    }
+
+    function handleKeyPress(token) {
+      const les = getCurrentLesson();
+      if (lessonFinished || currentCharIndex >= les.text.length) return;
+      if (!lessonActive) { lessonActive = true; startTime = new Date(); startTimer(); }
+
+      totalKeystrokes++;
+      const expected = les.text[currentCharIndex];
+      const n = expected.normalize('NFD');
+      const needsAccent = n.length === 2 && /[\u0300-\u0303]/.test(n[1]);
+      const isCed = /[çÇ]/.test(expected);
+      const chars = [token.char, token.alt].filter(Boolean);
+      let ok = false, advance = false;
+
+      if (chars.includes(expected)) { ok = true; advance = true; pendingAccent = null; }
+      else if (needsAccent && !pendingAccent && token.dead && (token.dead === n[1] || token.anyDead)) { ok = true; pendingAccent = n[1]; }
+      else if (needsAccent && pendingAccent && chars.includes(n[0])) { ok = true; advance = true; pendingAccent = null; }
+      else if (isCed && !pendingAccent && token.anyDead) { ok = true; pendingAccent = '\u0327'; }   // layout US-Intl: ' + c
+      else if (isCed && pendingAccent === '\u0327' && chars.includes(n[0])) { ok = true; advance = true; pendingAccent = null; }
+      else pendingAccent = null;
+
+      if (ok) {
+        setHint('', false);
+        playClickSound(false);
+        correctKeystrokes++;
+        errorFlag = false;
+        if (advance) currentCharIndex++;
+      } else {
+        playClickSound(true);
+        errorFlag = true;
+        totalErrors++;
+        const nm = c => c === ' ' ? 'espaço' : c;
+        const typed = token.dead ? ({ '\u0301': '´', '\u0300': '`', '\u0303': '~', '\u0302': '^' }[token.dead]) : nm(token.char || '?');
+        sessionErrors.push({ exp: expected, typed });
+        errPos.add(currentCharIndex);
+        sessionWeakKeys[expected.toLowerCase()] = (sessionWeakKeys[expected.toLowerCase()] || 0) + 1;
+        setHint(`Esperado “${nm(expected)}” – você digitou “${typed}” [${token.raw || ''}]`, true);
+      }
+      const done = currentCharIndex >= les.text.length;
+      renderText();
+      updateMetrics();
+      highlightActiveKey();
+      if (done) finishLesson(false);
+    }
+
+    function baseKey(ch) {
+      if (SHIFT_BASE[ch]) return { key: SHIFT_BASE[ch], shift: true };
+      const c = ch.toLowerCase();
+      return { key: c, shift: ch !== c };
+    }
+
+    function highlightActiveKey() {
+      document.querySelectorAll('.key').forEach(k => k.classList.remove('key-target'));
+      const les = getCurrentLesson();
+      if (currentCharIndex >= les.text.length) return;
+      const { key, shift } = nextTarget(les.text[currentCharIndex]);
+      const targetEl = document.querySelector(`.key[data-key="${CSS.escape(key)}"]`);
+      if (targetEl) targetEl.classList.add('key-target');
+      if (shift) {
+        const left = (FINGER_MAP[key] || {}).id || '';
+        const shifts = document.querySelectorAll('.key[data-key="Shift"]');
+        const sh = left.includes('-L-') ? shifts[1] : shifts[0];
+        if (sh) sh.classList.add('key-target');
+      }
+      updateHandsSVG(key);
+    }
+
+    function updateHandsSVG(char) {
+      const fingerData = FINGER_MAP[char] || { name: 'Atenção ao Teclado', id: null };
+      document.getElementById('hands-finger-name').innerText = fingerData.name;
+
+      const allFingers = ['finger-L-pinky', 'finger-L-ring', 'finger-L-middle', 'finger-L-index', 'finger-L-thumb',
+                          'finger-R-thumb', 'finger-R-index', 'finger-R-middle', 'finger-R-ring', 'finger-R-pinky'];
+      
+      allFingers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('finger-highlight');
+          el.setAttribute('fill', '#334155');
+          el.setAttribute('stroke', '#475569');
+        }
+      });
+
+      if (fingerData.id) {
+        const targetFinger = document.getElementById(fingerData.id);
+        if (targetFinger) {
+          targetFinger.classList.add('finger-highlight');
+        }
+      }
+    }
+
+    function openHandsGuide() {
+      const mod = MODULES[currentModuleIndex];
+      document.getElementById('hands-modal-title').innerText = `Guia de Mãos - ${mod.title}`;
+      const les = getCurrentLesson();
+      if (currentCharIndex < les.text.length) {
+        updateHandsSVG(nextTarget(les.text[currentCharIndex]).key);
+      }
+      openModal('modal-hands');
+    }
+
+    function updateMetrics() {
+      if (!startTime) {
+        document.getElementById('stat-ppm').innerText = '0';
+        document.getElementById('stat-cpm').innerText = '0';
+        document.getElementById('stat-acc').innerText = '100%';
+        document.getElementById('stat-errors').innerText = '0';
+        return;
+      }
+
+      const elapsedMinutes = Math.max((new Date() - startTime) / 1000, 2) / 60;
+      const cpm = Math.round(currentCharIndex / elapsedMinutes);
+      const ppm = Math.round((currentCharIndex / 5) / elapsedMinutes);
+      const accuracy = totalKeystrokes > 0 ? Math.max(0, Math.round((correctKeystrokes / totalKeystrokes) * 100)) : 100;
+
+      document.getElementById('stat-ppm').innerText = ppm;
+      document.getElementById('stat-cpm').innerText = cpm;
+      document.getElementById('stat-acc').innerText = `${accuracy}%`;
+      document.getElementById('stat-errors').innerText = totalErrors;
+    }
+
+    function resetLesson() {
+      loadLesson(currentModuleIndex, currentLessonIndex);
+    }
+
+    function finishLesson(timeOut = false) {
+      if (lessonFinished) return;
+      lessonFinished = true;
+      stopTimer();
+      lessonActive = false;
+
+      const elapsedSecs = startTime ? (new Date() - startTime) / 1000 : 1;
+      const elapsedMinutes = Math.max(elapsedSecs, 2) / 60;
+      const cpm = Math.round(currentCharIndex / elapsedMinutes);
+      const ppm = Math.round((currentCharIndex / 5) / elapsedMinutes);
+      const accuracy = totalKeystrokes > 0 ? Math.max(0, Math.round((correctKeystrokes / totalKeystrokes) * 100)) : 100;
+
+      const mod = MODULES[currentModuleIndex];
+      const les = getCurrentLesson();
+      const isTest = !!les.isTest;
+      const passed = isTest ? true : (!timeOut && accuracy >= mod.minAccuracy);
+      const stars = isTest ? 1 : (passed ? 1 + (accuracy >= Math.min(98, mod.minAccuracy + 3) ? 1 : 0) + (accuracy >= 99 ? 1 : 0) : 0);
+
+      // Save user progress
+      const user = getCurrentUser();
+      user.totalTime = (user.totalTime || 0) + elapsedSecs;
+      
+      if (passed) {
+        user.completedLessons = (user.completedLessons || 0) + 1;
+        user.maxPPM = Math.max(user.maxPPM || 0, ppm);
+      }
+
+      user.stars = user.stars || {};
+      if (stars > (user.stars[les.id] || 0)) user.stars[les.id] = stars;
+      if (isTest) { user.tests = user.tests || []; user.tests.push({ kind: les.isTest, ppm, accuracy, date: new Date().toISOString() }); }
+
+      // Merge weak keys
+      user.weakKeys = user.weakKeys || {};
+      if (les.dynamic && passed) Object.keys(user.weakKeys).forEach(k => { user.weakKeys[k] = Math.floor(user.weakKeys[k] / 2); if (user.weakKeys[k] < 1) delete user.weakKeys[k]; });
+      Object.entries(sessionWeakKeys).forEach(([k, count]) => {
+        user.weakKeys[k] = (user.weakKeys[k] || 0) + count;
+      });
+
+      user.history.push({ date: new Date().toISOString(), ppm, accuracy });
+      if (user.history.length > 200) user.history.shift();
+      saveUserData();
+
+      document.getElementById('result-title').innerText = passed ? 'Excelente!' : (timeOut ? 'Tempo Esgotado!' : 'Atenção!');
+      document.getElementById('result-subtitle').innerText = passed 
+        ? `Precisão atingida: ${accuracy}% (Meta: ${mod.minAccuracy}%).` 
+        : `Precisão: ${accuracy}%. Meta requerida: ${mod.minAccuracy}%.`;
+
+      document.getElementById('result-ppm').innerText = `${ppm} PPM`;
+      document.getElementById('result-accuracy').innerText = `${accuracy}%`;
+      document.getElementById('result-time').innerText = `${Math.round(elapsedSecs)}s`;
+      document.getElementById('result-errors').innerText = totalErrors;
+      document.getElementById('result-stars').textContent = isTest ? '' : '★'.repeat(stars) + '☆'.repeat(3 - stars);
+      if (isTest) {
+        document.getElementById('result-title').innerText = 'Teste concluído';
+        const first = (user.tests || []).find(t => t.kind === 'initial');
+        document.getElementById('result-subtitle').innerText = les.isTest === 'final' && first
+          ? `Inicial: ${first.ppm} PPM / ${first.accuracy}% → Agora: ${ppm} PPM / ${accuracy}%.`
+          : `${ppm} PPM com ${accuracy}% de precisão. Esta é a sua base!`;
+      }
+      populateUnifiedDropdown();
+      document.getElementById('select-unified-lesson').value = `${currentModuleIndex}-${currentLessonIndex}`;
+      const grp = {};
+      sessionErrors.forEach(e => { const g = grp[e.exp] = grp[e.exp] || { n: 0, t: new Set() }; g.n++; g.t.add(e.typed); });
+      const box = document.getElementById('result-error-box');
+      box.classList.toggle('hidden', !sessionErrors.length);
+      document.getElementById('result-error-list').innerHTML = Object.entries(grp).sort((a, b) => b[1].n - a[1].n).slice(0, 12)
+        .map(([k, g]) => `<span class="px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[10px] font-mono">${esc(k === ' ' ? 'espaço' : k)} ×${g.n} <span class="text-slate-500">(${esc([...g.t].join(' '))})</span></span>`).join('');
+
+      openModal('modal-result');
+    }
+
+    function nextLesson() {
+      closeModal('modal-result');
+      if (currentLessonIndex + 1 < MODULES[currentModuleIndex].lessons.length) loadLesson(currentModuleIndex, currentLessonIndex + 1);
+      else if (currentModuleIndex + 1 < MODULES.length) loadLesson(currentModuleIndex + 1, 0);
+      else exitStudio();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    /* PHYSICAL KEYBOARD CAPTURE ONLY */
+    window.addEventListener('keydown', (e) => {
+      if (!studioOpen) return;
+      if (!document.getElementById('intro-overlay').classList.contains('hidden')) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const ae = document.activeElement;
+      if (ae && ae !== document.body && ae.blur) ae.blur();
+
+      const resultOpen = !document.getElementById('modal-result').classList.contains('hidden');
+      if (e.key === 'Escape') { closeModal('modal-result'); resetLesson(); return; }
+      if (resultOpen) { if (e.key === 'Enter') nextLesson(); return; }
+      if (e.repeat) { e.preventDefault(); return; }
+      const token = tokenFromEvent(e);
+      if (!token) return;                      // Shift, Enter, setas, F1-F12...
+      e.preventDefault();
+      if (!document.getElementById('modal-hands').classList.contains('hidden')) closeModal('modal-hands');
+
+      const el = document.querySelector(`.key[data-key="${CSS.escape(tokenKey(token))}"]`);
+      if (el) { el.classList.add('active-pressed'); setTimeout(() => el.classList.remove('active-pressed'), 100); }
+      handleKeyPress(token);
+    });
+
+    /* Tamanho da fonte do exercício e das teclas (barra de ferramentas) */
+    const FONT_SIZES = [16, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 88, 104];
+    const KEY_FONTS = [60, 70, 80, 90, 100, 112, 125, 140, 160];
+    let fontSize = (() => {
+      const v = parseInt(store.get('angelica_fs'), 10);
+      if (FONT_SIZES.includes(v)) return v;
+      const want = Math.min(72, Math.max(20, window.innerHeight * 0.065));
+      return FONT_SIZES.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a);
+    })();
+    let keyFont = (() => { const v = parseInt(store.get('angelica_kf'), 10); return KEY_FONTS.includes(v) ? v : 112; })();
+    function applyKeyFont() { document.documentElement.style.setProperty('--kf', keyFont); }
+    function updateFontBtn() {
+      const a = document.getElementById('btn-fontsize'), b = document.getElementById('btn-keyfont');
+      if (a) a.textContent = fontSize;
+      if (b) b.textContent = keyFont;
+    }
+    function toggleFontMenu(ev, kind) {
+      ev.stopPropagation();
+      const old = document.getElementById('font-menu');
+      if (old) { old.remove(); return; }
+      const sizes = kind === 'key' ? KEY_FONTS : FONT_SIZES, cur = kind === 'key' ? keyFont : fontSize;
+      const m = document.createElement('div');
+      const r = ev.currentTarget.getBoundingClientRect();
+      m.id = 'font-menu';
+      m.style.cssText = `position:fixed;top:${r.bottom + 4}px;left:${r.left}px;z-index:60;max-height:70vh;overflow-y:auto`;
+      m.className = 'bg-slate-900 border border-slate-700 rounded-lg p-1 shadow-2xl flex flex-col gap-0.5';
+      sizes.forEach(sz => {
+        const b = document.createElement('button');
+        b.textContent = sz;
+        b.className = 'px-4 py-1 rounded text-xs font-mono font-bold text-left ' + (sz === cur ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800');
+        b.onclick = e => {
+          e.stopPropagation(); m.remove();
+          if (kind === 'key') { keyFont = sz; store.set('angelica_kf', String(sz)); applyKeyFont(); }
+          else {
+            fontSize = sz; store.set('angelica_fs', String(sz));
+            if (studioOpen && !lessonActive && !lessonFinished) loadLesson(currentModuleIndex, currentLessonIndex); else renderText();
+          }
+          updateFontBtn();
+        };
+        m.appendChild(b);
+      });
+      document.body.appendChild(m);
+    }
+    document.addEventListener('click', () => { const m = document.getElementById('font-menu'); if (m) m.remove(); });
+
+    /* Lições de teclas: o texto é repetido até preencher 3 vezes a área do exercício */
+    function expandText(base) {
+      const p = document.getElementById('text-container').parentElement;
+      const cw = 0.65 * fontSize + 4, lh = 1.625 * fontSize;
+      const cols = Math.max(8, Math.floor((p.clientWidth - 16) / cw)), rows = Math.max(2, Math.floor((p.clientHeight - 16) / lh));
+      const target = Math.min(4000, Math.floor(cols * rows * 0.9) * 3);
+      let t = base;
+      while (t.length < target) t += ' ' + base;
+      return t;
+    }
+
+    function setHint(text, isErr) {
+      const h = document.getElementById('error-hint');
+      if (!h) return;
+      h.textContent = text;
+      h.classList.toggle('text-rose-400', !!isErr);
+      h.classList.toggle('text-sky-400', !isErr);
+    }
+    function buildWeakText() {
+      const w = Object.entries(getCurrentUser().weakKeys || {}).filter(([k]) => k.trim()).sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
+      if (!w.length) return 'ainda não há teclas fracas registradas: pratique outras lições e volte aqui.';
+      const f = ['a', 'e', 'o', 's', 'r', 'i'], parts = [];
+      w.forEach((k, i) => parts.push(k + k + k, k + f[i % 6], f[(i + 1) % 6] + k, k + f[(i + 2) % 6] + k, k + k + f[i % 6]));
+      return parts.concat(parts.slice(0, 6)).join(' ');
+    }
+
+    /* Lições do professor */
+    const loadCustom = () => { try { return JSON.parse(store.get('angelica_custom')) || []; } catch (e) { return []; } };
+    function rebuildCustomModule() {
+      const i = MODULES.findIndex(m => m.id === 'custom');
+      if (i >= 0) MODULES.splice(i, 1);
+      const c = loadCustom();
+      if (!c.length) return;
+      MODULES.push({ id: 'custom', title: 'Minhas Lições', minAccuracy: 90, needsNumberRow: true,
+        lessons: c.map(x => ({ id: 'custom_' + x.id, title: x.title, text: x.text, timeLimit: Math.max(60, Math.ceil(x.text.length * 1.6) + 30) })) });
+    }
+    function renderCreatorList() {
+      const c = loadCustom();
+      document.getElementById('cr-list').innerHTML = c.length ? c.map(x => `<div class="flex items-center justify-between gap-2 p-2 rounded bg-slate-950 border border-slate-800 text-xs"><span class="truncate text-slate-300">${esc(x.title)}</span><button onclick="deleteCustom('${x.id}')" class="text-rose-400 shrink-0"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<div class="text-[11px] text-slate-500">Nenhuma lição criada ainda.</div>';
+    }
+    function openCreator() { document.getElementById('cr-msg').textContent = ''; renderCreatorList(); openModal('modal-creator'); }
+    function saveCustom() {
+      const title = document.getElementById('cr-title').value.trim();
+      const text = document.getElementById('cr-text').value.replace(/\s+/g, ' ').trim();
+      const msg = document.getElementById('cr-msg');
+      const bad = [...new Set(text.split('').filter(ch => !/[A-Za-z0-9 .,;:!?'"()\-_\/\\@#$%&*+=<>\[\]{}|áéíóúâêôãõàçÁÉÍÓÚÂÊÔÃÕÀÇ]/.test(ch)))];
+      if (!title || text.length < 5) { msg.textContent = 'Informe um título e um texto com pelo menos 5 caracteres.'; return; }
+      if (text.length > 600) { msg.textContent = 'O texto pode ter no máximo 600 caracteres.'; return; }
+      if (bad.length) { msg.textContent = 'Caracteres não digitáveis no teclado ABNT2: ' + bad.join(' '); return; }
+      const c = loadCustom(); c.push({ id: Date.now().toString(36), title, text });
+      store.set('angelica_custom', JSON.stringify(c));
+      document.getElementById('cr-title').value = ''; document.getElementById('cr-text').value = '';
+      msg.textContent = 'Lição salva! Ela aparece no módulo “Minhas Lições”.';
+      renderCreatorList();
+    }
+    function deleteCustom(id) {
+      store.set('angelica_custom', JSON.stringify(loadCustom().filter(x => x.id !== id)));
+      renderCreatorList();
+    }
+    rebuildCustomModule();
+
+    /* Menu de atividades */
+    const MOD_ICONS = { test_in:'⏱️', home:'🏠', top:'⬆️', bottom:'⬇️', words:'📝', caps:'🔠', punct:'❗', acute:'´', tilde:'~', circ:'^', common:'💬', bigrams:'🔤', nums:'🔢', numpad:'🧮', symbols:'#️⃣', phrases:'📜', paras:'📄', adv:'🏆', weak:'🎯', test_out:'🏁', custom:'✏️' };
+    function renderModules() {
+      const g = document.getElementById('modules-grid');
+      if (!g) return;
+      const st = getCurrentUser().stars || {};
+      g.innerHTML = MODULES.map((m, i) => {
+        const tot = m.lessons.length, done = m.lessons.filter(l => st[l.id]).length;
+        const stars = m.lessons.reduce((a, l) => a + (st[l.id] || 0), 0), pct = Math.round(done / tot * 100);
+        return `<button onclick="openModule(${i})" class="text-left p-3 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border ${pct === 100 ? 'border-emerald-500/40' : 'border-slate-800'} hover:border-sky-500/60 transition active:scale-95 flex flex-col gap-1.5 shadow-md">
+          <div class="flex items-center justify-between"><span class="text-xl leading-none">${MOD_ICONS[m.id] || '📘'}</span><span class="text-[10px] font-bold ${pct === 100 ? 'text-emerald-400' : 'text-slate-500'}">${done}/${tot}</span></div>
+          <div class="text-xs font-bold text-white leading-tight">${esc(m.title)}</div>
+          <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400" style="width:${pct}%"></div></div>
+          <div class="text-[10px] text-amber-400">${stars ? '★ ' + stars : '&nbsp;'}</div></button>`;
+      }).join('');
+      const core = MODULES.filter(m => !['weak', 'custom'].includes(m.id)), all = core.reduce((a, m) => a + m.lessons.length, 0);
+      const fin = core.reduce((a, m) => a + m.lessons.filter(l => st[l.id]).length, 0);
+      document.getElementById('overall-bar').style.width = (all ? fin / all * 100 : 0) + '%';
+      document.getElementById('overall-text').textContent = `${fin} de ${all} lições concluídas`;
+    }
+    function openModule(i) {
+      const st = getCurrentUser().stars || {};
+      let l = MODULES[i].lessons.findIndex(x => !st[x.id]);
+      currentModuleIndex = i; currentLessonIndex = l < 0 ? 0 : l;
+      forceLandscapeCheck();
+    }
+    { const _rd = renderDashboard; renderDashboard = function () { _rd(); renderModules(); }; }
+
+    /* Rolagem do app com as setas do teclado */
+    window.addEventListener('keydown', (e) => {
+      const dirs = { ArrowDown: [0, 1], ArrowUp: [0, -1], ArrowRight: [1, 0], ArrowLeft: [-1, 0] };
+      const d = dirs[e.key];
+      if (!d || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      const visible = id => !document.getElementById(id).classList.contains('hidden');
+      let el = null;
+      if (studioOpen) {
+        if (visible('intro-overlay') || visible('modal-result') || visible('modal-hands')) return;
+        el = document.getElementById('text-container');
+      } else if (visible('modal-users')) {
+        el = document.getElementById('profiles-list-container');
+      } else if (visible('intro-overlay')) {
+        return;
+      } else {
+        el = document.getElementById('portrait-hub');
+      }
+      if (!el) return;
+      e.preventDefault();
+      el.scrollBy({ left: d[0] * 90, top: d[1] * 90, behavior: 'smooth' });
+    });
+
+    window.onload = function() {
+      renderProfilesList();
+      renderDashboard();
+      document.getElementById('select-unified-lesson').blur();
+      updateFontBtn();
+      applyKeyFont();
+      document.querySelectorAll('.key').forEach(k => { if (k.textContent.trim().length > 1) k.classList.add('key-sp'); });
+      window.addEventListener('resize', checkOrientation);
+      window.addEventListener('orientationchange', checkOrientation);
+    };
+  </script>
+</body>
+</html>
