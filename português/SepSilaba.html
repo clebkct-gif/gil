@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Soletrando V3.3 - Pronúncia Cadenciada</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Oswald:wght@500;700&display=swap');
+:root{--gap:5px;--score-color:#fff;--btn-control-width:92px;--gold:linear-gradient(135deg,#fff1a8,#f5c542 25%,#a97a10 50%,#ffe28a 75%,#c9971c);--base:#0b1224;--neon:#22d3ee;--bg:linear-gradient(160deg,#0f172a,#1e293b)}
+*{-webkit-tap-highlight-color:transparent}
+body{background:#020617;margin:0;padding:0;font-family:'Oswald',Arial,sans-serif;width:100vw;height:100dvh;overflow:hidden;display:flex;justify-content:center;align-items:center;color:#fff}
+#app{width:100%;height:100%;background:var(--bg);display:flex;flex-direction:column;gap:var(--gap);padding:var(--gap);box-sizing:border-box}
+#StartOverlay{position:fixed;inset:0;background:rgba(2,6,23,.92);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff}
+/* botões de vidro com borda dourada */
+.ai-button{--t:#38bdf8;border:2.5px solid transparent;cursor:pointer;border-radius:14px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;position:relative;overflow:hidden;font-family:'Oswald',sans-serif;color:#fff;
+text-shadow:0 2px 5px rgba(0,0,0,.7),0 0 10px rgba(255,255,255,.45);
+background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,.06) 49%,rgba(0,0,0,.2) 51%,color-mix(in srgb,var(--t) 42%,transparent)) padding-box,linear-gradient(var(--base),var(--base)) padding-box,var(--gold) border-box;
+box-shadow:0 0 10px rgba(245,197,66,.45),0 4px 7px rgba(0,0,0,.55),inset 0 2px 3px rgba(255,255,255,.5);transition:transform .05s,filter .05s}
+.ai-button:active{transform:translateY(2px) scale(.95);filter:brightness(1.35)}
+#TopArea{flex:1;display:flex;flex-direction:column;gap:var(--gap)}
+#KeyboardArea{flex:1.2;display:flex;flex-direction:column;gap:var(--gap)}
+.h-row{display:flex;gap:var(--gap);width:100%;flex:1}
+#CreationContainer{display:flex;flex-direction:column;gap:var(--gap);height:100%}
+#CreationContainer textarea{flex:1;width:100%;padding:10px;font-size:14px;border-radius:12px;border:3px solid transparent;box-sizing:border-box;font-family:monospace;resize:none;color:#e2e8f0;background:linear-gradient(#020617,#020617) padding-box,var(--gold) border-box;box-shadow:0 0 12px rgba(245,197,66,.45)}
+.edit-controls{display:flex;gap:var(--gap);width:100%;height:54px;flex:none}
+.btn-edit{flex:1;font-size:14px;font-weight:700;white-space:nowrap;padding:0}
+#ButtonCriar{--t:#f5c542;color:#ffd75e;flex:0 0 var(--btn-control-width);font-size:16px;font-weight:700;letter-spacing:.05em}
+#DisplayRestantes{--t:#64748b;flex:0 0 var(--btn-control-width);flex-direction:column;font-family:'Chakra Petch',monospace;font-size:20px;font-weight:700;color:#7dd3fc}
+#ButtonNovo{--t:#34d399;flex:0 0 var(--btn-control-width);font-weight:700;font-size:16px;letter-spacing:.05em}
+#ButtonApagar{--t:#f5a524;flex:0 0 var(--btn-control-width);font-weight:700;font-size:15px}
+#DisplayPalavra,#DisplayResposta{--t:#0b1224;--n:var(--neon);flex:3;font-family:'Chakra Petch',sans-serif;font-weight:700;letter-spacing:.06em;color:#ecfeff;text-shadow:0 0 4px #fff,0 0 12px var(--n),0 0 26px var(--n),0 0 46px var(--n)}
+#DisplayPalavra{font-size:clamp(30px,6vh,60px);animation:pulse 1.6s ease-in-out infinite}
+#DisplayResposta{font-size:clamp(23px,5.5vh,48px);--n:#e2e8f0}
+#DisplayPalavra.ok,#DisplayResposta.ok{--n:#00ff88;color:#eafff4;animation:pop .6s ease-out}
+#DisplayPalavra.bad,#DisplayResposta.bad{--n:#ff1744;color:#fff0f2;animation:shake .5s}
+.key-uniform{--t:var(--kt,#38bdf8);flex:1;font-weight:700;font-size:clamp(22px,4.6vh,46px);border-width:2px;border-radius:12px;font-family:'Chakra Petch',sans-serif}
+.key-score-content{font-size:clamp(16px,3vh,30px);flex-direction:column;color:var(--score-color)}
+.key-score-content span{text-shadow:0 0 8px currentColor,0 0 16px currentColor}
+#CriarCol{flex:0 0 var(--btn-control-width);display:flex;flex-direction:column;gap:var(--gap)}
+#CriarCol #ButtonCriar{flex:1.4}
+#ButtonTema{--t:var(--kt,#38bdf8);flex:1;font-size:20px}
+#toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:60;padding:8px 16px;border-radius:14px;font-weight:700;font-size:15px;color:#ffd75e;pointer-events:none;border:3px solid transparent;background:linear-gradient(#0b1224,#0b1224) padding-box,var(--gold) border-box;box-shadow:0 0 16px rgba(245,197,66,.55)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.8}54%{opacity:.6}58%{opacity:.92}}
+@keyframes pop{0%{transform:scale(.8)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-10px)}30%,60%,90%{transform:translateX(10px)}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30;opacity:0}
+#fx.g{background:radial-gradient(circle,rgba(0,255,136,.55),rgba(0,255,136,.2) 60%,transparent);box-shadow:inset 0 0 130px 45px #00ff88;animation:fx .9s ease-out}
+#fx.r{background:radial-gradient(circle,rgba(255,23,68,.55),rgba(255,23,68,.2) 60%,transparent);box-shadow:inset 0 0 130px 45px #ff1744;animation:fx .9s ease-out}
+@keyframes fx{0%{opacity:0}10%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){#DisplayPalavra{animation:none!important}}
+</style>
+</head>
+<body>
+
+    <div id="app">
+        <div id="fx" :class="fx"></div>
+        <div id="toast" v-if="toastMsg">{{ toastMsg }}</div>
+        <div id="StartOverlay" v-if="!interagiu">
+            <button class="ai-button" @click="iniciarApp" style="--t:#34d399;padding:25px 50px;font-size:24px;font-weight:700;border-radius:18px;letter-spacing:.06em">
+                CLIQUE PARA INICIAR
+            </button>
+        </div>
+
+        <div id="TopArea">
+            <div id="CreationContainer" v-if="modoCriacao">
+                <textarea v-model="entradaExercicios" placeholder="SÍLABAS.PONTOS@PALAVRA.DOIS"></textarea>
+                <div class="edit-controls">
+                    <button class="ai-button btn-edit" @click="salvarLocalmente" title="Salvar" style="--t:#444;">💾</button>
+                    <button class="ai-button btn-edit" @click="carregarArquivo" title="Abrir" style="--t:#444;">📂</button>
+                    <button class="ai-button btn-edit" @click="adicionarCaractereDirect('@')" style="--t:#666;">@</button>
+                    <button class="ai-button btn-edit" @click="entradaExercicios = ''" style="--t:#8b0000;">LIMPAR</button>
+                    <button class="ai-button btn-edit" @click="adicionarCaractereDirect(' ')" style="--t:#00AA00;"></button>
+                    <button class="ai-button btn-edit" @click="alternarModo(false)" style="--t:#555;">VOLTAR</button>
+                    <button class="ai-button btn-edit" @click="apagar(true)" style="--t:#FFD700;"> < </button>
+                    <button class="ai-button btn-edit" @click="adicionarCaractereDirect('.')" style="--t:#888;font-size: 22px;"> . </button>
+                    <button class="ai-button btn-edit" @click="concluirExercicios" style="--t:#00AA00;">OK</button>
+                </div>
+                <input type="file" ref="fileInput" style="display:none" @change="processarArquivo">
+            </div>
+
+            <div v-else style="display: contents;">
+                <div class="h-row">
+                    <div id="CriarCol">
+                        <button class="ai-button" @click="alternarModo(true)" id="ButtonCriar">CRIAR</button>
+                        <button class="ai-button" id="ButtonTema" @click="trocarTema" title="Trocar estilo">🎨</button>
+                    </div>
+                    <button class="ai-button" id="DisplayPalavra" :class="{ok: corFundoApp==='#00AA00', bad: corFundoApp==='#FF0000'}" @click="falarPalavra(palavraCompleta)">
+                        {{ modoDificuldade ? palavraExibirCompleta : palavraOculta }}
+                    </button>
+                    <button class="ai-button" id="DisplayRestantes">
+                        {{ palavrasRestantes }}<span style="font-size:8px">RESTANTES</span>
+                    </button>
+                </div>
+                <div class="h-row">
+                    <button class="ai-button" @click="iniciarNovoJogo" id="ButtonNovo" v-if="!jogoAtivo && !emRotinaErro">NOVO</button>
+                    <div style="flex: 0 0 var(--btn-control-width)" v-else></div> 
+                    <button class="ai-button" id="DisplayResposta" :class="{ok: corFundoApp==='#00AA00', bad: corFundoApp==='#FF0000'}" @click="acaoCliqueResposta()">
+                        {{ respostaUsuario || (jogoAtivo ? 'SÍLABA' : '') }}
+                    </button>
+                    <button class="ai-button" @click="apagar(false)" id="ButtonApagar">Apagar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="KeyboardArea">
+            <div class="h-row" v-for="row in teclado" :key="row[0]">
+                <button v-for="tecla in row" :key="tecla" 
+                        class="ai-button key-uniform" 
+                        :class="{'key-score-content': isScoreKey(tecla)}"
+                        @click="handleTeclado(tecla)">
+                    <template v-if="tecla === 'SCORE_CERTO'"><span style="color:#00ff88">{{ acertosTotal }}</span></template>
+                    <template v-else-if="tecla === 'SCORE_MEDIA'"><span style="color:#60a5fa">{{ mediaAcertos }}</span><span style="font-size:8px">MÉDIA</span></template>
+                    <template v-else-if="tecla === 'SCORE_ERROS'"><span style="color:#ff4d6d">{{ errosTotal }}</span><span style="font-size:8px">ERROS</span></template>
+                    <template v-else>{{ tecla }}</template>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TEMAS = [
+            ['Meia-noite','linear-gradient(160deg,#0f172a,#1e293b)','#38bdf8','#0b1224','#22d3ee'],
+            ['Aurora','linear-gradient(160deg,#042f2e,#312e81 70%,#4c1d95)','#2dd4bf','#06201f','#5eead4'],
+            ['Esmeralda','radial-gradient(circle at 50% 20%,#065f46,#022c22 75%)','#34d399','#03251b','#34d399'],
+            ['Rubi','radial-gradient(circle at 50% 20%,#7f1d1d,#2a0808 75%)','#fb7185','#2a0a0e','#fb7185'],
+            ['Safira','linear-gradient(180deg,#1e3a8a,#0b1230)','#60a5fa','#0a1536','#60a5fa'],
+            ['Ametista','radial-gradient(circle at 50% 20%,#581c87,#1e0836 75%)','#c084fc','#1b0a30','#c084fc'],
+            ['Âmbar','linear-gradient(160deg,#78350f,#1c1002)','#fbbf24','#241503','#fbbf24'],
+            ['Oceano','linear-gradient(180deg,#0e7490,#082f49 60%,#020617)','#67e8f9','#04202e','#67e8f9'],
+            ['Grafite','linear-gradient(160deg,#27272a,#09090b)','#e4e4e7','#111113','#e4e4e7'],
+            ['Synthwave','linear-gradient(180deg,#2e1065,#831843 70%,#be185d)','#f472b6','#250a2e','#f472b6']
+        ];
+        function aplicarTema(i) {
+            const t = TEMAS[i], r = document.documentElement.style;
+            r.setProperty('--bg', t[1]); r.setProperty('--kt', t[2]); r.setProperty('--base', t[3]); r.setProperty('--neon', t[4]);
+        }
+        let temaSalvo = 0;
+        try { temaSalvo = parseInt(localStorage.getItem('silabas_tema')) || 0; } catch (e) {}
+        aplicarTema(temaSalvo % 10);
+
+        new Vue({
+            el: '#app',
+            data: {
+                fx: '', tema: temaSalvo % 10, toastMsg: '', interagiu: false, modoCriacao: false, jogoAtivo: false,
+                modoDificuldade: true, corFundoApp: '#ADD8E6', corResposta: '#F0F0F0',
+                palavraExibirCompleta: '', emRotinaErro: false, acentoPendente: '',
+                entradaExercicios: "Pa.ra@por@com@não@que@se@na@no@as@os@mais@mas@co.mo@foi@ao@dos@das@ou@seu@su.a@meu@mi.nha@teu@tu.a@e.le@e.la@e.les@e.las@nós@vo.cês@is.so@is.to@a.que.le@a.que.la@es.ta@es.te@já@tam.bém@bem@mal@mui.to@mui.tos@pou.co@pou.cos@to.do@to.dos@to.da@to.das@na.da@tu.do@al.go@al.guém@nin.guém@quan.do@on.de@por.que@sim@não@a.in.da@a.go.ra@de.pois@an.tes@sem.pre@nun.ca@ho.je@on.tem@a.ma.nhã@tar.de@noi.te@di.a@se.ma.na@mês@a.no@tem.po@ho.ra@mi.nu.to@se.gun.do@ca.sa@ru.a@ci.da.de@pa.ís@mun.do@gen.te@pes.so.a@ho.mem@mu.lher@cri.an.ça@tra.ba.lho@em.pre.go@es.co.la@a.mi.go@a.mi.ga@fa.mí.lia@pai@mãe@fi.lho@fi.lha@vi.da@coi.sa@par.te@lu.gar@for.ma@mo.do@fa.to@ca.so@vez@di.rei.to@lei@go.ver.no@po.der@di.nhei.ro@pre.ço@va.lor@ser.vi.ço@pro.ble.ma@per.gun.ta@res.pos.ta@i.dei.a@his.tó.ria@e.xem.plo@mo.ti.vo@ra.zão@con.ta@nú.me.ro@si.tu.a.ção@mo.men.to@re.sul.ta.do@con.se.quên.cia@di.fe.ren.ça@i.gual@ma.nei.ra@prin.cí.pio@fim@i.ní.cio@me.io@to.po@ní.vel@for.ça@po.si.ção@di.re.ção@con.tro.le@de.ci.são@es.co.lha@o.pi.nião@ver.da.de@men.ti.ra@sen.ti.do@sen.sa.ção@pen.sa.men.to@me.do@von.ta.de@pra.zer@do.lor@a.le.gri.a@tris.te.za@ra.i.va@cal.ma@paz@res.pei.to@a.ju.da@a.po.io@so.lu.ção@mu.dan.ça@bo.la@da.do@pe.té.ca@bi.co@ca.ne.ta@la.pis@li.vro@fo.lha@pa.pel@co.lor@tin.ta@qua.dro@pa.re.de@cha.o@por.ta@ja.ne.la@te.to@me.sa@ca.dei.ra@ban.co@co.pa@pra.to@ga.fo@fa.ca@co.lher@pa.ne.la@fo.gão@ge.la.dei.ra@ca.ma@tra.ves.sei.ro@len.çol@co.ber.tor@sa.pa.to@me.ia@ca.mi.sa@cal.ça@ves.ti.do@cha.peu@bo.ne@bol.sa@mo.chi.la@re.ló.gio@te.le.vi.são@rá.dio@te.le.fo.ne@com.pu.ta.dor@ra.to@ga.to@ca.cho.rro@pas.sa.ro@pei.xe@va.ca@ca.va.lo@por.co@ga.li.nha@o.vo@lei.te@pão@bo.lo@su.co@a.gua@ca.fé@ar.roz@fei.jão@mi.lho@car.ne@so.pa@sa.la.da@fru.ta@ma.çã@ba.na.na@u.va@la.ran.ja@li.mão@man.ga@pe.ra@mo.ran.go@sol@lua@es.tre.la@céu@nu.vem@chu.va@ven.to@frio@ca.lor@fo.go@ge.lo@mar@rio@la.go@ár.vo.re@flor@fo.go@frio@ca.lor",
+                palavrasLista: [], palavraCompleta: '', silabasCorretas: [],
+                silabaAtualIndex: 0, respostaUsuarioFormatada: '', bufferDigitacao: '',
+                acertosTotal: 0, errosTotal: 0, vozPortuguesa: null,
+                teclado: [
+                    ['Q', 'W', 'E', 'R', 'T', 'SCORE_CERTO', 'Y', 'U', 'I', 'O', 'P'],
+                    ['A', 'S', 'D', 'F', 'G', 'SCORE_MEDIA', 'H', 'J', 'K', 'L', 'Ç'],
+                    ['^', 'Z', 'X', 'C', 'V', 'SCORE_ERROS', 'B', 'N', 'M', '´', '~']
+                ]
+            },
+            watch: {
+                corFundoApp(v) {
+                    const c = v === '#00AA00' ? 'g' : v === '#FF0000' ? 'r' : '';
+                    if (!c) return;
+                    this.fx = ''; setTimeout(() => { this.fx = c; }, 20);
+                    if (c === 'r' && navigator.vibrate) navigator.vibrate([120, 60, 120]);
+                }
+            },
+            computed: {
+                mediaAcertos() {
+                    const total = this.acertosTotal + this.errosTotal;
+                    return total === 0 ? '0%' : Math.round((this.acertosTotal / total) * 100) + '%';
+                },
+                palavrasRestantes() { return this.palavrasLista.length; },
+                respostaUsuario() { return (this.emRotinaErro || !this.jogoAtivo) ? this.respostaUsuarioFormatada : this.respostaUsuarioFormatada + this.bufferDigitacao; },
+                palavraOculta() {
+                    if (!this.jogoAtivo) return this.palavraExibirCompleta;
+                    const silaba = this.silabasCorretas[this.silabaAtualIndex];
+                    const antes = this.silabasCorretas.slice(0, this.silabaAtualIndex).join('.');
+                    const depois = this.silabasCorretas.slice(this.silabaAtualIndex + 1).map(s => s.replace(/./g, '-')).join('.');
+                    return (antes ? antes + '.' : '') + '(' + (silaba ? silaba.length : 0) + ')' + (depois ? '.' + depois : '');
+                }
+            },
+            methods: {
+                trocarTema() {
+                    this.tema = (this.tema + 1) % 10; aplicarTema(this.tema);
+                    try { localStorage.setItem('silabas_tema', this.tema); } catch (e) {}
+                    this.toastMsg = (this.tema + 1) + '/10 · ' + TEMAS[this.tema][0];
+                    clearTimeout(this._tt); this._tt = setTimeout(() => { this.toastMsg = ''; }, 1400);
+                },
+                iniciarApp() { this.interagiu = true; this.requestFullScreen(); this.carregarVozes(); this.concluirExercicios(false); },
+                requestFullScreen() { document.documentElement.requestFullscreen?.(); },
+                carregarVozes() { 
+                    const setV = () => { this.vozPortuguesa = window.speechSynthesis.getVoices().find(v => v.lang.startsWith('pt-')); };
+                    window.speechSynthesis.onvoiceschanged = setV; setV();
+                },
+                falarPalavra(texto) {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(texto);
+                    if (this.vozPortuguesa) u.voice = this.vozPortuguesa;
+                    u.lang = 'pt-BR'; u.rate = 0.8; window.speechSynthesis.speak(u);
+                },
+                iniciarNovoJogo() {
+                    if (this.palavrasLista.length === 0) this.concluirExercicios(false);
+                    this.jogoAtivo = true; this.emRotinaErro = false;
+                    this.corFundoApp = '#ADD8E6'; this.corResposta = '#F0F0F0';
+                    const idx = Math.floor(Math.random() * this.palavrasLista.length);
+                    const sel = this.palavrasLista.splice(idx, 1)[0];
+                    this.silabasCorretas = sel.includes('.') ? sel.split('.') : [sel];
+                    this.palavraCompleta = this.silabasCorretas.join('');
+                    this.silabaAtualIndex = 0; this.bufferDigitacao = ''; this.respostaUsuarioFormatada = '';
+                    this.palavraExibirCompleta = this.palavraCompleta; this.falarPalavra(this.palavraCompleta);
+                },
+                handleTeclado(tecla) {
+                    if (tecla === 'SCORE_CERTO') this.iniciarNovoJogo();
+                    else if (tecla === 'SCORE_MEDIA') this.modoDificuldade = !this.modoDificuldade;
+                    else if (['^', '´', '~'].includes(tecla)) { this.acentoPendente = tecla; }
+                    else if (!tecla.startsWith('SCORE')) {
+                        let letraParaDigitar = tecla;
+                        if (this.acentoPendente) {
+                            letraParaDigitar = this.combinarAcento(tecla, this.acentoPendente);
+                            this.acentoPendente = '';
+                        }
+                        if (this.modoCriacao) this.adicionarCaractereDirect(letraParaDigitar);
+                        else this.digitar(letraParaDigitar);
+                    }
+                },
+                combinarAcento(letra, acento) {
+                    const mapa = {
+                        '´': { 'A': 'Á', 'E': 'É', 'I': 'Í', 'O': 'Ó', 'U': 'Ú' },
+                        '~': { 'A': 'Ã', 'O': 'Õ' },
+                        '^': { 'A': 'Â', 'E': 'Ê', 'O': 'Ô' }
+                    };
+                    return (mapa[acento] && mapa[acento][letra]) ? mapa[acento][letra] : letra;
+                },
+                digitar(char) {
+                    if (!this.jogoAtivo || this.emRotinaErro) return;
+                    this.bufferDigitacao += char.toUpperCase();
+                    if ((this.respostaUsuarioFormatada.replace(/\s/g, '') + this.bufferDigitacao).length === this.palavraCompleta.length) this.verificarSilaba();
+                },
+                verificarSilaba() {
+                    const esp = this.silabasCorretas[this.silabaAtualIndex];
+                    if (this.bufferDigitacao === esp) {
+                        this.acertosTotal++;
+                        this.respostaUsuarioFormatada += esp + ' ';
+                        this.bufferDigitacao = '';
+                        
+                        if (this.silabaAtualIndex === this.silabasCorretas.length - 1) {
+                            this.jogoAtivo = false;
+                            this.corFundoApp = '#00AA00';
+                            this.falarPalavra(esp + ", " + this.palavraCompleta);
+                        } else {
+                            this.falarPalavra(esp);
+                            this.silabaAtualIndex++;
+                        }
+                    } else {
+                        this.errosTotal++; this.emRotinaErro = true; this.corFundoApp = '#FF0000';
+                        this.respostaUsuarioFormatada = this.silabasCorretas.join('.'); this.falarPalavra(this.palavraCompleta);
+                    }
+                },
+                apagar(isCriacao) {
+                    if (isCriacao) {
+                        this.entradaExercicios = this.entradaExercicios.slice(0, -1);
+                    } else {
+                        if (this.emRotinaErro) {
+                            this.emRotinaErro = false; this.silabaAtualIndex = 0; this.bufferDigitacao = '';
+                            this.respostaUsuarioFormatada = ''; this.corFundoApp = '#ADD8E6'; this.falarPalavra(this.palavraCompleta);
+                        } else this.bufferDigitacao = this.bufferDigitacao.slice(0, -1);
+                    }
+                },
+                alternarModo(v) { this.modoCriacao = v; },
+                concluirExercicios(alerta=true) {
+                    this.requestFullScreen();
+                    this.palavrasLista = this.entradaExercicios.toUpperCase().split('@').filter(p => p.trim().length > 0);
+                    if(alerta) alert("Lista carregada!");
+                    this.modoCriacao = false; if(this.interagiu) this.iniciarNovoJogo();
+                },
+                adicionarCaractereDirect(c) { this.entradaExercicios += c; },
+                isScoreKey(t) { return t.startsWith('SCORE'); },
+                salvarLocalmente() {
+                    const blob = new Blob([this.entradaExercicios], { type: 'text/plain' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob); link.download = 'palavras.txt'; link.click();
+                },
+                carregarArquivo() { this.$refs.fileInput.click(); },
+                processarArquivo(e) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { 
+                        this.entradaExercicios = ev.target.result; 
+                        this.requestFullScreen();
+                    };
+                    reader.readAsText(e.target.files[0]);
+                },
+                acaoCliqueResposta() { if (this.jogoAtivo) this.verificarSilaba(); }
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#12062f">
+  <title>Jogo das Letras Mágico</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts - Poppins e Caveat (Cursiva) -->
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --w: min(100vw, 520px);
+      --bg1: #3b1a78;
+      --bg2: #12062f;
+      --c0: #ff5d8f;
+      --c1: #ffc933;
+      --c2: #35d6a0;
+      --c3: #3fbcff;
+      --c4: #a77bff;
+      --c5: #ff8a3d;
+      --ink: #2a0e55;
+      --fg: #fff;
+      --f-forma: 'Poppins', sans-serif;
+    }
+
+    body {
+      font-family: var(--f-forma);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      background: radial-gradient(120% 80% at 50% 0%, var(--bg1), var(--bg2));
+      color: var(--fg);
+      overflow: hidden;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    /* Efeito Peça Gelatina (Jelly) idêntico ao Alfabeto Mágico */
+    .jelly {
+      --c: var(--c0);
+      --edge: color-mix(in srgb, var(--c) 58%, #1b0a40);
+      position: relative;
+      background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%),
+                  radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--c) 55%, #fff) 0%, var(--c) 55%, color-mix(in srgb, var(--c) 86%, #000) 100%);
+      background-size: 250% 100%, 100% 100%;
+      background-position: 150% 0, 0 0;
+      background-repeat: no-repeat;
+      box-shadow: 0 6px 0 var(--edge), 0 14px 20px -4px color-mix(in srgb, var(--c) 60%, transparent), inset 0 2px 0 rgba(255,255,255,.6), inset 0 -8px 14px rgba(0,0,0,.08);
+      transition: transform .08s, box-shadow .08s;
+    }
+    .jelly::before {
+      content: '';
+      position: absolute;
+      left: 12%; right: 12%; top: 6%; height: 32%;
+      border-radius: 50%/100%;
+      pointer-events: none;
+      background: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,0));
+    }
+    .jelly:active {
+      transform: translateY(5px);
+      box-shadow: 0 1px 0 var(--edge), 0 4px 10px -2px color-mix(in srgb, var(--c) 60%, transparent), inset 0 2px 0 rgba(255,255,255,.6);
+    }
+
+    /* Animação de entrada estilo carta de baralho */
+    @keyframes dealCard {
+      0% {
+        transform: translateY(-250px) scale(0.2) rotate(-20deg);
+        opacity: 0;
+      }
+      70% {
+        transform: translateY(10px) scale(1.05) rotate(3deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+    }
+
+    .deal-animation {
+      animation: dealCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Animação especial de destaque para os displays ao acertar */
+    @keyframes displaySuccessPulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.12); filter: brightness(1.35); box-shadow: 0 0 25px rgba(255, 255, 255, 0.9); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+
+    .display-success-anim {
+      animation: displaySuccessPulse 0.4s ease-in-out;
+    }
+
+    /* Cartas do Tabuleiro */
+    .grid-card {
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 2.6rem;
+      transition: transform 0.08s ease, filter 0.08s ease, opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .grid-card.selected {
+      transform: scale(0.92);
+      filter: brightness(1.2);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    }
+    
+    .grid-card.disabled {
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    /* Estado oculto ao clicar (antes de verificar o par) */
+    .grid-card.hidden-temp {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Displays Centrais */
+    .display-card {
+      background: #334155;
+      color: #ffffff;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 3.2rem;
+      pointer-events: none;
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 6px 12px rgba(0,0,0,0.5);
+      transition: all 0.2s ease;
+    }
+
+    /* Layout do Tabuleiro Simétrico: 5 colunas x 10 linhas de grid */
+    .custom-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      gap: 6px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .special-left {
+      grid-column: 1 / span 1;
+      grid-row: 5 / span 2;
+    }
+
+    .special-right {
+      grid-column: 5 / span 1;
+      grid-row: 5 / span 2;
+    }
+
+    #app {
+      position: relative;
+      width: var(--w);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 560px) and (min-height: 700px) {
+      #app {
+        height: min(100dvh, 940px);
+        border-radius: 30px;
+        box-shadow: 0 30px 90px rgba(0,0,0,.6);
+      }
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center overflow-hidden">
+
+  <div id="app">
+    <!-- ================= TELA INICIAL MÁGICA ================= -->
+    <div id="start-screen" class="fixed inset-0 bg-[#12062f] flex flex-col items-center justify-center p-6 z-50 text-center gap-6">
+      <h1 class="text-4xl md:text-5xl font-black text-pink-400 drop-shadow-[0_5px_0_rgba(42,14,85,0.8)]">Jogo das Letras</h1>
+      
+      <button id="btn-start" class="jelly py-5 px-10 text-white font-black text-xl rounded-2xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 mx-auto" style="--c: #ff5d8f;">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 fill-current" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        Iniciar
+      </button>
+    </div>
+
+    <!-- ================= TELA DO JOGO ================= -->
+    <div id="game-screen" class="hidden fixed inset-0 bg-[#0c0321] flex flex-col p-2 gap-2 overflow-hidden">
+      
+      <!-- Barra Superior de Controle Estilizada -->
+      <header class="w-full flex items-center justify-between px-3 h-10 bg-slate-900/90 rounded-xl border border-slate-800 shrink-0 shadow-lg">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-semibold uppercase tracking-wider text-slate-400">Pares:</span>
+          <span id="score-counter" class="text-xs font-bold text-emerald-400">0 / 26</span>
+          <span class="text-slate-600">|</span>
+          <span class="text-slate-400">Toques: <strong id="display-clicks" class="text-slate-200">00</strong></span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Botão Embaralhar -->
+          <button id="btn-shuffle" title="Novo Tabuleiro" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg active:scale-95 transition shadow">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+
+          <!-- Botão Tela Cheia -->
+          <button id="btn-fullscreen" title="Alternar Tela Cheia" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg active:scale-95 transition shadow">
+            <svg id="icon-fs-open" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            <svg id="icon-fs-close" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Área Principal do Tabuleiro Simétrico 5x10 -->
+      <main id="letters-grid" class="custom-grid flex-1 my-1">
+        <!-- Botões gerados via JavaScript -->
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Tela de Parabéns Final com Fogo de Artifício -->
+  <div id="win-overlay" class="hidden fixed inset-0 bg-[#12062f]/95 flex flex-col items-center justify-center p-6 z-50 text-center gap-6">
+    <h2 class="text-5xl md:text-7xl font-black text-yellow-400 drop-shadow-[0_8px_0_rgba(42,14,85,0.9)] animate-bounce">PARABÉNS! 🎉</h2>
+    <button id="btn-restart-win" class="jelly py-5 px-12 text-white font-black text-2xl rounded-2xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 mx-auto" style="--c: #35d6a0;">
+      JOGAR DE NOVO
+    </button>
+  </div>
+
+  <!-- Canvas para efeitos de Partículas/Confetes/Fogos -->
+  <canvas id="fx" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- Script Lógico Completo -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const startScreen = document.getElementById('start-screen');
+      const gameScreen = document.getElementById('game-screen');
+      const winOverlay = document.getElementById('win-overlay');
+      const btnStart = document.getElementById('btn-start');
+      const btnRestartWin = document.getElementById('btn-restart-win');
+      const btnShuffle = document.getElementById('btn-shuffle');
+      const btnFullscreen = document.getElementById('btn-fullscreen');
+      const iconFsOpen = document.getElementById('icon-fs-open');
+      const iconFsClose = document.getElementById('icon-fs-close');
+      
+      const displayClicks = document.getElementById('display-clicks');
+      const scoreCounter = document.getElementById('score-counter');
+      const lettersGrid = document.getElementById('letters-grid');
+
+      const TOTAL_PAIRS = 26; // Alfabeto completo (A-Z)
+      const INITIAL_PAIRS_COUNT = 23; // Quantidade inicial que cabe no tabuleiro
+      const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+      const WORD_ASSOCIATIONS = {
+        A: 'Abelha', B: 'Bola', C: 'Casa', D: 'Dado', E: 'Estrela',
+        F: 'Foca', G: 'Gato', H: 'Helicóptero', I: 'Índio', J: 'Janela',
+        K: 'Kombi', L: 'Lua', M: 'Mala', N: 'Navio', O: 'Ovelha',
+        P: 'Pato', Q: 'Queijo', R: 'Rato', S: 'Sapo', T: 'Tatu',
+        U: 'Uva', V: 'Vaca', W: 'Waffle', X: 'Xícara', Y: 'Yakisoba', Z: 'Zebra'
+      };
+
+      const COLOR_PALETTES = [
+        { text: '#ffffff', bg: '#ef4444' }, // Vermelho
+        { text: '#ffffff', bg: '#3b82f6' }, // Azul
+        { text: '#ffffff', bg: '#10b981' }, // Verde
+        { text: '#ffffff', bg: '#a855f7' }, // Roxo
+        { text: '#ffffff', bg: '#f97316' }, // Laranja
+        { text: '#ffffff', bg: '#ec4899' }, // Rosa
+        { text: '#ffffff', bg: '#06b6d4' }, // Ciano
+        { text: '#ffffff', bg: '#84cc16' }, // Lima
+        { text: '#ffffff', bg: '#eab308' }, // Amarelo
+        { text: '#ffffff', bg: '#6366f1' }, // Índigo
+      ];
+
+      let boardCards = []; // Lista de objetos de cartas ativas no grid
+      let pendingPairs = []; // Pares suspensos (X, Y, Z...) aguardando o momento de entrar
+      let totalClicks = 0;
+      let matchedPairsCount = 0;
+      
+      let gameState = {
+        firstCard: null,
+        secondCard: null,
+        lockBoard: false
+      };
+
+      // --- ÁUDIO E SÍNTESE DE VOZ (TTS) ---
+      let audioCtx = null;
+      function initAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      function playPopSound() {
+        try {
+          initAudio();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.1);
+        } catch(e) {}
+      }
+
+      function playShuffleSound() {
+        try {
+          initAudio();
+          for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(200 + Math.random() * 400, audioCtx.currentTime);
+              gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+              osc.start();
+              osc.stop(audioCtx.currentTime + 0.08);
+            }, i * 60);
+          }
+        } catch(e) {}
+      }
+
+      function playTone(freq, type = 'sine', duration = 0.2) {
+        try {
+          initAudio();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {}
+      }
+
+      const synth = window.speechSynthesis;
+      let ptVoice = null;
+
+      function loadVoices() {
+        if (!synth) return;
+        const voices = synth.getVoices();
+        ptVoice = voices.find(v => v.lang === 'pt-BR') || voices.find(v => v.lang.startsWith('pt')) || null;
+      }
+
+      if (synth) {
+        loadVoices();
+        if (synth.onvoiceschanged !== undefined) {
+          synth.onvoiceschanged = loadVoices;
+        }
+      }
+
+      function speakText(text) {
+        if (!synth) return;
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.95;
+        utterance.pitch = 1.1;
+        if (ptVoice) {
+          utterance.voice = ptVoice;
+          utterance.lang = ptVoice.lang;
+        } else {
+          utterance.lang = 'pt-BR';
+        }
+        synth.speak(utterance);
+      }
+
+      // --- PARTÍCULAS / FOGOS DE ARTIFÍCIO / CONFETES ---
+      const canvas = document.getElementById('fx');
+      const ctx = canvas.getContext('2d');
+      let parts = [];
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      function triggerConfetti(x, y, color) {
+        for (let i = 0; i < 20; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2 + Math.random() * 5;
+          parts.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2,
+            gravity: 0.2,
+            alpha: 1,
+            color: color || '#ffc933',
+            size: 6 + Math.random() * 6
+          });
+        }
+        animateParticles();
+      }
+
+      function triggerFireworks() {
+        for (let burst = 0; burst < 5; burst++) {
+          setTimeout(() => {
+            const bx = window.innerWidth * (0.2 + Math.random() * 0.6);
+            const by = window.innerHeight * (0.2 + Math.random() * 0.5);
+            const bColor = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)].bg;
+            
+            for (let i = 0; i < 40; i++) {
+              const angle = Math.random() * Math.PI * 2;
+              const speed = 1 + Math.random() * 9;
+              parts.push({
+                x: bx, y: by,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                gravity: 0.1,
+                alpha: 1,
+                color: bColor,
+                size: 5 + Math.random() * 6
+              });
+            }
+            playTone(400 + Math.random() * 300, 'sawtooth', 0.25);
+            animateParticles();
+          }, burst * 400);
+        }
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        parts.forEach((p, index) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.gravity;
+          p.alpha -= 0.015;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          if (p.alpha <= 0) parts.splice(index, 1);
+        });
+        if (parts.length > 0) {
+          requestAnimationFrame(animateParticles);
+        }
+      }
+
+      // --- GERAÇÃO DO TABULEIRO COM ALFABETO EM ORDEM E PARES SUSPENSOS ---
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+
+      function setupGameData() {
+        const allPairs = [];
+        
+        // Cria os 26 pares ordenados do alfabeto, sorteando apenas as cores
+        for (let i = 0; i < TOTAL_PAIRS; i++) {
+          const letter = ALPHABET[i];
+          const colorScheme = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
+          const pairObj = {
+            letter: letter,
+            colorScheme: colorScheme,
+            pairId: `pair-${i}`
+          };
+          allPairs.push({ ...pairObj }, { ...pairObj }); // Cada par tem 2 cartas idênticas
+        }
+
+        // Separa os primeiros 23 pares (46 cartas) para o início
+        const initialPairsObjs = [];
+        for (let i = 0; i < INITIAL_PAIRS_COUNT; i++) {
+          initialPairsObjs.push(allPairs[i * 2], allPairs[i * 2 + 1]);
+        }
+        boardCards = shuffleArray(initialPairsObjs);
+
+        // Os pares restantes (X, Y, Z...) ficam suspensos para entrar durante o jogo
+        pendingPairs = [];
+        for (let i = INITIAL_PAIRS_COUNT; i < TOTAL_PAIRS; i++) {
+          pendingPairs.push({
+            letter: ALPHABET[i],
+            cards: [allPairs[i * 2], allPairs[i * 2 + 1]]
+          });
+        }
+      }
+
+      function initBoard() {
+        winOverlay.classList.add('hidden');
+        setupGameData();
+        totalClicks = 0;
+        matchedPairsCount = 0;
+        resetTurn();
+
+        updateDisplays();
+        renderBoardGrid();
+        playShuffleSound();
+      }
+
+      function renderBoardGrid() {
+        lettersGrid.innerHTML = '';
+        let dataIndex = 0;
+        let cardDelay = 0;
+
+        for (let r = 1; r <= 10; r++) {
+          if (r === 5) {
+            const disp1 = document.createElement('div');
+            disp1.id = 'display-1';
+            disp1.className = 'display-card special-left';
+            lettersGrid.appendChild(disp1);
+
+            for (let c = 2; c <= 4; c++) {
+              if (dataIndex < boardCards.length) {
+                lettersGrid.appendChild(createCardElement(boardCards[dataIndex++], cardDelay));
+                cardDelay += 15;
+              }
+            }
+
+            const disp2 = document.createElement('div');
+            disp2.id = 'display-2';
+            disp2.className = 'display-card special-right';
+            lettersGrid.appendChild(disp2);
+
+          } else if (r === 6) {
+            for (let c = 2; c <= 4; c++) {
+              if (dataIndex < boardCards.length) {
+                lettersGrid.appendChild(createCardElement(boardCards[dataIndex++], cardDelay));
+                cardDelay += 15;
+              }
+            }
+          } else {
+            for (let c = 1; c <= 5; c++) {
+              if (dataIndex < boardCards.length) {
+                lettersGrid.appendChild(createCardElement(boardCards[dataIndex++], cardDelay));
+                cardDelay += 15;
+              }
+            }
+          }
+        }
+      }
+
+      function createCardElement(item, delay = 0) {
+        const btn = document.createElement('button');
+        btn.className = 'grid-card jelly deal-animation';
+        if (delay > 0) btn.style.animationDelay = `${delay}ms`;
+        btn.textContent = item.letter;
+        btn.dataset.letter = item.letter;
+        btn.dataset.colorBg = item.colorScheme.bg;
+        btn.dataset.colorText = item.colorScheme.text;
+        btn.dataset.pairId = item.pairId;
+        
+        btn.style.setProperty('--c', item.colorScheme.bg);
+        btn.style.background = item.colorScheme.bg;
+        btn.style.color = item.colorScheme.text;
+
+        btn.addEventListener('click', (e) => handleCardClick(btn, e));
+        return btn;
+      }
+
+      function updateDisplays() {
+        displayClicks.textContent = String(totalClicks).padStart(2, '0');
+        scoreCounter.textContent = `${matchedPairsCount} / ${TOTAL_PAIRS}`;
+      }
+
+      function handleCardClick(btn, event) {
+        if (gameState.lockBoard || btn === gameState.firstCard || btn.classList.contains('disabled') || btn.classList.contains('hidden-temp')) {
+          return;
+        }
+
+        totalClicks++;
+        updateDisplays();
+        playPopSound();
+
+        speakText(btn.dataset.letter);
+        btn.classList.add('hidden-temp');
+
+        const rect = btn.getBoundingClientRect();
+        triggerConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, btn.dataset.colorBg);
+
+        const disp1 = document.getElementById('display-1');
+        const disp2 = document.getElementById('display-2');
+
+        if (!gameState.firstCard) {
+          gameState.firstCard = btn;
+          disp1.textContent = btn.dataset.letter;
+          disp1.style.setProperty('--c', btn.dataset.colorBg);
+          disp1.style.background = btn.dataset.colorBg;
+          disp1.style.color = btn.dataset.colorText;
+          disp1.className = 'display-card special-left jelly';
+        } else {
+          gameState.secondCard = btn;
+          disp2.textContent = btn.dataset.letter;
+          disp2.style.setProperty('--c', btn.dataset.colorBg);
+          disp2.style.background = btn.dataset.colorBg;
+          disp2.style.color = btn.dataset.colorText;
+          disp2.className = 'display-card special-right jelly';
+
+          checkMatch();
+        }
+      }
+
+      function checkMatch() {
+        const { firstCard, secondCard } = gameState;
+        const isMatch = firstCard.dataset.pairId === secondCard.dataset.pairId &&
+                        firstCard.dataset.letter === secondCard.dataset.letter &&
+                        firstCard.dataset.colorBg === secondCard.dataset.colorBg;
+
+        const disp1 = document.getElementById('display-1');
+        const disp2 = document.getElementById('display-2');
+
+        if (isMatch) {
+          matchedPairsCount++;
+          updateDisplays();
+          playTone(600, 'sine', 0.3);
+
+          const letterVal = firstCard.dataset.letter;
+          const word = WORD_ASSOCIATIONS[letterVal] || letterVal;
+
+          setTimeout(() => {
+            playPopSound();
+            disp1.classList.add('display-success-anim');
+            speakText(`${letterVal} de ${word}`);
+            const r1 = disp1.getBoundingClientRect();
+            triggerConfetti(r1.left + r1.width / 2, r1.top + r1.height / 2, firstCard.dataset.colorBg);
+            setTimeout(() => disp1.classList.remove('display-success-anim'), 400);
+          }, 150);
+
+          setTimeout(() => {
+            playPopSound();
+            disp2.classList.add('display-success-anim');
+            speakText(`${letterVal} de ${word}`);
+            const r2 = disp2.getBoundingClientRect();
+            triggerConfetti(r2.left + r2.width / 2, r2.top + r2.height / 2, secondCard.dataset.colorBg);
+            setTimeout(() => disp2.classList.remove('display-success-anim'), 400);
+          }, 950);
+
+          firstCard.classList.add('disabled');
+          secondCard.classList.add('disabled');
+          
+          // Remove do array ativo as cartas que acabaram de ser formadas
+          boardCards = boardCards.filter(card => card.pairId !== firstCard.dataset.pairId);
+
+          // Verifica se há cartas suspensas (pendingPairs) para inserir discretamente nos espaços que acabaram de esvaziar
+          if (pendingPairs.length > 0) {
+            const nextPairData = pendingPairs.shift(); // Pega o próximo par suspenso (ex: X, Y, Z...)
+            boardCards.push(nextPairData.cards[0], nextPairData.cards[1]);
+          }
+
+          firstCard.classList.remove('hidden-temp');
+          secondCard.classList.remove('hidden-temp');
+
+          setTimeout(() => {
+            disp1.textContent = '';
+            disp1.style.background = '#334155';
+            disp2.textContent = '';
+            disp2.style.background = '#334155';
+            
+            // Re-renderiza o tabuleiro atualizando as posições com as novas letras inseridas discretamente
+            renderBoardGrid();
+          }, 1700);
+
+          resetTurn();
+
+          // Verificar fim de jogo
+          if (matchedPairsCount === TOTAL_PAIRS) {
+            setTimeout(() => {
+              triggerFireworks();
+              winOverlay.classList.remove('hidden');
+            }, 1800);
+          }
+
+        } else {
+          gameState.lockBoard = true;
+          playTone(200, 'sawtooth', 0.3);
+          setTimeout(() => {
+            firstCard.classList.remove('hidden-temp');
+            secondCard.classList.remove('hidden-temp');
+
+            disp1.textContent = '';
+            disp1.style.background = '#334155';
+            disp2.textContent = '';
+            disp2.style.background = '#334155';
+
+            resetTurn();
+          }, 1000);
+        }
+      }
+
+      function resetTurn() {
+        gameState.firstCard = null;
+        gameState.secondCard = null;
+        gameState.lockBoard = false;
+      }
+
+      btnShuffle.addEventListener('click', initBoard);
+      btnRestartWin.addEventListener('click', initBoard);
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().then(() => {
+            iconFsOpen.classList.add('hidden');
+            iconFsClose.classList.remove('hidden');
+          }).catch(err => {});
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().then(() => {
+              iconFsOpen.classList.remove('hidden');
+              iconFsClose.classList.add('hidden');
+            });
+          }
+        }
+      }
+
+      btnFullscreen.addEventListener('click', toggleFullscreen);
+
+      btnStart.addEventListener('click', () => {
+        initAudio();
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('portrait').catch(() => {});
+        }
+
+        startScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+        initBoard();
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+          iconFsOpen.classList.add('hidden');
+          iconFsClose.classList.remove('hidden');
+        } else {
+          iconFsOpen.classList.remove('hidden');
+          iconFsClose.classList.add('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
