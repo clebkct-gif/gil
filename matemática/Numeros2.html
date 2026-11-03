@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Jogo dos Números Infantil</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <style>
+        /* Reset para Fullscreen Perfeito em Mobile */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh; /* Garante tamanho exato considerando barras dinamicas mobile */
+            max-width: 100vw;
+            max-height: 100dvh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #111827;
+        }
+
+        /* Bloqueio visual para orientacao Landscape */
+        @media screen and (orientation: landscape) and (pointer: coarse) and (max-height: 520px) {
+            #portrait-warning {
+                display: flex !important;
+            }
+        }
+
+        /* Estilos e Gradientes de Layout */
+        .top-bar-bg {
+            background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
+            border-bottom: 2px solid #4b5563;
+        }
+
+        .red-score {
+            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .green-score {
+            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        /* Fundo do Display e Feedbacks Persistentes */
+        #game-screen { position: relative; }
+        #fb-layer { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+        #game-screen.fb-correct #fb-layer { opacity: 1; background: linear-gradient(180deg, #22c55e 0%, #15803d 100%); }
+        #game-screen.fb-wrong #fb-layer { opacity: 1; background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%); }
+
+        .display-area {
+            position: relative;
+            z-index: 1;
+            color: #0f172a;
+            background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+            transition: color 0.15s ease;
+        }
+
+        .display-correct, .display-wrong {
+            background: transparent !important;
+            color: #ffffff !important;
+        }
+
+        .keypad-wrap { position: relative; z-index: 1; }
+        .fb-correct .keypad-wrap, .fb-wrong .keypad-wrap {
+            background: transparent !important;
+            border-top-color: transparent !important;
+        }
+
+        /* Layout: coluna centralizada no desktop, tela cheia no celular */
+        #shell {
+            position: relative; display: flex; flex-direction: column;
+            height: 100dvh; width: 100%; max-width: 480px; overflow: hidden; background: #111827;
+            padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+        }
+        @media (min-width: 481px) { #shell { box-shadow: 0 0 0 1px #374151; } }
+        #start-screen {
+            padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+        }
+        .ico { width: 1em; height: 1em; fill: currentColor; flex: none; }
+
+        /* Botões Prateados Reutilizáveis */
+        .key-btn {
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f6 40%, #d1d5db 100%);
+            border: 1px solid #9ca3af;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.05s ease;
+        }
+
+        .key-btn:active {
+            background: linear-gradient(180deg, #9ca3af 0%, #e5e7eb 100%);
+            transform: scale(0.98);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .custom-input {
+            background: #ffffff;
+            border: 2px solid #9ca3af;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+            text-align: center;
+            font-weight: 800;
+            color: #111827;
+            outline: none;
+        }
+
+        .custom-input:focus {
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="flex justify-center overflow-hidden select-none">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-phone" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7 1h10a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 3v13h10V4H7zm5 15a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm1 3v4h10V5H7zm1.5 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zM8.5 16a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5z"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M3 3h7v2.5H5.5V10H3V3zm11 0h7v7h-2.5V5.5H14V3zM3 14h2.5v4.5H10V21H3v-7zm15.5 0H21v7h-7v-2.5h4.5V14z"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M5 3l14 7.5-6 1.8L16 19l-2.5 1.2-3-6.5L7 17.5 5 3z"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.3 7.3 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></symbol>
+</svg>
+<div id="shell">
+
+    <!-- AVISO DE ORIENTAÇÃO PORTRAIT -->
+    <div id="portrait-warning" class="hidden fixed inset-0 z-50 bg-gray-950 text-white flex-col items-center justify-center p-6 text-center">
+        <svg class="ico text-7xl text-yellow-400 mb-4 animate-bounce"><use href="#i-phone"/></svg>
+        <h2 class="text-3xl font-black mb-2">Gire o dispositivo</h2>
+        <p class="text-lg text-gray-300">Este jogo foi desenhado exclusivamente para o modo vertical (Retrato).</p>
+    </div>
+
+    <!-- TELA 1: APRESENTAÇÃO / TELA CHEIA (100dvh x 100vw) -->
+    <div id="start-screen" class="absolute inset-0 z-40 flex flex-col items-center justify-between bg-gradient-to-b from-indigo-950 via-purple-900 to-slate-900 text-white p-6">
+        <div class="flex-1 flex flex-col items-center justify-center text-center">
+            <div class="w-28 h-28 md:w-36 md:h-36 bg-yellow-400 rounded-3xl flex items-center justify-center mb-6 shadow-2xl rotate-3">
+                <svg class="ico text-6xl text-indigo-950"><use href="#i-calc"/></svg>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black mb-3 tracking-tight drop-shadow-lg">Jogo dos Números</h1>
+            <p class="text-lg md:text-2xl text-indigo-200 font-semibold max-w-xs">Ouça o número e digite no teclado!</p>
+        </div>
+
+        <button id="btn-start" class="w-full max-w-xs bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-slate-950 font-black text-2xl py-5 px-8 rounded-2xl shadow-2xl transition-all border-4 border-yellow-200 flex items-center justify-center gap-3 mb-6 cursor-pointer">
+            <svg class="ico text-3xl"><use href="#i-expand"/></svg> ENTRAR NO JOGO
+        </button>
+    </div>
+
+    <!-- ESTRUTURA PRINCIPAL (100dvh x 100vw) -->
+    <div id="app-container" class="hidden flex-1 min-h-0 flex flex-col w-full relative overflow-hidden bg-gray-900">
+
+        <!-- TOP BAR (Placar Vermelho, Status, Placar Verde) -->
+        <div class="top-bar-bg h-[8dvh] min-h-[50px] w-full flex items-center justify-between px-0 shrink-0 z-10">
+            <!-- Placar de Erros -->
+            <div id="score-wrong" class="red-score h-full w-[22vw] min-w-[65px] flex items-center justify-center text-white font-black text-2xl md:text-3xl shadow-inner border-r border-red-800">
+                0
+            </div>
+
+            <!-- Status de Intervalo -->
+            <div id="center-status" class="text-white font-black text-lg md:text-2xl tracking-wide px-2 text-center truncate">
+                1 à 10
+            </div>
+
+            <!-- Placar de Acertos -->
+            <div id="score-right" class="green-score h-full w-[22vw] min-w-[65px] flex items-center justify-center text-white font-black text-2xl md:text-3xl shadow-inner border-l border-green-800">
+                0
+            </div>
+        </div>
+
+        <!-- TELA 2: CONFIGURAÇÃO DE INTERVALOS (Ocupa 92dvh restante) -->
+        <div id="config-screen" class="flex-1 min-h-0 flex flex-col w-full bg-gray-300">
+            <!-- Grid de Atalhos de Intervalos (Sempre expande em 100% da area) -->
+            <div class="flex-1 grid grid-cols-2 grid-rows-4 gap-1.5 p-1.5 w-full h-full">
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="1" data-max="10">1 à 10</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="1000" data-max="10000">1 Mil à 10 Mil</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="1" data-max="50">1 à 50</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="10000" data-max="1000000">10 Mil à 1 Milhão</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="1" data-max="100">1 à 100</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="1000000" data-max="2000000">1 Milhão à 2 Milhões</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="100" data-max="1000">100 à Mil</button>
+                <button class="key-btn option-btn text-lg md:text-2xl font-black text-slate-900 rounded-xl flex items-center justify-center p-2" data-min="2000000" data-max="2000000000">2 Milhões à 2 Bilhões</button>
+            </div>
+
+            <!-- Rodapé de Configuração Personalizada (Inputs de Início e Fim) -->
+            <div class="h-[12dvh] min-h-[65px] w-full grid grid-cols-3 gap-1.5 p-1.5 bg-gray-400 border-t-2 border-gray-500 shrink-0">
+                <div class="flex flex-col justify-center items-center h-full">
+                    <input type="number" inputmode="numeric" id="input-inicio" class="custom-input w-full h-full rounded-xl text-lg md:text-2xl" placeholder="Início" min="0" value="1">
+                </div>
+
+                <button id="btn-config-ok" class="key-btn text-slate-950 font-black text-2xl md:text-3xl rounded-xl flex items-center justify-center">
+                    OK
+                </button>
+
+                <div class="flex flex-col justify-center items-center h-full">
+                    <input type="number" inputmode="numeric" id="input-fim" class="custom-input w-full h-full rounded-xl text-lg md:text-2xl" placeholder="Fim" min="1" value="100">
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA 3: TELA DO JOGO (PORTRAIT 100% PREENCHIDO) -->
+        <div id="game-screen" class="hidden flex-1 min-h-0 flex flex-col w-full bg-gray-200">
+            <div id="fb-layer"></div>
+            
+            <!-- DISPLAY GIGANTE DO NÚMERO DIGITADO (Maior área útil vertical) -->
+            <div id="display-area" class="display-area flex-1 w-full flex flex-col items-center justify-center relative p-3 overflow-hidden cursor-pointer">
+                
+                <!-- Dica para Proximo Exercício -->
+                <div id="next-exercise-hint" class="hidden absolute top-4 bg-white/95 text-slate-900 font-black text-sm md:text-base px-5 py-2 rounded-full animate-bounce z-20 shadow-xl border border-gray-300">
+                    <svg class="ico text-indigo-600 mr-1 inline-block align-[-0.125em]"><use href="#i-hand"/></svg> Toque aqui para continuar
+                </div>
+
+                <!-- Conteúdo do Número Digitado -->
+                <div class="w-full h-full flex items-center justify-center">
+                    <span id="player-input" class="font-black tracking-tight leading-none text-center select-none" style="color:inherit">
+                    </span>
+                </div>
+            </div>
+
+            <!-- TECLADO NUMÉRICO FIXO NA PARTE INFERIOR (38dvh) -->
+            <div class="keypad-wrap h-[38dvh] min-h-[220px] w-full bg-gray-300 p-2 flex flex-col gap-2 border-t-2 border-gray-400 shrink-0">
+                <!-- Grid 3x3 das Teclas 1 a 9 -->
+                <div class="flex-1 grid grid-cols-3 gap-2">
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="1">1</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="2">2</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="3">3</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="4">4</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="5">5</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="6">6</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="7">7</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="8">8</button>
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="9">9</button>
+                </div>
+                
+                <!-- Linha Inferior: Botão FALAR, Tecla 0 e Atalho de Configurações -->
+                <div class="h-[26%] grid grid-cols-3 gap-2">
+                    <!-- BOTÃO FALAR / OUVIR -->
+                    <button id="btn-speak" class="key-btn text-indigo-700 font-extrabold text-2xl md:text-3xl rounded-xl flex items-center justify-center">
+                        <svg class="ico"><use href="#i-speaker"/></svg>
+                    </button>
+
+                    <!-- TECLA 0 -->
+                    <button class="key-btn key-num text-3xl md:text-5xl font-black text-slate-950 rounded-xl flex items-center justify-center" data-val="0">0</button>
+                    
+                    <!-- BOTÃO VOLTAR A CONFIGURAÇÃO -->
+                    <button id="btn-config-shortcut" class="key-btn text-gray-700 font-extrabold text-2xl md:text-3xl rounded-xl flex items-center justify-center">
+                        <svg class="ico"><use href="#i-gear"/></svg>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    </div>
+    <script>
+        // --- Sintetizador Web Audio API ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            try {
+                if (!audioCtx && AudioCtx) audioCtx = new AudioCtx();
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            } catch (e) { audioCtx = null; }
+            return audioCtx;
+        }
+
+        function playKeySound() {
+            if (!initAudio()) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(550, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.06);
+
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.06);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.06);
+        }
+
+        function playSuccessSound() {
+            if (!initAudio()) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
+            osc.frequency.setValueAtTime(783.99, now + 0.2);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.4);
+        }
+
+        function playErrorSound() {
+            if (!initAudio()) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.linearRampToValueAtTime(90, now + 0.3);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        // --- Algoritmo de Conversão de Números para Extenso (PT-BR) ---
+        const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+        const especiais = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+        const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+        const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+        function converteTripla(n) {
+            if (n === 0) return "";
+            if (n === 100) return "cem";
+
+            let str = "";
+            const c = Math.floor(n / 100);
+            const resto = n % 100;
+            const d = Math.floor(resto / 10);
+            const u = resto % 10;
+
+            if (c > 0) str += centenas[c];
+
+            if (resto > 0) {
+                if (str.length > 0) str += " e ";
+                if (resto < 10) {
+                    str += unidades[resto];
+                } else if (resto >= 10 && resto < 20) {
+                    str += especiais[resto - 10];
+                } else {
+                    str += dezenas[d];
+                    if (u > 0) str += " e " + unidades[u];
+                }
+            }
+            return str;
+        }
+
+        function numeroParaExtenso(num) {
+            if (num === 0) return "zero";
+
+            const grupos = [
+                { v: Math.floor(num / 1e9), um: "um bilhão", pl: "bilhões" },
+                { v: Math.floor((num % 1e9) / 1e6), um: "um milhão", pl: "milhões" },
+                { v: Math.floor((num % 1e6) / 1e3), um: "mil", pl: "mil" },
+                { v: num % 1000 }
+            ].filter(g => g.v > 0);
+
+            const partes = grupos.map(g => {
+                if (!g.pl) return converteTripla(g.v);
+                return g.v === 1 ? g.um : converteTripla(g.v) + " " + g.pl;
+            });
+
+            let resultado = partes[0];
+            for (let i = 1; i < partes.length; i++) {
+                const v = grupos[i].v;
+                const ultimo = i === partes.length - 1;
+                resultado += (ultimo && (v < 100 || v % 100 === 0) ? " e " : " ") + partes[i];
+            }
+            return resultado;
+        }
+
+        // --- Web Speech API (Voz em Português) ---
+        let vozPT = null;
+        function escolherVoz() {
+            if (!('speechSynthesis' in window)) return;
+            const v = window.speechSynthesis.getVoices();
+            vozPT = v.find(x => /^pt[-_]BR$/i.test(x.lang)) || v.find(x => /^pt/i.test(x.lang)) || null;
+        }
+        if ('speechSynthesis' in window) {
+            escolherVoz();
+            window.speechSynthesis.addEventListener && window.speechSynthesis.addEventListener('voiceschanged', escolherVoz);
+        }
+        let falaTimer = 0;
+        function falarNumero(num) {
+            if (!('speechSynthesis' in window)) return;
+            clearTimeout(falaTimer);
+            try {
+                window.speechSynthesis.cancel();
+                falaTimer = setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance(numeroParaExtenso(num));
+                    utterance.lang = 'pt-BR';
+                    utterance.rate = 0.85;
+                    utterance.pitch = 1.0;
+                    if (vozPT) utterance.voice = vozPT;
+                    window.speechSynthesis.speak(utterance);
+                }, 60);
+            } catch (e) {}
+        }
+
+        // --- Estado Global ---
+        let selectedMin = 1;
+        let selectedMax = 10;
+        let currentTargetNumber = 0;
+        let currentTyped = "";
+        let scoreCorrect = 0;
+        let scoreWrong = 0;
+        let awaitingNextExercise = false;
+
+        // --- Elementos do DOM ---
+        const startScreen = document.getElementById('start-screen');
+        const appContainer = document.getElementById('app-container');
+        const configScreen = document.getElementById('config-screen');
+        const gameScreen = document.getElementById('game-screen');
+        
+        const btnStart = document.getElementById('btn-start');
+        const optionBtns = document.querySelectorAll('.option-btn');
+        const inputInicio = document.getElementById('input-inicio');
+        const inputFim = document.getElementById('input-fim');
+        const btnConfigOk = document.getElementById('btn-config-ok');
+
+        const scoreWrongEl = document.getElementById('score-wrong');
+        const scoreRightEl = document.getElementById('score-right');
+        const centerStatusEl = document.getElementById('center-status');
+        const playerInputEl = document.getElementById('player-input');
+        const displayArea = document.getElementById('display-area');
+        const btnSpeak = document.getElementById('btn-speak');
+        const nextExerciseHint = document.getElementById('next-exercise-hint');
+        const btnConfigShortcut = document.getElementById('btn-config-shortcut');
+        const keyNumButtons = document.querySelectorAll('.key-num');
+
+        // --- Fullscreen & Inicialização ---
+        btnStart.addEventListener('click', async () => {
+            initAudio();
+
+            try {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    await elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    await elem.webkitRequestFullscreen();
+                }
+            } catch (err) {
+                console.log("Fullscreen indisponível ou bloqueado", err);
+            }
+
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('portrait');
+                }
+            } catch (err) {
+                console.log("Bloqueio de orientação indisponível", err);
+            }
+
+            startScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            showConfigScreen();
+        });
+
+        // --- Atalhos de Configuração Rápidos ---
+        optionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                playKeySound();
+                selectedMin = parseInt(btn.getAttribute('data-min'));
+                selectedMax = parseInt(btn.getAttribute('data-max'));
+                
+                inputInicio.value = selectedMin;
+                inputFim.value = selectedMax;
+
+                showGameScreen();
+            });
+        });
+
+        // --- Ação do Botão OK ---
+        btnConfigOk.addEventListener('click', () => {
+            playKeySound();
+            let valInicio = parseInt(inputInicio.value);
+            let valFim = parseInt(inputFim.value);
+
+            if (isNaN(valInicio)) valInicio = 0;
+            valInicio = Math.min(Math.max(0, valInicio), 1999999990);
+            if (isNaN(valFim) || valFim <= valInicio) valFim = valInicio + 10;
+
+            selectedMin = valInicio;
+            selectedMax = Math.min(2000000000, valFim);
+            inputInicio.value = selectedMin;
+            inputFim.value = selectedMax;
+
+            showGameScreen();
+        });
+
+        function showConfigScreen() {
+            if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+            clearTimeout(falaTimer);
+            gameScreen.classList.add('hidden');
+            configScreen.classList.remove('hidden');
+            centerStatusEl.textContent = `${formatNumberShort(selectedMin)} à ${formatNumberShort(selectedMax)}`;
+        }
+
+        function showGameScreen() {
+            configScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            centerStatusEl.textContent = `${formatNumberShort(selectedMin)} à ${formatNumberShort(selectedMax)}`;
+            scoreCorrect = 0;
+            scoreWrong = 0;
+            scoreRightEl.textContent = scoreCorrect;
+            scoreWrongEl.textContent = scoreWrong;
+            
+            startNewExercise();
+        }
+
+        function formatNumberShort(num) {
+            const f = (x, suf) => String(+x.toFixed(2)).replace('.', ',') + ' ' + suf;
+            if (num >= 1e9 && num % 1e8 === 0) return f(num / 1e9, 'bi');
+            if (num >= 1e6 && num % 1e5 === 0) return f(num / 1e6, 'mi');
+            if (num >= 1e3 && num % 100 === 0) return f(num / 1e3, 'mil');
+            return num.toLocaleString('pt-BR');
+        }
+
+        btnConfigShortcut.addEventListener('click', () => {
+            playKeySound();
+            showConfigScreen();
+        });
+
+        // --- Ajuste de Fonte Dinâmico do Display ---
+        function updateDisplayFontSize() {
+            const container = displayArea;
+            const textLength = currentTyped.length || 1;
+            
+            const containerWidth = container.clientWidth - 24;
+            const containerHeight = container.clientHeight - 24;
+
+            let fontSize = Math.min(containerHeight * 0.7, containerWidth / (textLength * 0.6));
+            fontSize = Math.max(32, Math.min(fontSize, 220));
+
+            playerInputEl.style.fontSize = `${fontSize}px`;
+        }
+
+        // --- Regras do Jogo ---
+        function startNewExercise() {
+            awaitingNextExercise = false;
+            currentTyped = "";
+            playerInputEl.textContent = "";
+            nextExerciseHint.classList.add('hidden');
+            
+            // Fundo padrão do display
+            displayArea.classList.remove('display-correct', 'display-wrong');
+            gameScreen.classList.remove('fb-correct', 'fb-wrong');
+
+            // Sorteio
+            const range = selectedMax - selectedMin + 1;
+            const anterior = currentTargetNumber;
+            let tentativas = 0;
+            do {
+                currentTargetNumber = Math.floor(Math.random() * range) + selectedMin;
+            } while (range > 1 && currentTargetNumber === anterior && ++tentativas < 20);
+
+            // Fala o número sorteado em PT-BR
+            falarNumero(currentTargetNumber);
+        }
+
+        function handleKeyPress(num) {
+            if (awaitingNextExercise) return;
+
+            playKeySound();
+
+            const targetStr = currentTargetNumber.toString();
+            
+            if (currentTyped.length < targetStr.length) {
+                currentTyped += num;
+                playerInputEl.textContent = currentTyped;
+                updateDisplayFontSize();
+
+                // Correção automática ao preencher a quantidade de dígitos
+                if (currentTyped.length === targetStr.length) {
+                    awaitingNextExercise = true;
+                    
+                    if (currentTyped === targetStr) {
+                        playSuccessSound();
+                        scoreCorrect++;
+                        scoreRightEl.textContent = scoreCorrect;
+                        displayArea.classList.add('display-correct');
+                        gameScreen.classList.add('fb-correct');
+                    } else {
+                        playErrorSound();
+                        scoreWrong++;
+                        scoreWrongEl.textContent = scoreWrong;
+                        displayArea.classList.add('display-wrong');
+                        gameScreen.classList.add('fb-wrong');
+                    }
+
+                    nextExerciseHint.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Botão Ouvir / Falar
+        btnSpeak.addEventListener('click', () => {
+            playKeySound();
+            falarNumero(currentTargetNumber);
+        });
+
+        // LIMPEZA E AVANÇO: Somente ao tocar no display
+        displayArea.addEventListener('click', () => {
+            if (awaitingNextExercise) {
+                playKeySound();
+                startNewExercise();
+            } else {
+                falarNumero(currentTargetNumber);
+            }
+        });
+
+        // Teclas do Teclado Numérico da Interface
+        keyNumButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const val = btn.getAttribute('data-val');
+                handleKeyPress(val);
+            });
+        });
+
+        // Suporte a Teclado Físico
+        window.addEventListener('keydown', (e) => {
+            if (!gameScreen.classList.contains('hidden')) {
+                if (e.key >= '0' && e.key <= '9') {
+                    handleKeyPress(e.key);
+                } else if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    if (awaitingNextExercise) {
+                        startNewExercise();
+                    } else {
+                        falarNumero(currentTargetNumber);
+                    }
+                }
+            }
+        });
+
+        // Tira o foco dos botões após o toque (evita Espaço/Enter reativar a tecla)
+        document.addEventListener('click', (e) => {
+            const b = e.target.closest && e.target.closest('button');
+            if (b) b.blur();
+        });
+
+        // Reajuste de tamanho ao redimensionar viewport
+        window.addEventListener('resize', () => {
+            if (!gameScreen.classList.contains('hidden')) {
+                updateDisplayFontSize();
+            }
+        });
+    </script>
+</body>
+</html>

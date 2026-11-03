@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz de Números Romanos</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Cinzel Decorative for Roman feeling & Montserrat for clean text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Montserrat:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #0f1221;
+      color: #ffffff;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .font-roman {
+      font-family: 'Cinzel Decorative', serif;
+    }
+
+    /* Screen Pulsing Neon Glow Effects */
+    @keyframes pulse-green-glow {
+      0% { box-shadow: inset 0 0 100px 30px rgba(34, 197, 94, 0.9), 0 0 80px rgba(34, 197, 94, 0.9); }
+      50% { box-shadow: inset 0 0 180px 80px rgba(34, 197, 94, 1), 0 0 150px rgba(34, 197, 94, 1); }
+      100% { box-shadow: inset 0 0 100px 30px rgba(34, 197, 94, 0.9), 0 0 80px rgba(34, 197, 94, 0.9); }
+    }
+
+    @keyframes pulse-red-glow {
+      0% { box-shadow: inset 0 0 100px 30px rgba(239, 68, 68, 0.9), 0 0 80px rgba(239, 68, 68, 0.9); }
+      50% { box-shadow: inset 0 0 180px 80px rgba(239, 68, 68, 1), 0 0 150px rgba(239, 68, 68, 1); }
+      100% { box-shadow: inset 0 0 100px 30px rgba(239, 68, 68, 0.9), 0 0 80px rgba(239, 68, 68, 0.9); }
+    }
+
+    .glow-overlay-success {
+      animation: pulse-green-glow 0.6s ease-in-out infinite alternate;
+      border: 6px solid #22c55e;
+    }
+
+    .glow-overlay-error {
+      animation: pulse-red-glow 0.5s ease-in-out infinite alternate;
+      border: 6px solid #ef4444;
+    }
+
+    /* Shake Animation for Wrong Choice */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-12px); }
+      40%, 80% { transform: translateX(12px); }
+    }
+
+    .animate-shake {
+      animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* Button Styling & Glows */
+    .roman-card {
+      background: linear-gradient(145deg, #181c35, #121528);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .roman-card:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    }
+
+    .roman-card:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    /* Floating Glass Effect Controls - Sem cor de fundo */
+    .floating-btn {
+      background: transparent;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .floating-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Pulse for Display Audio Button */
+    @keyframes speaker-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .speaking-active {
+      animation: speaker-pulse 0.8s infinite;
+      color: #38bdf8 !important;
+    }
+
+    /* Custom scrollbar for options menu */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f1221;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #262c52;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen relative flex flex-col justify-between items-center select-none bg-[#0f1221]">
+
+  <!-- Overlay de Efeito Neon de Brilho da Tela -->
+  <div id="screenGlow" class="pointer-events-none absolute inset-0 z-40 transition-all duration-300 opacity-0"></div>
+
+  <!-- TELA INICIAL (START SCREEN) -->
+  <div id="startScreen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0f1221] bg-opacity-95 p-6 text-center">
+    <div class="mb-8 text-center">
+      <div class="text-6xl mb-3 text-amber-400 font-roman tracking-wider animate-bounce">🏛️</div>
+      <h1 class="text-4xl md:text-6xl font-black font-roman tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-purple-300 to-cyan-300 drop-shadow-lg">
+        QUIZ ROMANO
+      </h1>
+      <p class="text-slate-400 mt-2 text-sm md:text-base font-medium">Aprenda e desafie seus conhecimentos sobre algarismos romanos</p>
+    </div>
+
+    <!-- Botão Principal de Iniciar -->
+    <button id="btnStart" onclick="startGame()" class="group relative px-10 py-6 rounded-2xl bg-gradient-to-br from-amber-500 via-purple-600 to-indigo-700 p-1 shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95">
+      <div class="flex items-center space-x-4 bg-[#141729] px-8 py-5 rounded-xl border border-amber-400/40 group-hover:border-amber-300">
+        <span class="text-3xl font-roman text-amber-400">SPQR</span>
+        <span class="text-2xl font-bold text-white tracking-widest">INICIAR JOGO</span>
+        <i class="fa-solid fa-play text-xl text-amber-400 transition-transform group-hover:translate-x-1"></i>
+      </div>
+    </button>
+    <p class="text-xs text-slate-500 mt-6">Recomendado jogar em modo paisagem (Landscape)</p>
+  </div>
+
+  <!-- INTERFACE DO JOGO (GAME UI) - ESPAÇAMENTO EXPANDIDO ATÉ AS BORDAS DA TELA -->
+  <div id="gameUI" class="w-full h-full flex flex-col justify-between p-1 md:p-2 gap-1.5 relative z-10 hidden">
+
+    <!-- 1. PARTE SUPERIOR INTEGRADA (DISPLAY OCUPANDO TUDO COM BOTÕES SOBREPOSTOS NO TOPO SUPREMO) -->
+    <div class="relative w-full flex-1 min-h-0">
+      
+      <!-- BOTÃO DISPLAY (OCUPA TODA A PARTE SUPERIOR, BORDAS ENCOSTARAM NOS LIMITES DA TELA) -->
+      <button id="displayBtn" onclick="onDisplayClick()" class="w-full h-full rounded-xl md:rounded-2xl roman-card border-2 flex flex-col items-center justify-center relative group transition-all duration-300">
+        <!-- Ícone de Som (Visível no Modo TTS) -->
+        <div id="ttsIconContainer" class="hidden absolute top-2 right-12 bg-cyan-500/20 p-2 rounded-full border border-cyan-400/40">
+          <i id="ttsSpeakerIcon" class="fa-solid fa-volume-high text-cyan-400 text-lg"></i>
+        </div>
+
+        <span id="displayText" class="text-6xl md:text-8xl font-black font-roman tracking-wider text-center drop-shadow-md">
+          --
+        </span>
+      </button>
+
+      <!-- MENU SUPERIOR SOBREPOSTO (FIXADO NO TOPO ABSOLUTO COM PADDING MÍNIMO) -->
+      <div class="absolute top-1 left-2 right-2 flex justify-between items-center z-30 pointer-events-none">
+        
+        <!-- Lado Esquerdo: Seletor de Modo Discreto -->
+        <div class="relative pointer-events-auto">
+          <button id="btnModeSelect" onclick="toggleModeMenu()" class="floating-btn p-2 rounded-lg flex items-center justify-center text-slate-200" title="Alternar Modo">
+            <i class="fa-solid fa-sliders text-amber-400 text-lg"></i>
+          </button>
+
+          <!-- Dropdown do Modo -->
+          <div id="modeMenu" class="hidden absolute top-10 left-0 w-60 rounded-xl p-2 shadow-2xl border border-slate-700 bg-[#141729] z-50">
+            <button onclick="selectMode(1)" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 transition flex flex-col">
+              <span class="text-xs font-bold text-amber-400">Modo 1: Tabela Fixa</span>
+              <span class="text-[10px] text-slate-400">Símbolos e regras da imagem</span>
+            </button>
+            <div class="my-1 border-t border-slate-700/50"></div>
+            <button onclick="selectMode(2)" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 transition flex flex-col">
+              <span class="text-xs font-bold text-cyan-400">Modo 2: Números Livres</span>
+              <span class="text-[10px] text-slate-400">Números aleatórios (1 a 3999)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Placar Reduzido e Discreto no Centro (Posicionado bem no topo) -->
+        <div class="pointer-events-auto flex items-center space-x-3 px-2 py-1">
+          <div class="flex items-center space-x-1.5">
+            <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+            <span id="scoreText" class="text-xs font-bold text-white">0</span>
+          </div>
+          <div class="h-3 w-[1px] bg-slate-700/50"></div>
+          <div class="flex items-center space-x-1.5">
+            <i class="fa-solid fa-fire text-orange-500 text-xs"></i>
+            <span id="streakText" class="text-xs font-bold text-orange-400">0</span>
+          </div>
+        </div>
+
+        <!-- Lado Direito: Fullscreen Discreto -->
+        <button onclick="toggleFullscreen()" class="pointer-events-auto floating-btn p-2 rounded-lg flex items-center justify-center text-slate-300 hover:text-white" title="Alternar Tela Cheia">
+          <i id="fullscreenIcon" class="fa-solid fa-expand text-lg text-slate-300"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- 2. CONJUNTO DE 4 BOTÕES DE RESPOSTAS (EXPANDIDOS NAS BORDAS INFERIORES E COM ESPAÇAMENTO MÍNIMO) -->
+    <div class="w-full grid grid-cols-2 gap-1.5 md:gap-2 h-2/5 min-h-[150px]">
+      <button id="opt0" onclick="checkAnswer(0)" class="option-btn roman-card border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-4xl font-bold font-roman text-white transition-all">
+        -
+      </button>
+      <button id="opt1" onclick="checkAnswer(1)" class="option-btn roman-card border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-4xl font-bold font-roman text-white transition-all">
+        -
+      </button>
+      <button id="opt2" onclick="checkAnswer(2)" class="option-btn roman-card border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-4xl font-bold font-roman text-white transition-all">
+        -
+      </button>
+      <button id="opt3" onclick="checkAnswer(3)" class="option-btn roman-card border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-4xl font-bold font-roman text-white transition-all">
+        -
+      </button>
+    </div>
+
+  </div>
+
+  <!-- SCRIPT LÓGICO DO APP -->
+  <script>
+    /* ===================================================================
+       1. DADOS DE ACORDO COM A IMAGEM E TABELAS
+       =================================================================== */
+    const COLOR_PALETTE = {
+      cyan: { border: 'border-[#21c5a1]', text: 'text-[#21c5a1]', bg: 'hover:bg-[#21c5a1]/10' },
+      green: { border: 'border-[#34d399]', text: 'text-[#34d399]', bg: 'hover:bg-[#34d399]/10' },
+      purple: { border: 'border-[#c084fc]', text: 'text-[#c084fc]', bg: 'hover:bg-[#c084fc]/10' },
+      pink: { border: 'border-[#f472b6]', text: 'text-[#f472b6]', bg: 'hover:bg-[#f472b6]/10' },
+      yellow: { border: 'border-[#fbbf24]', text: 'text-[#fbbf24]', bg: 'hover:bg-[#fbbf24]/10' },
+      orange: { border: 'border-[#fb923c]', text: 'text-[#fb923c]', bg: 'hover:bg-[#fb923c]/10' },
+      blue: { border: 'border-[#38bdf8]', text: 'text-[#38bdf8]', bg: 'hover:bg-[#38bdf8]/10' }
+    };
+
+    const FIXED_IMAGE_ITEMS = [
+      { roman: "I", value: 1, color: COLOR_PALETTE.cyan },
+      { roman: "V", value: 5, color: COLOR_PALETTE.green },
+      { roman: "X", value: 10, color: COLOR_PALETTE.purple },
+      { roman: "L", value: 50, color: COLOR_PALETTE.pink },
+      { roman: "C", value: 100, color: COLOR_PALETTE.yellow },
+      { roman: "D", value: 500, color: COLOR_PALETTE.orange },
+      { roman: "M", value: 1000, color: COLOR_PALETTE.blue },
+
+      { roman: "IV", value: 4, color: COLOR_PALETTE.blue },
+      { roman: "IX", value: 9, color: COLOR_PALETTE.cyan },
+      { roman: "XL", value: 40, color: COLOR_PALETTE.purple },
+      { roman: "XC", value: 90, color: COLOR_PALETTE.pink },
+      { roman: "CD", value: 400, color: COLOR_PALETTE.yellow },
+      { roman: "CM", value: 900, color: COLOR_PALETTE.orange },
+      { roman: "XX", value: 20, color: COLOR_PALETTE.blue },
+      { roman: "XXX", value: 30, color: COLOR_PALETTE.green },
+      { roman: "CC", value: 200, color: COLOR_PALETTE.purple },
+      { roman: "CCC", value: 300, color: COLOR_PALETTE.pink },
+      { roman: "MM", value: 2000, color: COLOR_PALETTE.yellow },
+      { roman: "MMM", value: 3000, color: COLOR_PALETTE.orange },
+
+      { roman: "V̄", value: 5000, color: COLOR_PALETTE.blue },
+      { roman: "X̄", value: 10000, color: COLOR_PALETTE.cyan },
+      { roman: "L̄", value: 50000, color: COLOR_PALETTE.purple },
+      { roman: "C̄", value: 100000, color: COLOR_PALETTE.pink },
+      { roman: "D̄", value: 500000, color: COLOR_PALETTE.yellow },
+      { roman: "M̄", value: 1000000, color: COLOR_PALETTE.orange }
+    ];
+
+    /* ===================================================================
+       2. CONVERSOR DE NÚMEROS ROMANOS (MODO 2 - LIVRE 1 A 3999)
+       =================================================================== */
+    function decimalToRoman(num) {
+      if (num < 1 || num > 3999) return "";
+      const lookup = [
+        { r: 'M', v: 1000 }, { r: 'CM', v: 900 },
+        { r: 'D', v: 500 },  { r: 'CD', v: 400 },
+        { r: 'C', v: 100 },  { r: 'XC', v: 90 },
+        { r: 'L', v: 50 },   { r: 'XL', v: 40 },
+        { r: 'X', v: 10 },   { r: 'IX', v: 9 },
+        { r: 'V', v: 5 },    { r: 'IV', v: 4 },
+        { r: 'I', v: 1 }
+      ];
+      let roman = '';
+      for (let i of lookup) {
+        while (num >= i.v) {
+          roman += i.r;
+          num -= i.v;
+        }
+      }
+      return roman;
+    }
+
+    /* ===================================================================
+       3. SINTETIZADOR DE ÁUDIO (WEB AUDIO API)
+       =================================================================== */
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSoundEffect(type) {
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+
+        if (type === 'correct') {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+            gain.gain.setValueAtTime(0, now + idx * 0.08);
+            gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.3);
+          });
+        } else if (type === 'wrong') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (type === 'click') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+      } catch (e) {
+        console.warn('Audio API error:', e);
+      }
+    }
+
+    /* ===================================================================
+       4. SÍNTESE DE VOZ (TTS - WEB SPEECH API)
+       =================================================================== */
+    function speakNumber(num) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(num.toString());
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.9;
+
+      const speakerIcon = document.getElementById('ttsSpeakerIcon');
+      if (speakerIcon) speakerIcon.classList.add('speaking-active');
+
+      utterance.onend = () => {
+        if (speakerIcon) speakerIcon.classList.remove('speaking-active');
+      };
+      utterance.onerror = () => {
+        if (speakerIcon) speakerIcon.classList.remove('speaking-active');
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    /* ===================================================================
+       5. ESTADO E LÓGICA PRINCIPAL DO JOGO
+       =================================================================== */
+    let currentMode = 1;
+    let score = 0;
+    let streak = 0;
+    let currentQuestion = null;
+    let canAnswer = true;
+
+    function startGame() {
+      playSoundEffect('click');
+      initAudio();
+
+      requestFullscreenMode();
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('gameUI').classList.remove('hidden');
+
+      score = 0;
+      streak = 0;
+      updateScoreboard();
+
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      canAnswer = true;
+      const questionType = Math.random() < 0.5 ? 'roman_to_dec' : 'dec_to_roman';
+
+      let targetRoman = "";
+      let targetDec = 0;
+      let colorClass = COLOR_PALETTE.cyan;
+
+      if (currentMode === 1) {
+        const randomItem = FIXED_IMAGE_ITEMS[Math.floor(Math.random() * FIXED_IMAGE_ITEMS.length)];
+        targetRoman = randomItem.roman;
+        targetDec = randomItem.value;
+        colorClass = randomItem.color;
+      } else {
+        targetDec = Math.floor(Math.random() * 3999) + 1;
+        targetRoman = decimalToRoman(targetDec);
+        const paletteKeys = Object.keys(COLOR_PALETTE);
+        colorClass = COLOR_PALETTE[paletteKeys[Math.floor(Math.random() * paletteKeys.length)]];
+      }
+
+      let options = [ { roman: targetRoman, value: targetDec } ];
+
+      while (options.length < 4) {
+        let fakeDec = 0;
+
+        if (currentMode === 1) {
+          const fakeItem = FIXED_IMAGE_ITEMS[Math.floor(Math.random() * FIXED_IMAGE_ITEMS.length)];
+          fakeDec = fakeItem.value;
+        } else {
+          const offset = (Math.floor(Math.random() * 5) + 1) * (Math.random() < 0.5 ? 1 : -1);
+          fakeDec = Math.max(1, Math.min(3999, targetDec + offset));
+        }
+
+        if (!options.some(o => o.value === fakeDec)) {
+          options.push({
+            value: fakeDec,
+            roman: currentMode === 1 ? (FIXED_IMAGE_ITEMS.find(i => i.value === fakeDec)?.roman || decimalToRoman(fakeDec)) : decimalToRoman(fakeDec)
+          });
+        }
+      }
+
+      options.sort(() => Math.random() - 0.5);
+      const correctIndex = options.findIndex(o => o.value === targetDec);
+
+      currentQuestion = {
+        modeType: questionType,
+        targetRoman: targetRoman,
+        targetDec: targetDec,
+        colorClass: colorClass,
+        options: options,
+        correctIndex: correctIndex
+      };
+
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const displayBtn = document.getElementById('displayBtn');
+      const displayText = document.getElementById('displayText');
+      const ttsIconContainer = document.getElementById('ttsIconContainer');
+
+      displayBtn.className = "w-full h-full rounded-2xl roman-card border-2 flex flex-col items-center justify-center relative group transition-all duration-300 " + currentQuestion.colorClass.border;
+      displayText.className = "text-5xl md:text-7xl font-black font-roman tracking-wider text-center drop-shadow-md " + currentQuestion.colorClass.text;
+
+      if (currentQuestion.modeType === 'roman_to_dec') {
+        displayText.innerText = currentQuestion.targetRoman;
+        ttsIconContainer.classList.add('hidden');
+      } else {
+        displayText.innerText = currentQuestion.targetDec.toLocaleString('pt-BR');
+        ttsIconContainer.classList.remove('hidden');
+
+        setTimeout(() => speakNumber(currentQuestion.targetDec), 200);
+      }
+
+      const paletteKeys = Object.keys(COLOR_PALETTE);
+
+      for (let i = 0; i < 4; i++) {
+        const btn = document.getElementById(`opt${i}`);
+        const optData = currentQuestion.options[i];
+        const randomPalette = COLOR_PALETTE[paletteKeys[i % paletteKeys.length]];
+
+        btn.className = `option-btn roman-card border-2 rounded-2xl flex items-center justify-center text-2xl md:text-4xl font-bold font-roman transition-all duration-200 ${randomPalette.border} ${randomPalette.text} ${randomPalette.bg}`;
+        btn.disabled = false;
+
+        if (currentQuestion.modeType === 'roman_to_dec') {
+          btn.innerText = optData.value.toLocaleString('pt-BR');
+        } else {
+          btn.innerText = optData.roman;
+        }
+      }
+    }
+
+    function onDisplayClick() {
+      playSoundEffect('click');
+      if (currentQuestion && currentQuestion.modeType === 'dec_to_roman') {
+        speakNumber(currentQuestion.targetDec);
+      }
+    }
+
+    function checkAnswer(index) {
+      if (!canAnswer) return;
+
+      const selectedBtn = document.getElementById(`opt${index}`);
+
+      if (index === currentQuestion.correctIndex) {
+        canAnswer = false;
+        score += 10 + (streak * 2);
+        streak++;
+        updateScoreboard();
+
+        playSoundEffect('correct');
+        triggerNeonGlow('success');
+        triggerConfetti();
+
+        selectedBtn.classList.add('bg-green-500/30', 'border-green-400', 'text-green-300', 'scale-105');
+
+        setTimeout(() => {
+          nextQuestion();
+        }, 1200);
+
+      } else {
+        streak = 0;
+        updateScoreboard();
+
+        playSoundEffect('wrong');
+        triggerNeonGlow('error');
+
+        selectedBtn.classList.add('animate-shake', 'bg-red-500/30', 'border-red-500', 'text-red-400');
+
+        setTimeout(() => {
+          selectedBtn.classList.remove('animate-shake');
+        }, 500);
+      }
+    }
+
+    function updateScoreboard() {
+      document.getElementById('scoreText').innerText = score;
+      document.getElementById('streakText').innerText = streak;
+    }
+
+    /* ===================================================================
+       6. EFEITOS VISUAIS (NEON GLOW & CONFETI)
+       =================================================================== */
+    function triggerNeonGlow(type) {
+      const overlay = document.getElementById('screenGlow');
+      overlay.className = `pointer-events-none absolute inset-0 z-40 transition-all duration-300 opacity-100 ${
+        type === 'success' ? 'glow-overlay-success' : 'glow-overlay-error'
+      }`;
+
+      setTimeout(() => {
+        overlay.classList.add('opacity-0');
+        setTimeout(() => {
+          overlay.className = "pointer-events-none absolute inset-0 z-40 transition-all duration-300 opacity-0";
+        }, 300);
+      }, 600);
+    }
+
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          origin: { y: 0.7 }
+        });
+      }
+    }
+
+    /* ===================================================================
+       7. CONTROLES E MODOS
+       =================================================================== */
+    function toggleModeMenu() {
+      playSoundEffect('click');
+      const menu = document.getElementById('modeMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    function selectMode(mode) {
+      playSoundEffect('click');
+      currentMode = mode;
+      document.getElementById('modeMenu').classList.add('hidden');
+      nextQuestion();
+    }
+
+    function toggleFullscreen() {
+      playSoundEffect('click');
+      if (!document.fullscreenElement) {
+        requestFullscreenMode();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    function requestFullscreenMode() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
+
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const icon = document.getElementById('fullscreenIcon');
+      if (document.fullscreenElement) {
+        icon.className = "fa-solid fa-compress text-lg text-amber-400";
+      } else {
+        icon.className = "fa-solid fa-expand text-lg text-slate-300";
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('modeMenu');
+      const btn = document.getElementById('btnModeSelect');
+      if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

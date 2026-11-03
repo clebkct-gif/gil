@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full" data-theme="escuro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicativo Matemático - Números Arábicos & Quiz</title>
+    <meta name="theme-color" content="#1f2937">
+    <script>
+        // aplica o tema salvo antes da página aparecer (evita "piscar")
+        try {
+            var t = JSON.parse(localStorage.getItem('numeros_app_v1') || '{}').theme;
+            document.documentElement.setAttribute('data-theme', (t === 'claro' || t === 'colorido') ? t : 'escuro');
+        } catch (e) {}
+    </script>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Números">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- Fonte arredondada Nunito (opcional: sem internet o app usa a fonte do aparelho) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <!-- TAILWIND-BUILD-START -->
+    <style id="tw">*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0}.bottom-4{bottom:1rem}.z-50{z-index:50}.col-span-2{grid-column:span 2/span 2}.mx-2{margin-left:.5rem;margin-right:.5rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.block{display:block}.inline-block{display:inline-block}.flex{display:flex}.table{display:table}.grid{display:grid}.hidden{display:none}.h-14{height:3.5rem}.h-2\.5{height:.625rem}.h-6{height:1.5rem}.h-full{height:100%}.max-h-28{max-height:7rem}.max-h-\[280px\]{max-height:280px}.max-h-\[90vh\]{max-height:90vh}.min-h-\[150px\]{min-height:150px}.min-h-\[55px\]{min-height:55px}.w-14{width:3.5rem}.w-6{width:1.5rem}.w-8{width:2rem}.w-full{width:100%}.max-w-3xl{max-width:48rem}.max-w-4xl{max-width:56rem}.max-w-full{max-width:100%}.max-w-sm{max-width:24rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.resize{resize:both}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.whitespace-nowrap{white-space:nowrap}.break-words{overflow-wrap:break-word}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-2{border-width:2px}.border-4{border-width:4px}.border-t{border-top-width:1px}.border-gray-600{--tw-border-opacity:1;border-color:rgb(75 85 99/var(--tw-border-opacity,1))}.border-green-300{--tw-border-opacity:1;border-color:rgb(134 239 172/var(--tw-border-opacity,1))}.bg-black{--tw-bg-opacity:1;background-color:rgb(0 0 0/var(--tw-bg-opacity,1))}.bg-black\/70{background-color:rgba(0,0,0,.7)}.bg-gray-700{--tw-bg-opacity:1;background-color:rgb(55 65 81/var(--tw-bg-opacity,1))}.bg-gray-800{--tw-bg-opacity:1;background-color:rgb(31 41 55/var(--tw-bg-opacity,1))}.bg-gray-800\/80{background-color:rgba(31,41,55,.8)}.bg-gray-900{--tw-bg-opacity:1;background-color:rgb(17 24 39/var(--tw-bg-opacity,1))}.bg-gray-900\/90{background-color:rgba(17,24,39,.9)}.bg-green-200{--tw-bg-opacity:1;background-color:rgb(187 247 208/var(--tw-bg-opacity,1))}.bg-green-200\/80{background-color:rgba(187,247,208,.8)}.bg-green-600{--tw-bg-opacity:1;background-color:rgb(22 163 74/var(--tw-bg-opacity,1))}.bg-red-600{--tw-bg-opacity:1;background-color:rgb(220 38 38/var(--tw-bg-opacity,1))}.bg-yellow-500{--tw-bg-opacity:1;background-color:rgb(234 179 8/var(--tw-bg-opacity,1))}.p-1{padding:.25rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-1{padding-left:.25rem;padding-right:.25rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-5{padding-top:1.25rem;padding-bottom:1.25rem}.pl-1{padding-left:.25rem}.pt-4{padding-top:1rem}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-8xl{font-size:6rem;line-height:1}.text-\[10px\]{font-size:10px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.uppercase{text-transform:uppercase}.leading-none{line-height:1}.leading-tight{line-height:1.25}.tracking-\[0\.25em\]{letter-spacing:.25em}.tracking-wider{letter-spacing:.05em}.tracking-widest{letter-spacing:.1em}.text-black{--tw-text-opacity:1;color:rgb(0 0 0/var(--tw-text-opacity,1))}.text-cyan-400{--tw-text-opacity:1;color:rgb(34 211 238/var(--tw-text-opacity,1))}.text-gray-300{--tw-text-opacity:1;color:rgb(209 213 219/var(--tw-text-opacity,1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175/var(--tw-text-opacity,1))}.text-green-400{--tw-text-opacity:1;color:rgb(74 222 128/var(--tw-text-opacity,1))}.text-green-900{--tw-text-opacity:1;color:rgb(20 83 45/var(--tw-text-opacity,1))}.text-red-400{--tw-text-opacity:1;color:rgb(248 113 113/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.text-yellow-400{--tw-text-opacity:1;color:rgb(250 204 21/var(--tw-text-opacity,1))}.accent-yellow-400{accent-color:#facc15}.shadow{--tw-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color),0 1px 2px -1px var(--tw-shadow-color)}.shadow,.shadow-2xl{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgba(0,0,0,.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color)}.shadow-inner{--tw-shadow:inset 0 2px 4px 0 rgba(0,0,0,.05);--tw-shadow-colored:inset 0 2px 4px 0 var(--tw-shadow-color)}.shadow-inner,.shadow-lg{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color),0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.outline-none{outline:2px solid transparent;outline-offset:2px}.outline{outline-style:solid}.drop-shadow{--tw-drop-shadow:drop-shadow(0 1px 2px rgba(0,0,0,.1)) drop-shadow(0 1px 1px rgba(0,0,0,.06))}.drop-shadow,.drop-shadow-lg{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.drop-shadow-lg{--tw-drop-shadow:drop-shadow(0 10px 8px rgba(0,0,0,.04)) drop-shadow(0 4px 3px rgba(0,0,0,.1))}.drop-shadow-md{--tw-drop-shadow:drop-shadow(0 4px 3px rgba(0,0,0,.07)) drop-shadow(0 2px 2px rgba(0,0,0,.06))}.drop-shadow-md,.grayscale{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.grayscale{--tw-grayscale:grayscale(100%)}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.duration-200{transition-duration:.2s}.ease-in-out{transition-timing-function:cubic-bezier(.4,0,.2,1)}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.focus\:border-yellow-400:focus{--tw-border-opacity:1;border-color:rgb(250 204 21/var(--tw-border-opacity,1))}@media (min-width:768px){.md\:gap-4{gap:1rem}.md\:p-4{padding:1rem}.md\:p-6{padding:1.5rem}.md\:text-2xl{font-size:1.5rem;line-height:2rem}.md\:text-3xl{font-size:1.875rem;line-height:2.25rem}.md\:text-4xl{font-size:2.25rem;line-height:2.5rem}.md\:text-9xl{font-size:8rem;line-height:1}.md\:text-lg{font-size:1.125rem;line-height:1.75rem}.md\:text-sm{font-size:.875rem;line-height:1.25rem}}</style>
+    <!-- TAILWIND-BUILD-END -->
+    <style>
+        body {
+            font-family: 'Nunito', ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', 'Varela Round', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: var(--bg);
+            background-image: var(--body-img);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .btn-green-metallic {
+            background: linear-gradient(to bottom, #4ade80 0%, #22c55e 50%, #15803d 100%);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 6px rgba(0,0,0,0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-green-metallic:active {
+            background: linear-gradient(to bottom, #15803d 0%, #22c55e 50%, #4ade80 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 2px 3px rgba(0,0,0,0.2);
+            transform: translateY(2px);
+        }
+        .btn-yellow-metallic {
+            background: linear-gradient(to bottom, #fde047 0%, #eab308 50%, #ca8a04 100%);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 6px rgba(0,0,0,0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-yellow-metallic:active {
+            background: linear-gradient(to bottom, #ca8a04 0%, #eab308 50%, #fde047 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 2px 3px rgba(0,0,0,0.2);
+            transform: translateY(2px);
+        }
+        .btn-red-metallic {
+            background: linear-gradient(to bottom, #f87171 0%, #ef4444 50%, #b91c1c 100%);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 6px rgba(0,0,0,0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-red-metallic:active {
+            background: linear-gradient(to bottom, #b91c1c 0%, #ef4444 50%, #f87171 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 2px 3px rgba(0,0,0,0.2);
+            transform: translateY(2px);
+        }
+        .ctl-btn {
+            border-radius: 0.75rem; padding: 0.4rem 0.2rem; min-height: 58px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #000; font-weight: 800;
+        }
+        .ctl-btn:disabled { opacity: 0.4; pointer-events: none; }
+        .ctl-ico { font-size: 1.3rem; line-height: 1.2; }
+        .ctl-lbl { font-size: 0.6rem; letter-spacing: 0.06em; }
+        .opt-off { opacity: 0.25; filter: grayscale(1); pointer-events: none; }
+        .quiz-chip { border-radius: 0.5rem; padding: 0.4rem 0.25rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; }
+        @keyframes recordPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+        .record-flash { border-color: #facc15 !important; animation: recordPulse 0.6s ease 3; }
+        .last-mode { outline: 3px solid rgba(255,255,255,0.9); outline-offset: 3px; }
+        .metallic-header-footer {
+            background: linear-gradient(to bottom, var(--hf1) 0%, var(--hf2) 50%, var(--hf3) 100%);
+            border-top: 2px solid var(--hf-border);
+            border-bottom: 2px solid var(--hf-border);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            color: var(--text);
+        }
+
+        /* ===== Temas (variáveis de cor) ===== */
+        html {
+            --bg:#121212; --body-img:none;
+            --hf1:#374151; --hf2:#1f2937; --hf3:#111827; --hf-border:#4b5563;
+            --panel:rgba(31,41,55,0.8); --panel2:rgba(17,24,39,0.9); --input:#111827; --pborder:#4b5563;
+            --text:#ffffff; --dim:#9ca3af; --dim2:#d1d5db; --chip:#374151; --chip-text:#ffffff;
+            --acc-y:#facc15; --acc-c:#22d3ee; --acc-g:#4ade80; --acc-r:#f87171;
+        }
+        html[data-theme="claro"] {
+            --bg:#eef2f7;
+            --hf1:#ffffff; --hf2:#e5e7eb; --hf3:#d1d5db; --hf-border:#cbd5e1;
+            --panel:rgba(255,255,255,0.92); --panel2:rgba(255,255,255,0.97); --input:#ffffff; --pborder:#cbd5e1;
+            --text:#111827; --dim:#4b5563; --dim2:#374151; --chip:#e5e7eb; --chip-text:#111827;
+            --acc-y:#b45309; --acc-c:#0e7490; --acc-g:#15803d; --acc-r:#b91c1c;
+        }
+        html[data-theme="colorido"] {
+            --bg:#1e1b4b;
+            --body-img: radial-gradient(circle at 15% 15%, rgba(244,114,182,0.28) 0, transparent 40%), radial-gradient(circle at 85% 75%, rgba(56,189,248,0.25) 0, transparent 45%), radial-gradient(circle at 70% 10%, rgba(250,204,21,0.15) 0, transparent 30%);
+            --hf1:#c026d3; --hf2:#7e22ce; --hf3:#4c1d95; --hf-border:#e879f9;
+            --panel:rgba(76,29,149,0.65); --panel2:rgba(46,16,101,0.85); --input:#2e1065; --pborder:#a78bfa;
+            --text:#ffffff; --dim:#ddd6fe; --dim2:#ede9fe; --chip:#6d28d9; --chip-text:#ffffff;
+            --acc-y:#fde047; --acc-c:#67e8f9; --acc-g:#86efac; --acc-r:#fda4af;
+        }
+        html[data-theme] .bg-gray-800\/80 { background-color: var(--panel); }
+        html[data-theme] .bg-gray-900\/90 { background-color: var(--panel2); }
+        html[data-theme] .bg-gray-900 { background-color: var(--input); }
+        html[data-theme] .bg-gray-700 { background-color: var(--chip); color: var(--chip-text); }
+        html[data-theme] .border-gray-600 { border-color: var(--pborder); }
+        html[data-theme] .text-gray-300 { color: var(--dim2); }
+        html[data-theme] .text-gray-400 { color: var(--dim); }
+        html[data-theme] .text-yellow-400 { color: var(--acc-y); }
+        html[data-theme] .text-cyan-400 { color: var(--acc-c); }
+        html[data-theme] .text-green-400 { color: var(--acc-g); }
+        html[data-theme] .text-red-400 { color: var(--acc-r); }
+        html[data-theme] .hover\:text-white:hover { color: var(--text); }
+        html[data-theme] .text-white:not([class*="btn-"]):not(.bg-gray-700) { color: var(--text); }
+
+        /* ===== Brilho metálico nos botões ===== */
+        .btn-green-metallic, .btn-yellow-metallic, .btn-red-metallic { position: relative; overflow: hidden; }
+        .btn-green-metallic::after, .btn-yellow-metallic::after, .btn-red-metallic::after {
+            content: ''; position: absolute; top: 0; left: -60%; width: 35%; height: 100%;
+            background: linear-gradient(100deg, transparent, rgba(255,255,255,0.5), transparent);
+            transform: skewX(-20deg); pointer-events: none;
+            animation: shine 6s ease-in-out infinite;
+        }
+        .btn-yellow-metallic::after { animation-delay: 2s; }
+        .btn-red-metallic::after { animation-delay: 4s; }
+        @keyframes shine { 0% { left: -60%; } 16% { left: 130%; } 100% { left: 130%; } }
+
+        /* ===== Animações ===== */
+        @keyframes screenIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        .screen-enter { animation: screenIn 0.3s ease-out; }
+        @keyframes numPop { 0% { transform: scale(0.5); opacity: 0.2; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+        .pop { animation: numPop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+        @keyframes milestoneAnim { 0% { transform: scale(0.6); } 40% { transform: scale(1.3); text-shadow: 0 0 34px #facc15, 0 0 12px #fff; } 100% { transform: scale(1); } }
+        .milestone { animation: milestoneAnim 0.7s ease-out; }
+        @keyframes shakeAnim { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-9px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+        .shake { animation: shakeAnim 0.4s ease; }
+        @keyframes mBounce { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-14px) scale(1.08); } 60% { transform: translateY(0); } 80% { transform: translateY(-5px); } }
+        .mascot-bounce { animation: mBounce 0.7s ease; }
+        .mascot-shake { animation: shakeAnim 0.4s ease; }
+        @keyframes flicker { from { transform: scale(1) rotate(-5deg); } to { transform: scale(1.14) rotate(5deg); } }
+        .flame { display: inline-block; margin-left: 0.15rem; animation: flicker 0.5s ease-in-out infinite alternate; }
+        #flash-layer { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 45; }
+        @keyframes flashAnim { 0% { opacity: 0; } 25% { opacity: 0.5; } 100% { opacity: 0; } }
+        .flash-go { animation: flashAnim 0.45s ease-out; }
+
+        /* Fichas da contagem */
+        .chip { border-radius: 9999px; padding: 0.1rem 0.65rem; font-weight: 800; font-size: 0.95rem; color: #111; line-height: 1.5; }
+        .chip-0 { background: #86efac; } .chip-1 { background: #fde047; } .chip-2 { background: #7dd3fc; }
+        .chip-3 { background: #f9a8d4; } .chip-4 { background: #c4b5fd; } .chip-5 { background: #fdba74; }
+        .chip-more { background: transparent; color: var(--dim); }
+        @keyframes chipPop { from { transform: scale(0.4); } to { transform: scale(1.12); } }
+        .chip-last { background: #ffffff; box-shadow: 0 0 0 3px #facc15, 0 0 12px rgba(250,204,21,0.8); transform: scale(1.12); animation: chipPop 0.3s ease-out; }
+
+        /* Sem efeitos: desliga animações e transições */
+        html.no-fx *, html.no-fx *::before, html.no-fx *::after { animation: none !important; transition: none !important; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+    </style>
+</head>
+<body id="app-body" class="h-full flex flex-col justify-between overflow-hidden text-white transition-colors duration-200">
+    <div id="flash-layer" aria-hidden="true"></div>
+    <canvas id="fx-canvas" aria-hidden="true" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50"></canvas>
+
+    <!-- TELA 1: MENU INICIAL -->
+    <div id="screen-1" class="flex flex-col h-full w-full">
+        <!-- Cabeçalho -->
+        <header class="metallic-header-footer py-3 px-4 flex items-center justify-between">
+            <button onclick="toggleFullScreen()" class="text-gray-400 hover:text-white p-1 rounded-lg transition-all" title="Tela Cheia">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+            </button>
+            <h1 class="text-xl md:text-2xl font-black tracking-widest text-white drop-shadow-md text-center flex-1">NÚMEROS</h1>
+            <button onclick="openSettings()" class="text-gray-400 hover:text-white rounded-lg transition-all text-2xl leading-none w-8 text-center" title="Ajustes" aria-label="Ajustes">⚙</button>
+        </header>
+
+        <!-- Corpo: categorias, grade 2 a 2 -->
+        <main class="flex-1 p-3 md:p-6 grid grid-cols-2 gap-3 md:gap-4 overflow-y-auto max-w-4xl mx-auto w-full" style="grid-template-rows: auto repeat(2, minmax(64px, 1fr)) auto repeat(2, minmax(64px, 1fr)) auto repeat(2, minmax(64px, 1fr));">
+            <h2 class="col-span-2 text-xs font-black tracking-[0.25em] text-gray-400 uppercase pl-1">Contar</h2>
+            <button onclick="selectMode('1 A 10', 1, 1, 10)" data-mode="1 A 10" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">🔟</span>
+                <span>1 A 10</span>
+            </button>
+            <button onclick="selectMode('1 EM 1', 0, 1, 10)" data-mode="1 EM 1" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">🐣</span>
+                <span>1 EM 1</span>
+            </button>
+            <button onclick="selectMode('PARES', 0, 2, 20)" data-mode="PARES" class="btn-yellow-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">👫</span>
+                <span>PARES</span>
+            </button>
+            <button onclick="selectMode('IMPARES', 1, 2, 19)" data-mode="IMPARES" class="btn-yellow-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">🧍</span>
+                <span>ÍMPARES</span>
+            </button>
+            <h2 class="col-span-2 text-xs font-black tracking-[0.25em] text-gray-400 uppercase pl-1">Pular números</h2>
+            <button onclick="selectMode('5 EM 5', 0, 5, 50)" data-mode="5 EM 5" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">✋</span>
+                <span>5 EM 5</span>
+            </button>
+            <button onclick="selectMode('10 EM 10', 0, 10, 100)" data-mode="10 EM 10" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">🙌</span>
+                <span>10 EM 10</span>
+            </button>
+            <button onclick="selectMode('100 EM 100', 0, 100, 1000)" data-mode="100 EM 100" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">💯</span>
+                <span>100 EM 100</span>
+            </button>
+            <button onclick="selectMode('1000 EM 1000', 0, 1000, 10000)" data-mode="1000 EM 1000" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">🚀</span>
+                <span>1000 EM 1000</span>
+            </button>
+            <h2 class="col-span-2 text-xs font-black tracking-[0.25em] text-gray-400 uppercase pl-1">Jogos e mais</h2>
+            <button onclick="openCustomModal()" data-mode="X" class="btn-red-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-white">
+                <span class="text-2xl md:text-3xl leading-none">🎯</span>
+                <span>X</span>
+            </button>
+            <button onclick="openQuizScreen('seq')" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">❓</span>
+                <span>QUIZ</span>
+            </button>
+            <button onclick="openQuizScreen('tab')" class="btn-green-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">✖️</span>
+                <span>TABUADA</span>
+            </button>
+            <button onclick="openRecords()" class="btn-yellow-metallic rounded-xl px-2 text-center font-extrabold text-base md:text-2xl uppercase tracking-wider flex flex-col items-center justify-center leading-tight w-full h-full text-black">
+                <span class="text-2xl md:text-3xl leading-none">🏆</span>
+                <span>RECORDES</span>
+            </button>
+        </main>
+    </div>
+
+
+    <!-- TELA 2: CONTAGEM E PAINEL -->
+    <div id="screen-2" class="hidden flex flex-col h-full w-full">
+        <!-- Cabeçalho -->
+        <header class="metallic-header-footer py-3 px-4 flex items-center justify-between">
+            <button onclick="toggleFullScreen()" class="text-gray-400 hover:text-white p-1 rounded-lg transition-all" title="Tela Cheia">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+            </button>
+            <h2 id="header-mode-title" class="text-sm md:text-lg font-black tracking-widest text-white drop-shadow-md text-center flex-1 mx-2">
+                CONTANDO DE : 1 EM 1
+            </h2>
+            <button onclick="goToScreen1()" class="text-gray-400 hover:text-white p-1 rounded-lg transition-all" title="Voltar">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Corpo Principal da Tela 2 -->
+        <main class="flex-1 flex flex-col p-3 md:p-6 gap-3 max-w-4xl mx-auto w-full justify-center">
+            
+            <!-- Display Principal com Clique Simples e Longo Clique -->
+            <button id="display-btn"
+                    onclick="handleDisplayClick()"
+                    onpointerdown="startLongPress()"
+                    onpointerup="cancelLongPress()"
+                    onpointerleave="cancelLongPress()"
+                    onpointercancel="cancelLongPress()"
+                    oncontextmenu="return false"
+                    class="btn-green-metallic rounded-2xl flex-1 flex flex-col items-center justify-center p-6 text-white cursor-pointer shadow-2xl border-4 border-green-300 relative group">
+                <span id="display-number" class="inline-block text-8xl md:text-9xl font-black drop-shadow-lg tracking-wider">0</span>
+                <span class="absolute bottom-4 text-xs md:text-sm font-bold text-green-900 bg-green-200/80 px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                    Toque para avançar (Segure para zerar)
+                </span>
+            </button>
+
+            <!-- Progresso -->
+            <div class="flex items-center gap-2 px-1">
+                <div class="flex-1 h-2.5 rounded-full bg-gray-800/80 border border-gray-600 overflow-hidden">
+                    <div id="progress-fill" class="h-full rounded-full" style="width:0%;background:linear-gradient(90deg,#4ade80,#facc15);transition:width .25s ease"></div>
+                </div>
+                <span id="progress-label" class="text-xs font-bold text-gray-300 whitespace-nowrap">0 contados</span>
+            </div>
+
+            <!-- Barra de controles -->
+            <div class="grid grid-cols-5 gap-2">
+                <button id="btn-back" onclick="goBackOne()" class="ctl-btn btn-yellow-metallic" aria-label="Voltar um número">
+                    <span class="ctl-ico">↶</span><span class="ctl-lbl">VOLTAR</span>
+                </button>
+                <button id="btn-auto" onclick="toggleAuto()" class="ctl-btn btn-yellow-metallic" aria-label="Modo automático">
+                    <span id="auto-ico" class="ctl-ico">▶</span><span id="auto-lbl" class="ctl-lbl">AUTO</span>
+                </button>
+                <button id="btn-dir" onclick="setDir(-settings.dir)" class="ctl-btn btn-yellow-metallic" aria-label="Direção da contagem">
+                    <span id="dir-ico" class="ctl-ico">▲</span><span id="dir-lbl" class="ctl-lbl">SOBE</span>
+                </button>
+                <button id="btn-mute" onclick="toggleMute()" class="ctl-btn btn-yellow-metallic" aria-label="Som da voz">
+                    <span id="mute-ico" class="ctl-ico">🔊</span><span class="ctl-lbl">VOZ</span>
+                </button>
+                <button onclick="openSettings()" class="ctl-btn btn-yellow-metallic" aria-label="Ajustes">
+                    <span class="ctl-ico">⚙</span><span class="ctl-lbl">AJUSTES</span>
+                </button>
+            </div>
+
+        </main>
+
+        <!-- Rodapé / Contagem acumulada -->
+        <footer class="metallic-header-footer p-3 md:p-4">
+            <div id="counting-box" class="w-full bg-gray-900/90 text-white py-2 px-3 rounded-xl border-2 border-gray-600 text-center shadow-inner min-h-[55px] max-h-28 overflow-y-auto">
+                <div id="counting-text" class="flex flex-wrap justify-center gap-1.5"></div>
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- TELA 3: QUIZ -->
+    <div id="screen-3" class="hidden flex flex-col h-full w-full">
+        <!-- Cabeçalho -->
+        <header class="metallic-header-footer py-3 px-4 flex items-center justify-between">
+            <button onclick="toggleFullScreen()" class="text-gray-400 hover:text-white p-1 rounded-lg transition-all" title="Tela Cheia">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+            </button>
+            <h2 class="text-sm md:text-lg font-black tracking-widest text-white drop-shadow-md text-center flex-1 mx-2 uppercase">
+                <span id="quiz-title">QUAL O NÚMERO</span>
+            </h2>
+            <button onclick="goToScreen1()" class="text-gray-400 hover:text-white p-1 rounded-lg transition-all" title="Voltar">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Corpo do Quiz -->
+        <main class="flex-1 flex flex-col p-3 md:p-6 gap-3 max-w-3xl mx-auto w-full overflow-y-auto">
+
+            <!-- Mascote -->
+            <div class="flex items-center gap-3">
+                <svg id="mascot" viewBox="0 0 100 100" class="w-14 h-14 shrink-0" aria-hidden="true">
+                    <defs>
+                        <radialGradient id="mg" cx="35%" cy="30%" r="75%">
+                            <stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#f59e0b"/>
+                        </radialGradient>
+                    </defs>
+                    <line x1="50" y1="6" x2="50" y2="20" stroke="#9ca3af" stroke-width="3"/>
+                    <circle cx="50" cy="7" r="5" fill="#ef4444"/>
+                    <circle cx="50" cy="58" r="38" fill="url(#mg)" stroke="#b45309" stroke-width="3"/>
+                    <circle cx="25" cy="68" r="6" fill="#fb7185" opacity="0.6"/>
+                    <circle cx="75" cy="68" r="6" fill="#fb7185" opacity="0.6"/>
+                    <g id="m-eyes-normal"><circle cx="37" cy="52" r="6" fill="#111"/><circle cx="63" cy="52" r="6" fill="#111"/><circle cx="39" cy="50" r="2" fill="#fff"/><circle cx="65" cy="50" r="2" fill="#fff"/></g>
+                    <g id="m-eyes-happy" style="display:none"><path d="M30 54 Q37 43 44 54" stroke="#111" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M56 54 Q63 43 70 54" stroke="#111" stroke-width="4" fill="none" stroke-linecap="round"/></g>
+                    <g id="m-eyes-star" style="display:none"><text x="37" y="60" font-size="20" text-anchor="middle">⭐</text><text x="63" y="60" font-size="20" text-anchor="middle">⭐</text></g>
+                    <g id="m-eyes-sad" style="display:none"><circle cx="37" cy="54" r="5" fill="#111"/><circle cx="63" cy="54" r="5" fill="#111"/><path d="M29 44 L44 48" stroke="#111" stroke-width="3" stroke-linecap="round"/><path d="M71 44 L56 48" stroke="#111" stroke-width="3" stroke-linecap="round"/></g>
+                    <path id="m-mouth-smile" d="M36 72 Q50 84 64 72" stroke="#7f1d1d" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <path id="m-mouth-big" d="M33 69 Q50 92 67 69 Z" fill="#7f1d1d" style="display:none"/>
+                    <path id="m-mouth-sad" d="M38 80 Q50 68 62 80" stroke="#7f1d1d" stroke-width="4" fill="none" stroke-linecap="round" style="display:none"/>
+                    <ellipse id="m-mouth-o" cx="50" cy="76" rx="6" ry="7" fill="#7f1d1d" style="display:none"/>
+                </svg>
+                <div id="mascot-msg" class="flex-1 bg-gray-800/80 border-2 border-gray-600 rounded-2xl px-3 py-2 text-sm font-bold text-white">Vamos lá!</div>
+            </div>
+
+            <!-- Modo e nível -->
+            <div class="grid grid-cols-2 gap-2">
+                <button id="qm-seq" onclick="setQuizMode('seq')" class="quiz-chip">SEQUÊNCIA</button>
+                <button id="qm-tab" onclick="setQuizMode('tab')" class="quiz-chip">TABUADA</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <button id="ql-facil" onclick="setQuizLevel('facil')" class="quiz-chip">FÁCIL</button>
+                <button id="ql-medio" onclick="setQuizLevel('medio')" class="quiz-chip">MÉDIO</button>
+                <button id="ql-dificil" onclick="setQuizLevel('dificil')" class="quiz-chip">DIFÍCIL</button>
+            </div>
+
+            <!-- Placar -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-gray-800/80 border-2 border-gray-600 rounded-xl py-1">
+                    <p class="text-[10px] text-gray-400 font-bold tracking-widest">ACERTOS</p>
+                    <p id="hud-correct" class="text-xl font-black text-white">0</p>
+                </div>
+                <div class="bg-gray-800/80 border-2 border-gray-600 rounded-xl py-1">
+                    <p class="text-[10px] text-gray-400 font-bold tracking-widest">SEQUÊNCIA</p>
+                    <p class="text-xl font-black text-cyan-400"><span id="hud-streak">0</span><span id="combo-flame" class="flame"></span></p>
+                </div>
+                <div id="hud-best-box" class="bg-gray-800/80 border-2 border-gray-600 rounded-xl py-1">
+                    <p class="text-[10px] text-gray-400 font-bold tracking-widest">RECORDE</p>
+                    <p id="hud-best" class="text-xl font-black text-yellow-400">0</p>
+                </div>
+            </div>
+
+            <!-- Pergunta -->
+            <div class="bg-gray-800/80 border-2 border-gray-600 rounded-2xl py-5 px-3 text-center shadow-xl w-full">
+                <span id="quiz-sequence" class="inline-block max-w-full font-black tracking-widest text-yellow-400 whitespace-nowrap" style="font-size:2.5rem">-- , -- , ?</span>
+            </div>
+
+            <!-- 4 Opções de Resposta (2x2) -->
+            <div class="grid grid-cols-2 gap-3 w-full flex-1 min-h-[150px] max-h-[280px]">
+                <button onclick="checkQuizAnswer(0)" id="quiz-opt-0" class="btn-green-metallic rounded-xl text-black font-black text-3xl md:text-4xl flex items-center justify-center p-3 shadow-lg">0</button>
+                <button onclick="checkQuizAnswer(1)" id="quiz-opt-1" class="btn-green-metallic rounded-xl text-black font-black text-3xl md:text-4xl flex items-center justify-center p-3 shadow-lg">0</button>
+                <button onclick="checkQuizAnswer(2)" id="quiz-opt-2" class="btn-green-metallic rounded-xl text-black font-black text-3xl md:text-4xl flex items-center justify-center p-3 shadow-lg">0</button>
+                <button onclick="checkQuizAnswer(3)" id="quiz-opt-3" class="btn-green-metallic rounded-xl text-black font-black text-3xl md:text-4xl flex items-center justify-center p-3 shadow-lg">0</button>
+            </div>
+
+            <!-- Dica -->
+            <button id="quiz-hint" onclick="useHint()" class="btn-yellow-metallic rounded-xl py-3 text-black font-extrabold uppercase tracking-wider">💡 DICA (3)</button>
+        </main>
+
+        <!-- Rodapé informativo do Quiz -->
+        <footer class="metallic-header-footer py-3 px-4 text-center">
+            <p id="quiz-prompt" class="text-cyan-400 font-bold text-sm tracking-widest uppercase">QUAL NÚMERO VEM DEPOIS?</p>
+        </footer>
+    </div>
+
+
+    <!-- MODAL: CONTAGEM X EM X -->
+    <div id="custom-modal" onclick="if(event.target===this) closeCustomModal()" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="metallic-header-footer rounded-2xl p-5 w-full max-w-sm">
+            <h3 class="text-center font-black tracking-widest text-lg">CONTAR DE X EM X</h3>
+            <p class="text-center text-gray-300 text-sm mt-1 mb-4">Digite o valor de X</p>
+            <input id="custom-input" type="number" inputmode="numeric" min="1" step="1" placeholder="Ex.: 3"
+                   class="w-full text-center text-4xl font-black rounded-xl bg-gray-900 border-2 border-gray-600 text-yellow-400 py-3 outline-none focus:border-yellow-400"
+                   style="user-select:text;-webkit-user-select:text;">
+            <p id="custom-error" class="hidden text-red-400 text-sm text-center mt-2 font-bold">Digite um número inteiro maior que zero.</p>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <button onclick="closeCustomModal()" class="btn-red-metallic rounded-xl py-3 text-white font-extrabold uppercase tracking-wider">Cancelar</button>
+                <button onclick="confirmCustom()" class="btn-green-metallic rounded-xl py-3 text-black font-extrabold uppercase tracking-wider">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AJUSTES -->
+    <div id="settings-modal" onclick="if(event.target===this) closeSettings()" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="metallic-header-footer rounded-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+            <h3 class="text-center font-black tracking-widest text-lg mb-4">AJUSTES</h3>
+
+            <p class="text-yellow-400 font-extrabold text-xs tracking-widest mb-2">VOZ</p>
+            <button id="set-mute" onclick="toggleMute()" class="w-full rounded-xl py-2 font-extrabold uppercase tracking-wider text-black btn-green-metallic mb-3">SOM LIGADO</button>
+            <label class="block text-sm text-gray-300 mb-1">Velocidade da voz: <span id="rate-label" class="font-bold text-white">1,0x</span></label>
+            <input id="set-rate" type="range" min="0.5" max="1.5" step="0.1" oninput="setRate(this.value)" class="w-full accent-yellow-400 mb-3">
+            <label class="block text-sm text-gray-300 mb-1">Voz</label>
+            <select id="set-voice" onchange="setVoice(this.value)" class="w-full rounded-xl bg-gray-900 border-2 border-gray-600 text-white py-2 px-2 mb-3"></select>
+            <button onclick="testVoice()" class="w-full btn-yellow-metallic rounded-xl py-2 text-black font-extrabold uppercase tracking-wider">Testar voz</button>
+
+            <div class="mt-5 pt-4 border-t border-gray-600">
+                <p class="text-yellow-400 font-extrabold text-xs tracking-widest mb-2">VISUAL</p>
+                <label class="block text-sm text-gray-300 mb-1">Tema</label>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <button id="theme-escuro" onclick="setTheme('escuro')" class="quiz-chip">🌙 ESCURO</button>
+                    <button id="theme-claro" onclick="setTheme('claro')" class="quiz-chip">☀️ CLARO</button>
+                    <button id="theme-colorido" onclick="setTheme('colorido')" class="quiz-chip">🌈 COLORIDO</button>
+                </div>
+                <button id="set-fx" onclick="toggleFx()" class="w-full rounded-xl py-2 font-extrabold uppercase tracking-wider text-sm mb-2 btn-green-metallic text-black">EFEITOS VISUAIS: LIGADOS</button>
+                <button id="set-sfx" onclick="toggleSfx()" class="w-full rounded-xl py-2 font-extrabold uppercase tracking-wider text-sm btn-green-metallic text-black">EFEITOS SONOROS: LIGADOS</button>
+            </div>
+
+            <div id="count-settings" class="hidden mt-5 pt-4 border-t border-gray-600">
+                <p class="text-yellow-400 font-extrabold text-xs tracking-widest mb-2">CONTAGEM</p>
+                <label class="block text-sm text-gray-300 mb-1">Começar em (vazio = padrão)</label>
+                <input id="set-start" type="number" inputmode="numeric" min="0" step="1" placeholder="padrão"
+                       class="w-full text-center text-2xl font-black rounded-xl bg-gray-900 border-2 border-gray-600 text-yellow-400 py-2 outline-none focus:border-yellow-400"
+                       style="user-select:text;-webkit-user-select:text;">
+                <p id="start-error" class="hidden text-red-400 text-sm text-center mt-1 font-bold">Digite um número inteiro, zero ou maior.</p>
+
+                <label class="block text-sm text-gray-300 mt-3 mb-1">Direção</label>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <button id="set-dir-up" onclick="setDir(1)" class="rounded-xl py-2 font-extrabold text-sm tracking-wider">▲ CRESCENTE</button>
+                    <button id="set-dir-down" onclick="setDir(-1)" class="rounded-xl py-2 font-extrabold text-sm tracking-wider">▼ REGRESSIVA</button>
+                </div>
+
+                <label class="block text-sm text-gray-300 mb-1">Pausa no modo automático: <span id="pause-label" class="font-bold text-white">1,0 s</span></label>
+                <input id="set-pause" type="range" min="0.3" max="5" step="0.1" oninput="setPause(this.value)" class="w-full accent-yellow-400 mb-3">
+
+                <button onclick="applyCountSettings()" class="w-full btn-green-metallic rounded-xl py-2 text-black font-extrabold uppercase tracking-wider">Aplicar e recomeçar</button>
+            </div>
+
+            <button onclick="closeSettings()" class="w-full btn-red-metallic rounded-xl py-2 mt-5 text-white font-extrabold uppercase tracking-wider">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: RECORDES -->
+    <div id="records-modal" onclick="if(event.target===this) closeRecords()" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="metallic-header-footer rounded-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+            <h3 class="text-center font-black tracking-widest text-lg">🏆 RECORDES</h3>
+            <p class="text-center text-gray-300 text-xs mt-1 mb-4">Maior sequência de acertos seguidos</p>
+            <div id="records-body"></div>
+            <button id="records-reset" onclick="resetRecords()" class="w-full btn-red-metallic rounded-xl py-2 mt-4 text-white font-extrabold uppercase tracking-wider text-sm">Zerar recordes</button>
+            <button onclick="closeRecords()" class="w-full btn-yellow-metallic rounded-xl py-2 mt-3 text-black font-extrabold uppercase tracking-wider">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Script JavaScript -->
+    <script>
+        // ---------- Estado ----------
+        // Configurações salvas no aparelho
+        const SETTINGS_KEY = 'numeros_app_v1';
+        const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+        function loadSettings() {
+            let saved = {};
+            try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) {}
+            const s = Object.assign({ muted: false, rate: 1, voiceURI: '', pause: 1, dir: 1, lastMode: '', lastX: '', quizMode: 'seq', quizLevel: 'facil', records: {}, theme: 'escuro', fx: true, sfx: true }, saved);
+            s.muted = !!s.muted;
+            s.rate = clamp(Number(s.rate) || 1, 0.5, 1.5);
+            s.pause = clamp(Number(s.pause) || 1, 0.3, 5);
+            s.dir = s.dir < 0 ? -1 : 1;
+            s.voiceURI = String(s.voiceURI || '');
+            s.lastMode = String(s.lastMode || '');
+            s.lastX = String(s.lastX || '');
+            s.theme = ['escuro', 'claro', 'colorido'].includes(s.theme) ? s.theme : 'escuro';
+            s.fx = s.fx !== false;
+            s.sfx = s.sfx !== false;
+            s.quizMode = s.quizMode === 'tab' ? 'tab' : 'seq';
+            s.quizLevel = ['facil', 'medio', 'dificil'].includes(s.quizLevel) ? s.quizLevel : 'facil';
+            const rec = {};
+            if (s.records && typeof s.records === 'object') {
+                Object.keys(s.records).forEach(k => {
+                    const v = Number(s.records[k]);
+                    if (/^(seq|tab)-(facil|medio|dificil)$/.test(k) && Number.isInteger(v) && v > 0) rec[k] = v;
+                });
+            }
+            s.records = rec;
+            return s;
+        }
+        function saveSettings() {
+            try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+        }
+        const settings = loadSettings();
+
+        let currentScreen = 1;
+        let mode = { title: '', start: 0, step: 1, reverseStart: 10, key: '' };  // contagem sem limite
+        let currentValue = null;            // número exibido agora (null = ainda não começou)
+        let countHistory = [];              // valores já contados (para "voltar")
+        let customStart = null;             // início personalizado (null = padrão do modo)
+        let autoOn = false;                 // modo automático ligado?
+        let autoTimer = null;
+        const CHIP_MAX = 30;                // quantas fichas aparecem na contagem
+        let quizQid = 0;                    // identifica a pergunta atual do quiz
+        let quizSession = 0;                // invalida eventos pendentes do quiz ao sair da tela
+
+        let longPressTimer = null;
+        let isLongPressTriggered = false;
+        let quizLocked = false;
+
+        let currentQuizData = { correctAnswer: 0, options: [] };
+        let quizState = { correct: 0, streak: 0, hints: 3, hinted: false, eliminated: new Set(), runBest: 0, announced: false };
+
+        // ---------- Utilidades ----------
+        function toggleFullScreen() {
+            const el = document.documentElement;
+            try {
+                if (!document.fullscreenElement) {
+                    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+                    if (req) {
+                        const r = req.call(el);
+                        if (r && r.catch) r.catch(err => console.error(err));
+                    }
+                } else if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function showScreen(n) {
+            currentScreen = n;
+            ['screen-1', 'screen-2', 'screen-3'].forEach((id, i) => {
+                const el = document.getElementById(id);
+                const show = i === n - 1;
+                el.classList.toggle('hidden', !show);
+                if (show) {                       // transição suave entre telas
+                    el.classList.remove('screen-enter');
+                    void el.offsetWidth;
+                    el.classList.add('screen-enter');
+                }
+            });
+        }
+
+        // ---------- Contagem ----------
+        function startValue() {
+            if (customStart !== null) return customStart;
+            return settings.dir > 0 ? mode.start : mode.reverseStart;
+        }
+
+        function selectMode(title, start, step, reverseStart, key = title) {
+            mode = { title, start, step, reverseStart, key };
+            customStart = null;
+            stopAuto();
+            settings.lastMode = key;
+            saveSettings();
+            markLastMode();
+            updateHeaderTitle();
+            showScreen(2);
+            restartCounting();
+        }
+
+        function updateHeaderTitle() {
+            document.getElementById('header-mode-title').innerText =
+                `CONTANDO DE : ${mode.title}${settings.dir < 0 ? ' ▼' : ''}`;
+        }
+
+        function markLastMode() {
+            document.querySelectorAll('#screen-1 [data-mode]').forEach(el => {
+                el.classList.toggle('last-mode', el.dataset.mode === settings.lastMode);
+            });
+        }
+
+        // Recomeça do zero: o primeiro número já aparece, é contado e falado
+        function restartCounting() {
+            countHistory = [];
+            currentValue = null;
+            advanceNumber();
+        }
+
+        // Ajusta o tamanho da fonte para números grandes caberem na tela
+        function fitDisplayNumber(el, len) {
+            const perDigit = 0.65; // largura aproximada de um dígito, em "em"
+            el.style.fontSize = `min(8rem, ${(80 / (len * perDigit)).toFixed(2)}vw, ${(700 / (len * perDigit)).toFixed(1)}px)`;
+        }
+
+        // Regressiva chegou ao fim (próximo valor ficaria abaixo do mínimo do modo)?
+        function isAtEnd() {
+            return settings.dir < 0 && currentValue !== null && currentValue - mode.step < mode.start;
+        }
+
+        function renderNumber(animate) {
+            const text = String(currentValue);
+            const display = document.getElementById('display-number');
+            display.innerText = text;
+            fitDisplayNumber(display, text.length);
+            if (animate) {
+                display.classList.remove('pop', 'milestone');
+                void display.offsetWidth;
+                display.classList.add('pop');
+            }
+            rebuildChips();
+            updateProgress();
+        }
+
+        // Fichas coloridas com os últimos números contados (a última em destaque)
+        function rebuildChips() {
+            const box = document.getElementById('counting-text');
+            box.innerHTML = '';
+            const total = countHistory.length;
+            const slice = countHistory.slice(-CHIP_MAX);
+            if (total > slice.length) {
+                const more = document.createElement('span');
+                more.className = 'chip chip-more';
+                more.textContent = '…';
+                box.appendChild(more);
+            }
+            slice.forEach((v, k) => {
+                const idx = total - slice.length + k;
+                const c = document.createElement('span');
+                c.className = 'chip chip-' + (idx % 6) + (k === slice.length - 1 ? ' chip-last' : '');
+                c.textContent = v;
+                box.appendChild(c);
+            });
+            const outer = document.getElementById('counting-box');
+            outer.scrollTop = outer.scrollHeight;
+        }
+
+        // Barra de progresso: quantos números já foram contados (enche a cada 10)
+        function updateProgress() {
+            const n = countHistory.length;
+            const pct = n === 0 ? 0 : (((n - 1) % 10) + 1) * 10;
+            document.getElementById('progress-fill').style.width = pct + '%';
+            document.getElementById('progress-label').innerText = `${n} contado${n === 1 ? '' : 's'}`;
+        }
+
+        // Marco: valores redondos (10, 100, 1000) maiores que o passo da contagem
+        function milestoneTier(v) {
+            if (v <= 0) return 0;
+            for (const t of [1000, 100, 10]) {
+                if (v % t === 0 && mode.step < t) return t;
+            }
+            return 0;
+        }
+
+        function celebrateMilestone(v) {
+            const tier = isAtEnd() ? 1000 : milestoneTier(v);
+            if (!tier) return;
+            const c = elementCenter('display-number');
+            if (fxEnabled()) {
+                const el = document.getElementById('display-number');
+                el.classList.remove('pop', 'milestone');
+                void el.offsetWidth;
+                el.classList.add('milestone');
+            }
+            if (tier >= 1000) { confetti(1.4); starBurst(c.x, c.y, 24); }
+            else if (tier >= 100) { confetti(0.6); starBurst(c.x, c.y, 18); }
+            else { starBurst(c.x, c.y, 12); }
+            playMilestoneSound(tier);
+        }
+
+        // Mostra o próximo número, adiciona na contagem e fala (nessa ordem). Sem limite.
+        function advanceNumber() {
+            clearTimeout(autoTimer);
+            let next;
+            if (currentValue === null) {
+                next = startValue();
+            } else {
+                next = currentValue + settings.dir * mode.step;
+                if (next < mode.start) {          // fim da regressiva: recomeça
+                    countHistory = [];
+                    next = startValue();
+                }
+            }
+            currentValue = next;
+            countHistory.push(next);
+            renderNumber(true);
+            playTickSound();
+
+            if (isAtEnd()) autoOn = false;        // regressiva terminou: pausa o automático
+            updateControlsUI();
+            if (countHistory.length > 1) celebrateMilestone(next);
+            speakText(String(next), scheduleAuto);
+        }
+
+        // Volta um número (desfaz o último)
+        function goBackOne() {
+            if (countHistory.length <= 1) return;
+            stopAuto();
+            countHistory.pop();
+            currentValue = countHistory[countHistory.length - 1];
+            renderNumber(true);
+            updateControlsUI();
+            speakText(String(currentValue));
+        }
+
+        // ---------- Modo automático ----------
+        function scheduleAuto() {
+            clearTimeout(autoTimer);
+            if (!autoOn || currentScreen !== 2) return;
+            autoTimer = setTimeout(() => {
+                if (autoOn && currentScreen === 2) advanceNumber();
+            }, settings.pause * 1000);
+        }
+
+        function stopAuto() {
+            autoOn = false;
+            clearTimeout(autoTimer);
+            updateControlsUI();
+        }
+
+        function toggleAuto() {
+            autoOn = !autoOn;
+            clearTimeout(autoTimer);
+            if (autoOn) {
+                if (isAtEnd()) advanceNumber(); else scheduleAuto();
+            }
+            updateControlsUI();
+        }
+
+        // ---------- Controles / ajustes ----------
+        function setMetal(el, color) {
+            el.classList.remove('btn-green-metallic', 'btn-yellow-metallic', 'btn-red-metallic');
+            el.classList.add(`btn-${color}-metallic`);
+        }
+
+        function updateControlsUI() {
+            const $ = id => document.getElementById(id);
+            $('btn-back').disabled = countHistory.length <= 1;
+            $('auto-ico').innerText = autoOn ? '⏸' : '▶';
+            $('auto-lbl').innerText = autoOn ? 'PAUSAR' : 'AUTO';
+            setMetal($('btn-auto'), autoOn ? 'green' : 'yellow');
+            $('dir-ico').innerText = settings.dir > 0 ? '▲' : '▼';
+            $('dir-lbl').innerText = settings.dir > 0 ? 'SOBE' : 'DESCE';
+            $('mute-ico').innerText = settings.muted ? '🔇' : '🔊';
+            setMetal($('btn-mute'), settings.muted ? 'red' : 'yellow');
+        }
+
+        function setDir(d) {
+            settings.dir = d < 0 ? -1 : 1;
+            saveSettings();
+            updateHeaderTitle();
+            updateControlsUI();
+            syncSettingsUI();
+        }
+
+        function toggleMute() {
+            settings.muted = !settings.muted;
+            saveSettings();
+            if (settings.muted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+            updateControlsUI();
+            syncSettingsUI();
+        }
+
+        const fmtDec = n => Number(n).toFixed(1).replace('.', ',');
+
+        function setRate(v) {
+            settings.rate = clamp(Number(v) || 1, 0.5, 1.5);
+            saveSettings();
+            document.getElementById('rate-label').innerText = fmtDec(settings.rate) + 'x';
+        }
+
+        function setPause(v) {
+            settings.pause = clamp(Number(v) || 1, 0.3, 5);
+            saveSettings();
+            document.getElementById('pause-label').innerText = fmtDec(settings.pause) + ' s';
+        }
+
+        function setVoice(uri) {
+            settings.voiceURI = uri || '';
+            saveSettings();
+        }
+
+        function testVoice() {
+            speakText('Um, dois, três');
+        }
+
+        function populateVoices() {
+            const sel = document.getElementById('set-voice');
+            if (!sel || !('speechSynthesis' in window)) return;
+            const voices = window.speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('pt'));
+            sel.innerHTML = '';
+            const auto = document.createElement('option');
+            auto.value = '';
+            auto.textContent = 'Automática (português)';
+            sel.appendChild(auto);
+            voices.forEach(v => {
+                const o = document.createElement('option');
+                o.value = v.voiceURI;
+                o.textContent = `${v.name} (${v.lang})`;
+                sel.appendChild(o);
+            });
+            sel.value = voices.some(v => v.voiceURI === settings.voiceURI) ? settings.voiceURI : '';
+        }
+
+        function setSeg(el, active) {
+            el.className = 'rounded-xl py-2 font-extrabold text-sm tracking-wider ' +
+                (active ? 'btn-green-metallic text-black' : 'bg-gray-700 text-white');
+        }
+
+        function syncSettingsUI() {
+            const $ = id => document.getElementById(id);
+            const m = $('set-mute');
+            m.innerText = settings.muted ? 'SOM DESLIGADO' : 'SOM LIGADO';
+            m.className = 'w-full rounded-xl py-2 font-extrabold uppercase tracking-wider mb-3 ' +
+                (settings.muted ? 'btn-red-metallic text-white' : 'btn-green-metallic text-black');
+            $('set-rate').value = settings.rate;
+            $('rate-label').innerText = fmtDec(settings.rate) + 'x';
+            $('set-pause').value = settings.pause;
+            $('pause-label').innerText = fmtDec(settings.pause) + ' s';
+            setSeg($('set-dir-up'), settings.dir > 0);
+            setSeg($('set-dir-down'), settings.dir < 0);
+            ['escuro', 'claro', 'colorido'].forEach(t => setChip($('theme-' + t), settings.theme === t));
+            setToggleBtn($('set-fx'), settings.fx, 'EFEITOS VISUAIS');
+            setToggleBtn($('set-sfx'), settings.sfx, 'EFEITOS SONOROS');
+        }
+
+        function openSettings() {
+            syncSettingsUI();
+            populateVoices();
+            document.getElementById('count-settings').classList.toggle('hidden', currentScreen !== 2);
+            document.getElementById('set-start').value = customStart !== null ? customStart : '';
+            document.getElementById('start-error').classList.add('hidden');
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function applyCountSettings() {
+            const raw = document.getElementById('set-start').value.trim();
+            if (raw === '') {
+                customStart = null;
+            } else {
+                const n = Number(raw);
+                if (!Number.isInteger(n) || n < 0 || n > 1e12) {
+                    document.getElementById('start-error').classList.remove('hidden');
+                    return;
+                }
+                customStart = n;
+            }
+            closeSettings();
+            restartCounting();
+        }
+
+        document.getElementById('set-start').addEventListener('keydown', e => {
+            if (e.key === 'Enter') applyCountSettings();
+            if (e.key === 'Escape') closeSettings();
+        });
+
+        function handleDisplayClick() {
+            if (isLongPressTriggered) {
+                isLongPressTriggered = false;
+                return;
+            }
+            advanceNumber();
+        }
+
+        function startLongPress() {
+            isLongPressTriggered = false;
+            cancelLongPress();
+            longPressTimer = setTimeout(() => {
+                isLongPressTriggered = true;
+                restartCounting();
+                triggerFlash('bg-yellow-500');
+            }, 800);
+        }
+
+        function cancelLongPress() {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function goToScreen1() {
+            cancelLongPress();
+            stopAuto();
+            quizSession++;                 // cancela eventos pendentes do quiz
+            speakToken++;                  // cancela callbacks de fala pendentes
+            clearTimeout(speakTimer);
+            showScreen(1);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        // ---------- Botão X: contagem de X em X ----------
+        function openCustomModal() {
+            const input = document.getElementById('custom-input');
+            input.value = settings.lastX;
+            document.getElementById('custom-error').classList.add('hidden');
+            document.getElementById('custom-modal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function closeCustomModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        function confirmCustom() {
+            const n = Number(document.getElementById('custom-input').value);
+            if (!Number.isInteger(n) || n < 1 || n > 1000000000) {
+                document.getElementById('custom-error').classList.remove('hidden');
+                return;
+            }
+            closeCustomModal();
+            settings.lastX = String(n);
+            selectMode(`${n} EM ${n}`, 0, n, n * 10, 'X');
+        }
+
+        document.getElementById('custom-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') confirmCustom();
+            if (e.key === 'Escape') closeCustomModal();
+        });
+
+        // ---------- Quiz ----------
+        // Níveis do quiz de sequência: passos usados e valor máximo de cada passo
+        const SEQ_LEVELS = {
+            facil:   { maxByStep: { 1: 20, 2: 20, 5: 50, 10: 100 }, types: ['depois'], dirs: [1] },
+            medio:   { maxByStep: { 1: 100, 2: 100, 5: 200, 10: 300, 20: 300, 25: 250 }, types: ['depois', 'antes', 'meio'], dirs: [1, -1] },
+            dificil: { maxByStep: { 2: 500, 5: 500, 10: 1000, 25: 1000, 50: 1000, 100: 2000, 250: 2500, 500: 5000, 1000: 10000 }, types: ['depois', 'antes', 'meio'], dirs: [1, -1] }
+        };
+        // Níveis da tabuada: quais tabuadas (a) e multiplicadores (b)
+        const TAB_LEVELS = {
+            facil:   { tables: [2, 5, 10], bMin: 1, bMax: 10 },
+            medio:   { tables: [2, 3, 4, 5, 6, 7, 8, 9], bMin: 1, bMax: 10 },
+            dificil: { tables: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], bMin: 2, bMax: 12 }
+        };
+        const PROMPTS = {
+            depois: 'QUAL NÚMERO VEM DEPOIS?',
+            antes: 'QUAL NÚMERO VEM ANTES?',
+            meio: 'QUAL NÚMERO FALTA NO MEIO?',
+            tab: 'QUANTO É?'
+        };
+        const LEVEL_NAMES = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
+
+        const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+        const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+        const recordKey = () => `${settings.quizMode}-${settings.quizLevel}`;
+
+        function openQuizScreen(m) {
+            if (m === 'seq' || m === 'tab') {
+                settings.quizMode = m;
+                saveSettings();
+            }
+            quizSession++;
+            showScreen(3);
+            resetQuizSession();
+            syncQuizUI();
+            generateNewQuizQuestion();
+        }
+
+        function resetQuizSession() {
+            quizState = { correct: 0, streak: 0, hints: 3, hinted: false, eliminated: new Set(), runBest: 0, announced: false };
+        }
+
+        function setQuizMode(m) {
+            if (settings.quizMode === m) return;
+            settings.quizMode = m;
+            saveSettings();
+            restartQuiz();
+        }
+
+        function setQuizLevel(l) {
+            if (settings.quizLevel === l) return;
+            settings.quizLevel = l;
+            saveSettings();
+            restartQuiz();
+        }
+
+        // Trocar modo/nível começa uma nova partida
+        function restartQuiz() {
+            quizSession++;                 // cancela eventos pendentes
+            speakToken++;
+            clearTimeout(speakTimer);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            resetQuizSession();
+            syncQuizUI();
+            generateNewQuizQuestion();
+        }
+
+        function setChip(el, active) {
+            el.className = 'quiz-chip ' + (active ? 'btn-yellow-metallic text-black' : 'bg-gray-700 text-white');
+        }
+
+        function syncQuizUI() {
+            setChip(document.getElementById('qm-seq'), settings.quizMode === 'seq');
+            setChip(document.getElementById('qm-tab'), settings.quizMode === 'tab');
+            ['facil', 'medio', 'dificil'].forEach(l => setChip(document.getElementById('ql-' + l), settings.quizLevel === l));
+            document.getElementById('quiz-title').innerText = settings.quizMode === 'tab' ? 'TABUADA' : 'QUAL O NÚMERO';
+            updateQuizHUD();
+        }
+
+        function updateQuizHUD() {
+            document.getElementById('hud-correct').innerText = quizState.correct;
+            document.getElementById('hud-streak').innerText = quizState.streak;
+            document.getElementById('hud-best').innerText = settings.records[recordKey()] || 0;
+            updateCombo();
+        }
+
+        // Chamas do combo: crescem a cada acerto seguido
+        function updateCombo() {
+            const f = document.getElementById('combo-flame');
+            const st = quizState.streak;
+            if (st < 2) { f.innerText = ''; return; }
+            f.innerText = st >= 10 ? '🔥🔥🔥' : st >= 5 ? '🔥🔥' : '🔥';
+            f.style.fontSize = (0.9 + Math.min(st, 15) * 0.06).toFixed(2) + 'em';
+        }
+
+        function updateHintUI() {
+            const btn = document.getElementById('quiz-hint');
+            const wrongLeft = [0, 1, 2, 3].filter(i => currentQuizData.options[i] !== currentQuizData.correctAnswer && !quizState.eliminated.has(i)).length;
+            btn.innerText = `💡 DICA (${quizState.hints})`;
+            btn.disabled = quizLocked || quizState.hinted || quizState.hints <= 0 || wrongLeft < 2;
+            btn.style.opacity = btn.disabled ? '0.4' : '1';
+            btn.style.pointerEvents = btn.disabled ? 'none' : 'auto';
+        }
+
+        // Ajusta o tamanho da fonte da pergunta para caber em uma linha
+        function fitQuizText(len) {
+            const el = document.getElementById('quiz-sequence');
+            const perChar = 0.7;
+            el.style.fontSize = `min(3.75rem, ${(76 / (len * perChar)).toFixed(2)}vw, ${(680 / (len * perChar)).toFixed(1)}px)`;
+        }
+
+        // Mostra a pergunta; reveal = true coloca a resposta (em verde) no lugar do "?"
+        function renderQuizText(reveal) {
+            const d = currentQuizData;
+            const mid = reveal ? `<span class="text-green-400">${d.correctAnswer}</span>` : '?';
+            document.getElementById('quiz-sequence').innerHTML = d.before + mid + d.after;
+            fitQuizText((d.before + d.correctAnswer + d.after).length);
+        }
+
+        function buildSeqQuestion() {
+            const lv = SEQ_LEVELS[settings.quizLevel];
+            const step = pick(Object.keys(lv.maxByStep).map(Number));
+            const maxV = lv.maxByStep[step];
+            const type = pick(lv.types);
+            const dir = pick(lv.dirs);
+
+            // base: passo 1 e 2 aceitam qualquer início; os demais começam em múltiplos do passo
+            const maxBase = maxV - 2 * step;
+            let base = (step <= 2) ? randInt(0, maxBase) : step * randInt(0, Math.floor(maxBase / step));
+            let terms = [base, base + step, base + 2 * step];
+            if (dir < 0) terms.reverse();
+
+            const hidden = type === 'depois' ? 2 : type === 'antes' ? 0 : 1;
+            const answer = terms[hidden];
+            const shown = terms.filter((_, i) => i !== hidden);
+
+            // alternativas erradas: múltiplos do passo perto da resposta (sem repetir os números mostrados)
+            const pool = [];
+            for (let k = 1; k <= 6; k++) {
+                [answer + k * step, answer - k * step].forEach(v => {
+                    if (v >= 0 && v !== answer && !shown.includes(v) && !pool.includes(v)) pool.push(v);
+                });
+            }
+            const wrong = shuffle(pool).slice(0, 3);
+
+            const before = terms.slice(0, hidden).map(n => n + ' , ').join('');
+            const after = terms.slice(hidden + 1).map(n => ' , ' + n).join('');
+            return { answer, wrong, before, after, speak: String(answer), prompt: PROMPTS[type] };
+        }
+
+        function buildTabQuestion() {
+            const lv = TAB_LEVELS[settings.quizLevel];
+            const a = pick(lv.tables);
+            const b = randInt(lv.bMin, lv.bMax);
+            const answer = a * b;
+            const cand = [answer + a, answer - a, answer + b, answer - b, answer + 1, answer - 1, answer + 2, answer - 2, answer + 10, answer - 10,
+                          (a + 1) * b, (a - 1) * b, a * (b + 1), a * (b - 1)];
+            const pool = [...new Set(cand)].filter(v => v > 0 && v !== answer);
+            const wrong = shuffle(pool).slice(0, 3);
+            return { answer, wrong, before: `${a} × ${b} = `, after: '', speak: `${a} vezes ${b} é igual a ${answer}`, prompt: PROMPTS.tab };
+        }
+
+        function generateNewQuizQuestion() {
+            quizLocked = false;
+            quizQid++;
+            quizState.hinted = false;
+            quizState.eliminated = new Set();
+
+            const q = settings.quizMode === 'tab' ? buildTabQuestion() : buildSeqQuestion();
+            const options = shuffle([q.answer, ...q.wrong]);
+            currentQuizData = { correctAnswer: q.answer, options, before: q.before, after: q.after, speak: q.speak };
+
+            renderQuizText(false);
+            document.getElementById('quiz-prompt').innerText = q.prompt;
+            for (let i = 0; i < 4; i++) {
+                const b = document.getElementById(`quiz-opt-${i}`);
+                b.innerText = options[i];
+                b.classList.remove('opt-off', 'shake');
+            }
+            updateQuizHUD();
+            updateHintUI();
+            setMascot('idle', pick(MASCOT_MSG.idle));
+        }
+
+        function markOption(i, delay = 0) {
+            quizState.eliminated.add(i);
+            const qid = quizQid;
+            const apply = () => {
+                if (qid === quizQid) document.getElementById(`quiz-opt-${i}`).classList.add('opt-off');
+            };
+            if (delay) setTimeout(apply, delay); else apply();
+        }
+
+        // Dica: elimina duas alternativas erradas
+        function useHint() {
+            if (quizLocked || quizState.hinted || quizState.hints <= 0) return;
+            const wrongIdx = [0, 1, 2, 3].filter(i => currentQuizData.options[i] !== currentQuizData.correctAnswer && !quizState.eliminated.has(i));
+            if (wrongIdx.length < 2) return;
+            shuffle(wrongIdx).slice(0, 2).forEach(i => markOption(i));
+            quizState.hinted = true;
+            quizState.hints--;
+            updateHintUI();
+            setMascot('think', pick(MASCOT_MSG.hint));
+        }
+
+        function checkQuizAnswer(selectedIndex) {
+            if (quizLocked || quizState.eliminated.has(selectedIndex)) return;
+            getAudioCtx(); // libera o áudio dentro do gesto do usuário
+            const chosen = currentQuizData.options[selectedIndex];
+
+            if (chosen !== currentQuizData.correctAnswer) {
+                // Erro: a alternativa treme e some, a sequência volta a zero
+                quizState.streak = 0;
+                quizState.announced = false;
+                const btn = document.getElementById(`quiz-opt-${selectedIndex}`);
+                btn.classList.remove('shake');
+                void btn.offsetWidth;
+                btn.classList.add('shake');
+                markOption(selectedIndex, 450);
+                updateQuizHUD();
+                updateHintUI();
+                triggerFlash('bg-red-600');
+                playErrorSound();
+                if ('vibrate' in navigator) navigator.vibrate(300);
+                setMascot('sad', pick(MASCOT_MSG.bad));
+                return;
+            }
+
+            quizLocked = true;
+            const session = quizSession;
+
+            // Placar e recorde
+            quizState.correct++;
+            quizState.streak++;
+            if (quizState.streak === 1) quizState.runBest = settings.records[recordKey()] || 0;
+            let newRecord = false;
+            if (quizState.streak > (settings.records[recordKey()] || 0)) {
+                settings.records[recordKey()] = quizState.streak;
+                saveSettings();
+                if (!quizState.announced && quizState.streak > quizState.runBest && quizState.runBest >= 2) {
+                    newRecord = true;
+                    quizState.announced = true;
+                }
+            }
+            if (quizState.correct % 5 === 0 && quizState.hints < 3) quizState.hints++;   // +1 dica a cada 5 acertos
+            updateQuizHUD();
+            updateHintUI();
+
+            // 1) A resposta aparece na posição correta
+            renderQuizText(true);
+
+            // 2) Fala o nome do número e SÓ QUANDO TERMINAR, vêm os outros eventos
+            speakText(currentQuizData.speak, () => {
+                if (session !== quizSession) return;
+                triggerFlash('bg-green-600');
+                playSuccessSound();
+                if ('vibrate' in navigator) navigator.vibrate(200);
+
+                const st = quizState.streak;
+                const c = elementCenter('quiz-sequence');
+                starBurst(c.x, c.y, 14);
+                if (newRecord) {
+                    const box = document.getElementById('hud-best-box');
+                    box.classList.remove('record-flash');
+                    void box.offsetWidth;
+                    box.classList.add('record-flash');
+                    confetti(1.4);
+                    setMascot('party', pick(MASCOT_MSG.record));
+                } else if (st >= 5 && st % 5 === 0) {
+                    confetti(1);
+                    setMascot('party', pick(MASCOT_MSG.fire));
+                } else {
+                    confetti(0.5);
+                    setMascot('happy', pick(MASCOT_MSG.ok));
+                }
+
+                // 3) Depois dos efeitos, fala "Parabéns!" e segue para a próxima
+                setTimeout(() => {
+                    if (session !== quizSession) return;
+                    speakText(newRecord ? 'Parabéns! Novo recorde!' : 'Parabéns!', () => setTimeout(() => {
+                        if (session === quizSession) generateNewQuizQuestion();
+                    }, 500));
+                }, 400);
+            });
+        }
+
+        // ---------- Recordes ----------
+        function openRecords() {
+            const body = document.getElementById('records-body');
+            const sections = [['seq', 'SEQUÊNCIA'], ['tab', 'TABUADA']];
+            body.innerHTML = '';
+            sections.forEach(([m, title]) => {
+                const h = document.createElement('p');
+                h.className = 'text-yellow-400 font-extrabold text-xs tracking-widest mt-3 mb-1';
+                h.textContent = title;
+                body.appendChild(h);
+                ['facil', 'medio', 'dificil'].forEach(l => {
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center bg-gray-800/80 border border-gray-600 rounded-lg px-3 py-2 mb-1';
+                    const name = document.createElement('span');
+                    name.className = 'text-gray-300 text-sm font-bold';
+                    name.textContent = LEVEL_NAMES[l];
+                    const val = document.createElement('span');
+                    val.className = 'text-white font-black text-lg';
+                    val.textContent = settings.records[`${m}-${l}`] || '—';
+                    row.appendChild(name);
+                    row.appendChild(val);
+                    body.appendChild(row);
+                });
+            });
+            resetRecordsConfirm(false);
+            document.getElementById('records-modal').classList.remove('hidden');
+        }
+
+        function closeRecords() {
+            document.getElementById('records-modal').classList.add('hidden');
+        }
+
+        let recordsResetArmed = false;
+        let recordsResetTimer = null;
+        function resetRecordsConfirm(armed) {
+            recordsResetArmed = armed;
+            clearTimeout(recordsResetTimer);
+            document.getElementById('records-reset').innerText = armed ? 'Toque de novo para confirmar' : 'Zerar recordes';
+            if (armed) recordsResetTimer = setTimeout(() => resetRecordsConfirm(false), 3000);
+        }
+
+        function resetRecords() {
+            if (!recordsResetArmed) { resetRecordsConfirm(true); return; }
+            settings.records = {};
+            saveSettings();
+            resetRecordsConfirm(false);
+            openRecords();
+        }
+
+        // ---------- Som de acerto ----------
+        let audioCtx = null;
+        function getAudioCtx() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            } catch (e) { audioCtx = null; }
+            return audioCtx;
+        }
+
+        function playSuccessSound() {
+            playTones([{ f: 660, t: 0, d: 0.12, v: 0.25 }, { f: 880, t: 0.13, d: 0.12, v: 0.25 }]);
+        }
+
+        function triggerFlash(colorClass) {
+            if (!fxEnabled()) return;
+            const el = document.getElementById('flash-layer');
+            el.style.backgroundColor = FLASH_COLORS[colorClass] || '#ffffff';
+            el.classList.remove('flash-go');
+            void el.offsetWidth;
+            el.classList.add('flash-go');
+        }
+
+        // ---------- Voz ----------
+        let speakTimer = null;
+        let speakToken = 0;
+
+        // onEnd (opcional) é chamado quando a fala termina; ignorado se outra fala a interromper
+        function speakText(text, onEnd) {
+            const token = ++speakToken;
+            let done = false;
+            let fallback = null;
+            const finish = () => {
+                if (done || token !== speakToken) return;
+                done = true;
+                clearTimeout(fallback);
+                if (onEnd) onEnd();
+            };
+
+            if (!('speechSynthesis' in window)) {
+                if (onEnd) setTimeout(finish, 700);
+                return;
+            }
+
+            // Voz desligada: não fala, mas mantém o mesmo ritmo de eventos
+            if (settings.muted) {
+                window.speechSynthesis.cancel();
+                clearTimeout(speakTimer);
+                if (onEnd) setTimeout(finish, 350);
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            clearTimeout(speakTimer);
+            if (onEnd) fallback = setTimeout(finish, 5000); // segurança se o navegador não avisar o fim
+
+            // pequeno atraso após cancel() evita que o navegador engula a fala
+            speakTimer = setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'pt-BR';
+                utterance.rate = settings.rate;
+                utterance.pitch = 1.0;
+                const voices = window.speechSynthesis.getVoices();
+                const ptVoice = voices.find(v => settings.voiceURI && v.voiceURI === settings.voiceURI)
+                    || voices.find(v => v.lang.includes('pt-BR')) || voices.find(v => v.lang.startsWith('pt'));
+                if (ptVoice) utterance.voice = ptVoice;
+                utterance.onend = finish;
+                utterance.onerror = finish;
+                window.__utt = utterance; // evita coleta de lixo antes de terminar
+                window.speechSynthesis.speak(utterance);
+            }, 60);
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+                populateVoices();
+            };
+        }
+
+        // ---------- Efeitos sonoros ----------
+        function playTones(list) {
+            if (!settings.sfx) return;
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+            list.forEach(({ f, t = 0, d = 0.12, type = 'sine', v = 0.2, to }) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                const st = ctx.currentTime + t;
+                osc.type = type;
+                osc.frequency.setValueAtTime(f, st);
+                if (to) osc.frequency.exponentialRampToValueAtTime(to, st + d);
+                gain.gain.setValueAtTime(0.0001, st);
+                gain.gain.exponentialRampToValueAtTime(v, st + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.0001, st + d);
+                osc.connect(gain).connect(ctx.destination);
+                osc.start(st);
+                osc.stop(st + d + 0.02);
+            });
+        }
+        function playTickSound() { playTones([{ f: 900, d: 0.04, type: 'triangle', v: 0.07 }]); }
+        function playErrorSound() { playTones([{ f: 240, to: 120, d: 0.3, type: 'sawtooth', v: 0.12 }]); }
+        function playMilestoneSound(tier) {
+            const notes = tier >= 1000 ? [523, 659, 784, 1047, 1319] : tier >= 100 ? [523, 659, 784, 1047] : [784, 988];
+            playTones(notes.map((f, i) => ({ f, t: i * 0.09, d: 0.14, type: 'triangle', v: 0.22 })));
+        }
+
+        // ---------- Efeitos visuais (confete e estrelas) ----------
+        const FLASH_COLORS = { 'bg-green-600': '#16a34a', 'bg-red-600': '#dc2626', 'bg-yellow-500': '#eab308' };
+        const FX_COLORS = ['#f87171', '#fbbf24', '#4ade80', '#38bdf8', '#a78bfa', '#f472b6'];
+        const fx = { canvas: null, ctx: null, parts: [], running: false, w: 0, h: 0 };
+
+        function fxEnabled() {
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return !!settings.fx && !reduce;
+        }
+
+        function applyFx() {
+            document.documentElement.classList.toggle('no-fx', !fxEnabled());
+        }
+
+        function fxResize() {
+            if (!fx.canvas) return;
+            const dpr = window.devicePixelRatio || 1;
+            fx.w = window.innerWidth;
+            fx.h = window.innerHeight;
+            fx.canvas.width = Math.round(fx.w * dpr);
+            fx.canvas.height = Math.round(fx.h * dpr);
+            fx.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function fxInit() {
+            fx.canvas = document.getElementById('fx-canvas');
+            if (!fx.canvas || !fx.canvas.getContext) { fx.canvas = null; return; }
+            fx.ctx = fx.canvas.getContext('2d');
+            if (!fx.ctx) { fx.canvas = null; return; }
+            fxResize();
+            window.addEventListener('resize', fxResize);
+        }
+
+        function elementCenter(id) {
+            try {
+                const r = document.getElementById(id).getBoundingClientRect();
+                return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            } catch (e) {
+                return { x: (fx.w || 300) / 2, y: (fx.h || 500) / 2 };
+            }
+        }
+
+        function fxSpawn(p) {
+            fx.parts.push(p);
+            if (!fx.running) { fx.running = true; requestAnimationFrame(fxLoop); }
+        }
+
+        function confetti(power = 1) {
+            if (!fxEnabled() || !fx.ctx) return;
+            const n = Math.round(70 * power);
+            for (let i = 0; i < n; i++) {
+                fxSpawn({
+                    x: Math.random() * fx.w, y: -10 - Math.random() * fx.h * 0.25,
+                    vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, g: 0.08,
+                    rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.3,
+                    size: 6 + Math.random() * 6, color: pick(FX_COLORS),
+                    life: 0, max: 150 + Math.random() * 60, shape: Math.random() < 0.3 ? 'circle' : 'rect'
+                });
+            }
+        }
+
+        function starBurst(x, y, count = 14) {
+            if (!fxEnabled() || !fx.ctx) return;
+            for (let i = 0; i < count; i++) {
+                const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+                const sp = 3 + Math.random() * 5;
+                fxSpawn({
+                    x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 1.5, g: 0.1,
+                    rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.25,
+                    size: 9 + Math.random() * 7, color: pick(['#fde047', '#facc15', '#fff7ae', '#fbbf24']),
+                    life: 0, max: 55 + Math.random() * 35, shape: 'star'
+                });
+            }
+        }
+
+        function drawStar(ctx, r) {
+            ctx.beginPath();
+            for (let i = 0; i < 10; i++) {
+                const rad = i % 2 === 0 ? r : r * 0.45;
+                const a = (Math.PI / 5) * i - Math.PI / 2;
+                ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function fxLoop() {
+            const ctx = fx.ctx;
+            ctx.clearRect(0, 0, fx.w, fx.h);
+            fx.parts = fx.parts.filter(p => {
+                p.life++;
+                p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= 0.995; p.rot += p.vr;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, Math.min(1, (p.max - p.life) / (p.max * 0.4)));
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                ctx.fillStyle = p.color;
+                if (p.shape === 'star') drawStar(ctx, p.size);
+                else if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, 6.28); ctx.fill(); }
+                else ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.6);
+                ctx.restore();
+                return p.life < p.max && p.y < fx.h + 30;
+            });
+            if (fx.parts.length) requestAnimationFrame(fxLoop);
+            else { fx.running = false; ctx.clearRect(0, 0, fx.w, fx.h); }
+        }
+
+        // ---------- Mascote ----------
+        const MASCOT_MSG = {
+            ok: ['Muito bem!', 'Isso aí!', 'Mandou bem!', 'Show de bola!', 'Acertou!'],
+            bad: ['Quase! Tente outra.', 'Ops! Olhe com calma.', 'Não foi dessa vez!'],
+            hint: ['Eliminei duas pra você!', 'Pronto, ficou mais fácil!'],
+            idle: ['Qual será?', 'Vamos lá!', 'Pense com calma.', 'Você consegue!'],
+            fire: ['Você está em chamas! 🔥', 'Que sequência incrível! 🔥'],
+            record: ['Novo recorde! 🏆', 'Recorde batido! 🏆']
+        };
+        let mascotTimer = null;
+
+        function setMascot(state, msg) {
+            const faces = { idle: ['normal', 'smile'], happy: ['happy', 'big'], party: ['star', 'big'], sad: ['sad', 'sad'], think: ['normal', 'o'] };
+            const [eyes, mouth] = faces[state] || faces.idle;
+            ['normal', 'happy', 'star', 'sad'].forEach(n => { document.getElementById('m-eyes-' + n).style.display = n === eyes ? '' : 'none'; });
+            ['smile', 'big', 'sad', 'o'].forEach(n => { document.getElementById('m-mouth-' + n).style.display = n === mouth ? '' : 'none'; });
+            if (msg) document.getElementById('mascot-msg').innerText = msg;
+            const svg = document.getElementById('mascot');
+            svg.classList.remove('mascot-bounce', 'mascot-shake');
+            void svg.getBoundingClientRect();
+            if (state === 'happy' || state === 'party') svg.classList.add('mascot-bounce');
+            else if (state === 'sad') svg.classList.add('mascot-shake');
+            clearTimeout(mascotTimer);
+            if (state !== 'idle') mascotTimer = setTimeout(() => setMascot('idle'), 2600);
+        }
+
+        // ---------- Tema e preferências visuais ----------
+        const THEME_COLORS = { escuro: '#1f2937', claro: '#e5e7eb', colorido: '#7e22ce' };
+
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', settings.theme);
+            const m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', THEME_COLORS[settings.theme]);
+        }
+
+        function setTheme(t) {
+            settings.theme = t;
+            saveSettings();
+            applyTheme();
+            syncSettingsUI();
+        }
+
+        function setToggleBtn(el, on, label) {
+            el.innerText = `${label}: ${on ? 'LIGADOS' : 'DESLIGADOS'}`;
+            el.className = 'w-full rounded-xl py-2 font-extrabold uppercase tracking-wider text-sm mb-2 ' +
+                (on ? 'btn-green-metallic text-black' : 'btn-red-metallic text-white');
+        }
+
+        function toggleFx() {
+            settings.fx = !settings.fx;
+            saveSettings();
+            applyFx();
+            syncSettingsUI();
+        }
+
+        function toggleSfx() {
+            settings.sfx = !settings.sfx;
+            saveSettings();
+            syncSettingsUI();
+            playTickSound();
+        }
+
+        // Instalação / offline (só funciona quando o app é aberto por http/https)
+        if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
+        // Estado inicial da interface
+        applyTheme();
+        applyFx();
+        fxInit();
+        updateControlsUI();
+        markLastMode();
+    </script>
+</body>
+</html>

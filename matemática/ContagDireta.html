@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ff70a6">
+<title>Contagem Direta 🎈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+  :root {
+    --ink: #2b1b4d;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; overscroll-behavior: none;
+    font-family: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
+    color: var(--ink); background: #fff7fb;
+  }
+  button { font: inherit; border: 0; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 4px solid #2b1b4d; outline-offset: 3px; }
+
+  /* =====================================================
+     BOLHAS 3D (mesmo visual da Contagem Mágica)
+     ===================================================== */
+  .bubble {
+    position: relative; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 .35em .7em rgba(0,0,0,.30), inset -0.15em -0.2em 0.45em rgba(0,0,0,.38);
+    transition: transform .14s cubic-bezier(.175,.885,.32,1.275), filter .2s ease;
+  }
+  .bubble::before {
+    content: ''; position: absolute; top: 8%; left: 15%; width: 66%; height: 38%;
+    border-radius: 50%; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(255,255,255,.95), rgba(255,255,255,0));
+  }
+  .bubble:active { transform: scale(.9); }
+
+  .b-red    { --c: #7a0000; background: radial-gradient(circle at 35% 30%, #ff6b6b, #e60000 60%, #800000); }
+  .b-yellow { --c: #8a5a00; background: radial-gradient(circle at 35% 30%, #fff06b, #ffc800 60%, #c98f00); }
+  .b-blue   { --c: #002f85; background: radial-gradient(circle at 35% 30%, #54ccff, #0088ff 60%, #0044cc); }
+  .b-pink   { --c: #8a004f; background: radial-gradient(circle at 35% 30%, #ff7ad2, #ff0099 60%, #99005c); }
+  .b-green  { --c: #005a00; background: radial-gradient(circle at 35% 30%, #7dff7d, #00c800 60%, #006600); }
+  .b-purple { --c: #4a0070; background: radial-gradient(circle at 35% 30%, #e888ff, #a000e6 60%, #590080); }
+
+  /* número dentro da bolha */
+  .num {
+    position: relative; z-index: 1; line-height: 1; color: #fff;
+    font-family: 'Outfit', 'Fredoka', sans-serif; font-weight: 900;
+    font-size: calc(var(--d) * .46);
+    -webkit-text-stroke: .07em var(--c); paint-order: stroke fill;
+    text-shadow: 0 .05em 0 var(--c), 0 .1em .18em rgba(0,0,0,.35);
+  }
+  .num.small { font-size: calc(var(--d) * .38); }   /* números com 3 dígitos (100) */
+
+  /* bolha estourada = bolha preta brilhante */
+  .bubble.popped {
+    background: radial-gradient(circle at 35% 25%, #707070, #232323 55%, #000) !important;
+    box-shadow: 0 .2em .4em rgba(0,0,0,.6), inset -0.1em -0.1em .35em rgba(0,0,0,.9);
+    transform: scale(.92); cursor: default;
+  }
+  .bubble.popped::before { opacity: .55; }
+
+  /* entrada, erro, dica e estouro */
+  .bubble.enter { animation: bubbleIn .45s cubic-bezier(.2,1.5,.4,1) backwards; }
+  @keyframes bubbleIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+  .bubble.shake { animation: tileShake .4s ease-in-out; }
+  @keyframes tileShake {
+    0%,100% { transform: translateX(0) rotate(0); }
+    20%,60% { transform: translateX(-9%) rotate(-5deg); }
+    40%,80% { transform: translateX(9%) rotate(5deg); }
+  }
+
+  .bubble.hint { animation: hint .6s ease-in-out 3; }
+  @keyframes hint {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.14); box-shadow: 0 0 0 .22em #fff, 0 0 1.2em .45em #ffd400, inset -0.15em -0.2em .45em rgba(0,0,0,.38); }
+  }
+
+  .bubble.bursting { animation: swell .12s ease-out forwards; filter: brightness(1.35) saturate(1.2); }
+  @keyframes swell { to { transform: scale(1.28); } }
+  .bubble.snap { animation: snap .3s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes snap { from { transform: scale(1.25); } to { transform: scale(.92); } }
+  .bubble.jiggle { animation: jiggle .25s ease; }
+  @keyframes jiggle { 0%,100% { transform: scale(.92); } 40% { transform: scale(.82); } }
+
+  /* ---------- Efeito de estouro (anéis, gotas, texto) ---------- */
+  #fx { position: fixed; inset: 0; z-index: 30; pointer-events: none; overflow: hidden; }
+  .fx-ring, .fx-p, .fx-text { position: fixed; transform: translate(-50%, -50%); }
+  .fx-ring { border-radius: 50%; animation: fxRing .5s ease-out forwards; }
+  @keyframes fxRing {
+    from { transform: translate(-50%, -50%) scale(.85); opacity: .95; }
+    to   { transform: translate(-50%, -50%) scale(2.3);  opacity: 0; }
+  }
+  .fx-p { border-radius: 50%; animation: fxFly .65s cubic-bezier(.1,.75,.3,1) forwards; box-shadow: inset -2px -2px 4px rgba(0,0,0,.25); }
+  @keyframes fxFly {
+    from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.15); opacity: 0; }
+  }
+  .fx-text {
+    font-family: 'Outfit', 'Fredoka', sans-serif; font-weight: 900; white-space: nowrap; color: #fff;
+    -webkit-text-stroke: .09em var(--c); paint-order: stroke fill;
+    text-shadow: 0 .06em 0 var(--c), 0 .12em .2em rgba(0,0,0,.35);
+    animation: fxText .8s ease-out forwards;
+  }
+  @keyframes fxText {
+    0%   { transform: translate(-50%, -50%) scale(.2) rotate(var(--r)); opacity: 0; }
+    25%  { transform: translate(-50%, -50%) scale(1.2) rotate(var(--r)); opacity: 1; }
+    100% { transform: translate(-50%, calc(-50% - var(--rise))) scale(1) rotate(var(--r)); opacity: 0; }
+  }
+
+  /* =====================================================
+     TELA INICIAL
+     ===================================================== */
+  #startScreen {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+    text-align: center; overflow: hidden;
+    background: linear-gradient(135deg, #ff70a6, #ff9770 25%, #ffd670 50%, #70d6ff 75%, #eb70ff);
+    background-size: 300% 300%; animation: gradientBG 9s ease infinite;
+    transition: opacity .5s ease;
+  }
+  #startScreen.leaving { opacity: 0; pointer-events: none; }
+  @keyframes gradientBG { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+  .cloud {
+    position: absolute; left: 0; height: 44px; width: 130px;
+    background: rgba(255,255,255,.88); border-radius: 100px;
+    animation: floatCloud linear infinite; pointer-events: none;
+  }
+  .cloud::before, .cloud::after { content: ''; position: absolute; background: inherit; border-radius: 50%; }
+  .cloud::before { width: 54px; height: 54px; top: -26px; left: 22px; }
+  .cloud::after  { width: 70px; height: 70px; top: -36px; left: 62px; }
+  @keyframes floatCloud { from { transform: translateX(-240px); } to { transform: translateX(110vw); } }
+
+  .start-top { position: relative; z-index: 1; margin-top: 1vh; }
+  .start-bubbles { display: flex; gap: 12px; justify-content: center; margin-bottom: 10px; --d: clamp(46px, 9vmin, 76px); font-size: calc(var(--d) * .13); }
+  .start-bubbles .bubble { width: var(--d); height: var(--d); cursor: default; animation: bounce 1.2s ease-in-out infinite; }
+  .start-bubbles .bubble:nth-child(2) { animation-delay: .15s; }
+  .start-bubbles .bubble:nth-child(3) { animation-delay: .3s; }
+  .start-bubbles .bubble:nth-child(4) { animation-delay: .45s; }
+  .start-bubbles .bubble:nth-child(5) { animation-delay: .6s; }
+  @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+
+  .cartoon-title {
+    margin: 0; font-family: 'Outfit', 'Fredoka', sans-serif; font-weight: 900;
+    font-size: clamp(2.4rem, min(11vw, 14vh), 5.5rem); line-height: 1.02; color: #fffb00; letter-spacing: 1px;
+    text-shadow: 3px 3px 0 #ff0055, 6px 6px 0 #00a2ff, 9px 9px 0 #8c00ff, 12px 12px 18px rgba(0,0,0,.35);
+  }
+  .start-sub {
+    display: inline-block; margin: 18px 0 0; padding: 8px 22px; border-radius: 999px;
+    background: rgba(43,27,77,.28); color: #fff; font-weight: 700; font-size: clamp(1rem, min(4vw, 4.6vh), 1.5rem);
+    text-shadow: 0 2px 4px rgba(0,0,0,.35);
+  }
+  .start-btn {
+    position: relative; z-index: 1; width: min(100%, 380px);
+    padding: 16px 28px; border-radius: 999px; color: #fff;
+    font-size: clamp(1.6rem, min(7vw, 8vh), 2.4rem); font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    background: linear-gradient(180deg, #00ff66, #00b33c);
+    border: 5px solid #fff;
+    box-shadow: 0 10px 0 #007327, 0 16px 24px rgba(0,0,0,.35);
+    text-shadow: 2px 2px 4px rgba(0,0,0,.4);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .start-btn:active { animation: none; transform: translateY(6px) scale(.97); box-shadow: 0 4px 0 #007327, 0 8px 12px rgba(0,0,0,.3); }
+  @keyframes pulse { 0%,100% { transform: scale(1) rotate(-1deg); } 50% { transform: scale(1.06) rotate(1deg); } }
+  .start-tip {
+    position: relative; z-index: 1; margin: 0 0 8px; padding: 0 8px;
+    font-family: 'Outfit', 'Fredoka', sans-serif; font-weight: 900; letter-spacing: .5px;
+    font-size: clamp(1.05rem, min(4.6vw, 5vh), 1.5rem); line-height: 1.2; color: #fff;
+    text-shadow: 2px 2px 0 #7b2ff7, 4px 4px 0 #3b1a9e, 6px 6px 12px rgba(0,0,0,.35);
+  }
+
+  /* =====================================================
+     TELAS DE MENU E JOGO
+     ===================================================== */
+  .screen {
+    position: fixed; inset: 0; display: none; flex-direction: column;
+    padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+    background:
+      radial-gradient(circle at 12% 18%, #ffe3f1 0, transparent 38%),
+      radial-gradient(circle at 80% 85%, #dff3ff 0, transparent 42%),
+      #fffaf5;
+  }
+  .screen.active { display: flex; animation: screenIn .35s ease-out; }
+  @keyframes screenIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* botões flutuantes, discretos */
+  .float-controls {
+    position: fixed; z-index: 35; display: none; gap: 8px;
+    top: calc(6px + var(--safe-t)); right: calc(6px + var(--safe-r));
+  }
+  body[data-screen="menuScreen"] .float-controls,
+  body[data-screen="gameScreen"] .float-controls { display: flex; }
+  body[data-screen="menuScreen"] [data-action="menu"] { display: none; }
+
+  .round-btn {
+    width: 40px; height: 40px; flex: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    background: rgba(43,27,77,.55);
+    border: 2px solid rgba(255,255,255,.8);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    opacity: .55; transition: transform .1s ease, opacity .2s ease;
+  }
+  .round-btn:active { transform: scale(.88); opacity: 1; }
+  .round-btn svg { width: 54%; height: 54%; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* campo das bolhas */
+  .field { flex: 1; min-height: 0; container-type: size; }
+  .grid {
+    --cols: 5; --rows: 2;
+    --d: min(calc(96cqw / var(--cols)), calc(96cqh / var(--rows)));
+    width: 100cqw; height: 100cqh;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--d));
+    grid-template-rows: repeat(var(--rows), var(--d));
+    justify-content: space-evenly; align-content: space-evenly; justify-items: center; align-items: center;
+  }
+  .grid.menu { --cols: 3; --rows: 2; }
+  .grid .bubble { width: var(--d); height: var(--d); font-size: calc(var(--d) * .13); }
+
+  @media (orientation: portrait) {
+    .grid       { --cols: 2; --rows: 5; }
+    .grid.menu  { --cols: 2; --rows: 3; }
+  }
+
+  /* =====================================================
+     VITÓRIA
+     ===================================================== */
+  #victory {
+    position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; padding: 16px;
+    background: rgba(43,27,77,.6); backdrop-filter: blur(4px);
+  }
+  #victory.show { display: flex; }
+  .victory-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: clamp(14px, 4vh, 28px) clamp(24px, 6vw, 48px); border-radius: 36px; border: 8px solid #fff; color: #fff; text-align: center;
+    background: linear-gradient(180deg, #ffd93b, #ff5fa8 55%, #8e44ff);
+    box-shadow: 0 20px 40px rgba(0,0,0,.35);
+    animation: cardIn .4s cubic-bezier(.2,1.4,.4,1);
+    max-height: 100%;
+  }
+  @keyframes cardIn { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .victory-emoji { font-size: clamp(3rem, 14vh, 5rem); line-height: 1; animation: bounce 1s ease-in-out infinite; }
+  .victory-title { margin: 0; font-size: clamp(1.8rem, 7vh, 2.8rem); font-weight: 700; text-shadow: 0 3px 6px rgba(0,0,0,.35); }
+  .victory-sub { margin: 0; font-family: 'Outfit', 'Fredoka', sans-serif; font-weight: 900; font-size: clamp(1.5rem, 6vh, 2.4rem); color: #fffb00; text-shadow: 3px 3px 0 #ff0055, 6px 6px 0 #5b2bd6; }
+  .victory-actions { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+  .big-btn {
+    padding: 12px 26px; border-radius: 999px; color: #fff; font-size: clamp(1.1rem, 4vh, 1.6rem); font-weight: 700;
+    border: 4px solid #fff; text-shadow: 1px 2px 3px rgba(0,0,0,.4);
+    display: flex; align-items: center; gap: 8px; transition: transform .1s ease;
+  }
+  .big-btn:active { transform: translateY(4px) scale(.96); }
+  .big-btn.menu  { background: linear-gradient(180deg, #8b6bff, #4a1fb8); box-shadow: 0 6px 0 #2f1380, 0 10px 16px rgba(0,0,0,.3); }
+  .big-btn.again { background: linear-gradient(180deg, #00ff66, #00b33c); box-shadow: 0 6px 0 #007327, 0 10px 16px rgba(0,0,0,.3); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- 1. TELA INICIAL -->
+<main id="startScreen">
+  <div class="cloud" style="top:3%;  animation-duration:18s;"></div>
+  <div class="cloud" style="top:24%; animation-duration:26s; animation-delay:-8s; transform:scale(1.3);"></div>
+  <div class="cloud" style="top:55%; animation-duration:21s; animation-delay:-12s;"></div>
+
+  <div class="start-top">
+    <div class="start-bubbles" aria-hidden="true">
+      <div class="bubble b-red"><span class="num">1</span></div>
+      <div class="bubble b-yellow"><span class="num">2</span></div>
+      <div class="bubble b-blue"><span class="num">3</span></div>
+      <div class="bubble b-pink"><span class="num">4</span></div>
+      <div class="bubble b-green"><span class="num">5</span></div>
+    </div>
+    <h1 class="cartoon-title">Contagem Direta 🎈</h1>
+    <p class="start-sub">Estoure as bolhas na ordem certa!</p>
+  </div>
+
+  <button id="btnStart" class="start-btn" type="button"><span>Jogar</span><span aria-hidden="true">▶</span></button>
+
+  <p class="start-tip">👆 Comece pelo 1 e vá contando</p>
+</main>
+
+<!-- 2. ESCOLHA DO LIMITE -->
+<section id="menuScreen" class="screen" aria-label="Escolha até onde contar">
+  <div class="field"><div id="menuGrid" class="grid menu"></div></div>
+</section>
+
+<!-- 3. JOGO -->
+<section id="gameScreen" class="screen" aria-label="Contagem">
+  <div class="field"><div id="gameGrid" class="grid"></div></div>
+</section>
+
+<!-- Botões flutuantes -->
+<div class="float-controls">
+  <button class="round-btn" type="button" data-action="menu" aria-label="Voltar ao menu">
+    <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>
+  </button>
+  <button class="round-btn" type="button" data-action="fullscreen" aria-label="Tela cheia">
+    <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+</div>
+
+<div id="fx" aria-hidden="true"></div>
+
+<!-- 4. VITÓRIA -->
+<div id="victory" role="dialog" aria-live="polite">
+  <div class="victory-card">
+    <div class="victory-emoji" id="vEmoji">🏆</div>
+    <h2 class="victory-title">Parabéns!</h2>
+    <p class="victory-sub" id="vSub">Você contou até 10!</p>
+    <div class="victory-actions">
+      <button class="big-btn menu" type="button" id="vMenu">🏠 Menu</button>
+      <button class="big-btn again" type="button" id="vAgain">🔄 Jogar de novo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Configuração ---------- */
+  const LIMITS = [10, 20, 30, 40, 50, 100];
+  const BATCH = 10;                                   // bolhas na tela por vez
+  const COLORS = ['b-red', 'b-yellow', 'b-blue', 'b-pink', 'b-green', 'b-purple'];
+  const POP = {
+    'b-red':    ['#ff2b2b', '#ff9d9d'],
+    'b-yellow': ['#ffc800', '#fff3a0'],
+    'b-blue':   ['#0a8cff', '#9bd8ff'],
+    'b-pink':   ['#ff1aa3', '#ffa6dd'],
+    'b-green':  ['#12c912', '#a6ffa6'],
+    'b-purple': ['#a512ea', '#e6a8ff']
+  };
+  const HINT_AFTER = 3;                               // erros seguidos até a bolha certa piscar
+  const CONFETTI_COLORS = ['#ffc800', '#2fcf5a', '#ff1aa3', '#9b5cff', '#ff4b4b', '#29a8ff'];
+
+  /* ---------- Estado ---------- */
+  let limit = 10;
+  let target = 1;
+  let batchStart = 1;
+  let wrongStreak = 0;
+  let locked = false;
+  let audioCtx = null;
+  let voice = null;
+  const timers = new Set();
+
+  const $ = id => document.getElementById(id);
+  const rand = n => Math.floor(Math.random() * n);
+  const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
+  const clearTimers = () => { timers.forEach(clearTimeout); timers.clear(); };
+
+  /* ---------- Áudio ---------- */
+  function initAudio() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
+  }
+
+  function tone({ type = 'sine', from, to, start = 0, dur = 0.1, vol = 0.3 }) {
+    if (!audioCtx) return;
+    try {
+      const t0 = audioCtx.currentTime + start;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(from, t0);
+      if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+      gain.gain.setValueAtTime(vol, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+
+  function noiseBurst(dur = 0.09, vol = 0.4) {
+    if (!audioCtx) return;
+    try {
+      const len = Math.floor(audioCtx.sampleRate * dur);
+      const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      const src = audioCtx.createBufferSource();
+      const hp = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+      hp.type = 'highpass'; hp.frequency.value = 1400;
+      gain.gain.value = vol;
+      src.buffer = buf;
+      src.connect(hp); hp.connect(gain); gain.connect(audioCtx.destination);
+      src.start();
+    } catch (e) {}
+  }
+
+  function playPop(step = 0) {                         // sobe um pouquinho de tom a cada número: 1, 2, 3...
+    const f = 300 + (step % 10) * 28;
+    tone({ from: f, to: f * 2.8, dur: 0.09, vol: 0.5 });
+    noiseBurst(0.09, 0.45);
+    tone({ type: 'triangle', from: 1800, to: 2800, start: 0.03, dur: 0.12, vol: 0.12 });
+  }
+  const playTapPopped = () => tone({ from: 350, to: 850, dur: 0.06, vol: 0.5 });
+  const playError = () => tone({ from: 260, to: 150, dur: 0.22, vol: 0.3 });
+  const playSelect = () => { tone({ type: 'triangle', from: 660, to: 990, dur: 0.1, vol: 0.3 }); tone({ type: 'triangle', from: 990, start: 0.08, dur: 0.14, vol: 0.25 }); };
+  const playBatch = () => [523.25, 659.25, 783.99].forEach((f, i) => tone({ type: 'triangle', from: f, start: i * 0.08, dur: 0.3, vol: 0.28 }));
+  const playWin = () => [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) => tone({ type: 'triangle', from: f, start: i * 0.09, dur: 0.35, vol: 0.3 }));
+
+  /* ---------- Voz ---------- */
+  function loadVoice() {
+    try {
+      const voices = speechSynthesis.getVoices();
+      voice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('pt-br')) ||
+              voices.find(v => v.lang && v.lang.toLowerCase().startsWith('pt')) || null;
+    } catch (e) {}
+  }
+  if ('speechSynthesis' in window) {
+    loadVoice();
+    speechSynthesis.onvoiceschanged = loadVoice;
+  }
+  function speak(text) {
+    try {
+      if (!('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'pt-BR'; u.rate = 0.95; u.pitch = 1.2;
+      if (voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  /* ---------- Tela cheia ---------- */
+  async function goFullscreen() {
+    const el = document.documentElement;
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch (e) {}
+    try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch (e) {}
+  }
+  function toggleFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {}
+    } else {
+      goFullscreen();
+    }
+  }
+
+  /* ---------- Efeito de estouro ---------- */
+  function burst(el, colorClass, label) {
+    const fx = $('fx');
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = r.width;
+    const [main, light] = POP[colorClass] || POP['b-red'];
+    const add = (node, ms) => { fx.appendChild(node); setTimeout(() => node.remove(), ms); return node; };
+    const place = (node, w, h = w) => { Object.assign(node.style, { left: cx + 'px', top: cy + 'px', width: w + 'px', height: h + 'px' }); return node; };
+
+    [[main, 0], ['#fff', 70]].forEach(([c, delay]) => {
+      const ring = document.createElement('div');
+      ring.className = 'fx-ring';
+      place(ring, d);
+      ring.style.border = `${Math.max(4, d * 0.07)}px solid ${c}`;
+      ring.style.animationDelay = delay + 'ms';
+      add(ring, 650);
+    });
+
+    const N = 16;
+    for (let i = 0; i < N; i++) {
+      const ang = (i / N) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const dist = d * (0.75 + Math.random() * 0.65);
+      const size = d * (0.08 + Math.random() * 0.11);
+      const p = document.createElement('div');
+      p.className = 'fx-p';
+      place(p, size);
+      p.style.background = i % 3 === 0 ? '#fff' : (i % 3 === 1 ? main : light);
+      p.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+      p.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+      add(p, 750);
+    }
+
+    const t = document.createElement('div');
+    t.className = 'fx-text';
+    t.textContent = label;
+    place(t, 0, 0);
+    t.style.width = t.style.height = 'auto';
+    t.style.fontSize = Math.max(26, d * 0.5) + 'px';
+    t.style.setProperty('--c', main);
+    t.style.setProperty('--r', (rand(21) - 10) + 'deg');
+    t.style.setProperty('--rise', d * 0.6 + 'px');
+    add(t, 900);
+
+    try { if (navigator.vibrate) navigator.vibrate(18); } catch (e) {}
+  }
+
+  function makeBubble(value, colorClass, index) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `bubble enter ${colorClass}`;
+    b.style.animationDelay = `${index * 45}ms`;
+    b.dataset.value = value;
+    b.setAttribute('aria-label', String(value));
+    const n = document.createElement('span');
+    n.className = 'num' + (String(value).length >= 3 ? ' small' : '');
+    n.textContent = value;
+    b.appendChild(n);
+    b.addEventListener('animationend', () => { b.classList.remove('enter', 'shake', 'hint', 'jiggle'); b.style.animationDelay = ''; });
+    return b;
+  }
+
+  /* ---------- Menu ---------- */
+  function buildMenu() {
+    const grid = $('menuGrid');
+    grid.innerHTML = '';
+    LIMITS.forEach((n, i) => {
+      const b = makeBubble(n, COLORS[i % COLORS.length], i);
+      b.setAttribute('aria-label', `Contar até ${n}`);
+      b.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        initAudio();
+        playSelect();
+        burst(b, COLORS[i % COLORS.length], '★');
+        later(() => startGame(n), 380);
+      });
+      grid.appendChild(b);
+    });
+  }
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+    document.body.dataset.screen = id;
+  }
+
+  function goMenu() {
+    clearTimers();
+    try { speechSynthesis.cancel(); } catch (e) {}
+    $('victory').classList.remove('show');
+    buildMenu();
+    show('menuScreen');
+  }
+
+  /* ---------- Jogo ---------- */
+  function startGame(n) {
+    clearTimers();
+    limit = n; target = 1; batchStart = 1; wrongStreak = 0; locked = false;
+    $('victory').classList.remove('show');
+    show('gameScreen');
+    setupBatch();
+  }
+
+  function setupBatch() {
+    const grid = $('gameGrid');
+    grid.innerHTML = '';
+    const nums = [];
+    for (let i = 0; i < BATCH; i++) {
+      const v = batchStart + i;
+      if (v <= limit) nums.push(v);
+    }
+    // embaralha (Fisher-Yates)
+    for (let i = nums.length - 1; i > 0; i--) {
+      const j = rand(i + 1);
+      [nums[i], nums[j]] = [nums[j], nums[i]];
+    }
+    const offset = rand(COLORS.length);
+    nums.forEach((v, i) => {
+      const colorClass = COLORS[(i + offset) % COLORS.length];
+      const b = makeBubble(v, colorClass, i);
+      b.dataset.color = colorClass;
+      b.addEventListener('pointerdown', e => { e.preventDefault(); onTap(b, v, colorClass); });
+      grid.appendChild(b);
+    });
+    locked = false;
+  }
+
+  function onTap(b, value, colorClass) {
+    if (locked) return;
+    initAudio();
+
+    // bolha já estourada: só faz o "pop" simples
+    if (b.classList.contains('popped')) {
+      playTapPopped();
+      b.classList.remove('jiggle'); void b.offsetWidth; b.classList.add('jiggle');
+      return;
+    }
+    if (b.classList.contains('bursting')) return;
+
+    if (value === target) {
+      wrongStreak = 0;
+      playPop(value);
+      burst(b, colorClass, String(value));
+      speak(String(value));
+
+      b.classList.remove('enter', 'shake', 'hint', 'snap');
+      b.classList.add('bursting');
+      later(() => {
+        b.classList.remove('bursting');
+        b.classList.add('popped', 'snap');
+        b.firstChild && (b.firstChild.textContent = '');      // o número some, como no original
+      }, 120);
+
+      target++;
+
+      if (target > limit) {
+        locked = true;
+        later(victory, 900);
+      } else if (target > batchStart + BATCH - 1) {
+        locked = true;
+        later(() => {
+          playBatch();
+          if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 }, colors: CONFETTI_COLORS });
+        }, 450);
+        later(() => { batchStart += BATCH; setupBatch(); }, 1100);
+      }
+    } else {
+      playError();
+      speak(String(target));                                   // fala o número que era o certo
+      b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+      wrongStreak++;
+      if (wrongStreak >= HINT_AFTER) {                         // dica gentil: a bolha certa pisca
+        wrongStreak = 0;
+        const right = document.querySelector(`#gameGrid .bubble[data-value="${target}"]`);
+        if (right && !right.classList.contains('popped')) {
+          right.classList.remove('hint'); void right.offsetWidth; right.classList.add('hint');
+        }
+      }
+    }
+  }
+
+  /* ---------- Vitória ---------- */
+  function victory() {
+    const emojis = ['🏆', '🌟', '🦄', '🚀', '🌈'];
+    $('vEmoji').textContent = emojis[rand(emojis.length)];
+    $('vSub').textContent = `Você contou até ${limit}!`;
+    $('victory').classList.add('show');
+    playWin();
+    speak(`Parabéns! Você contou até ${limit}!`);
+
+    if (typeof confetti === 'function') {
+      const end = Date.now() + 3500;
+      (function frame() {
+        confetti({ particleCount: 7, angle: 60,  spread: 55, origin: { x: 0 }, colors: CONFETTI_COLORS });
+        confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, colors: CONFETTI_COLORS });
+        if (Date.now() < end && $('victory').classList.contains('show')) requestAnimationFrame(frame);
+      })();
+    }
+  }
+
+  /* ---------- Inicialização ---------- */
+  window.addEventListener('DOMContentLoaded', () => {
+    $('btnStart').addEventListener('click', async () => {
+      initAudio();
+      await goFullscreen();
+      $('startScreen').classList.add('leaving');
+      buildMenu();
+      show('menuScreen');
+      later(() => { $('startScreen').style.display = 'none'; }, 500);
+    });
+
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        initAudio();
+        if (btn.dataset.action === 'menu') goMenu();
+        else toggleFullscreen();
+      });
+    });
+
+    $('vMenu').addEventListener('click', goMenu);
+    $('vAgain').addEventListener('click', () => startGame(limit));
+  });
+})();
+</script>
+</body>
+</html>

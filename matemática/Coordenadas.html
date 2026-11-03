@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Treino de Coordenadas - Edição Verde & Efeitos</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+    * {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #0b0f19;
+    }
+
+    /* Botões da grade com estilo base */
+    .grid-cell-btn {
+      background: linear-gradient(180deg, #f0f0f0 0%, #d4d4d4 100%);
+      border: 1px solid #b5b5b5;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 4px rgba(0, 0, 0, 0.15);
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .grid-cell-btn:active {
+      background: linear-gradient(180deg, #d4d4d4 0%, #bebebe 100%);
+      transform: scale(0.97);
+    }
+
+    /* CAMINHO DA COLUNA (LETRA SELECIONADA) - Verde Claro Suave */
+    .grid-cell-btn.col-selected {
+      background: linear-gradient(180deg, #dcfce7 0%, #bbf7d0 100%) !important;
+      color: #14532d !important;
+      font-weight: 800;
+      box-shadow: inset 0 0 10px rgba(34, 197, 94, 0.25) !important;
+      border-color: #86efac !important;
+    }
+
+    /* CAMINHO DA LINHA (NÚMERO SELECIONADO) - Verde Claro Suave */
+    .grid-cell-btn.row-selected {
+      background: linear-gradient(180deg, #dcfce7 0%, #bbf7d0 100%) !important;
+      color: #14532d !important;
+      font-weight: 800;
+      box-shadow: inset 0 0 10px rgba(34, 197, 94, 0.25) !important;
+      border-color: #86efac !important;
+    }
+
+    /* INTERSEÇÃO SELECIONADA - Verde Médio Destacado */
+    .grid-cell-btn.intersection-selected {
+      background: linear-gradient(180deg, #86efac 0%, #4ade80 100%) !important;
+      color: #052e16 !important;
+      font-weight: 900;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      border-color: #22c55e !important;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      animation: pulseTargetGreen 1.2s infinite alternate;
+    }
+
+    @keyframes pulseTargetGreen {
+      0% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+      100% { box-shadow: 0 0 18px rgba(34, 197, 94, 0.9); }
+    }
+
+    /* CELEBRAÇÃO / ACERTO - Verde Esmeralda Radiante */
+    .grid-cell-btn.correct-win {
+      background: linear-gradient(180deg, #22c55e 0%, #15803d 100%) !important;
+      color: #ffffff !important;
+      border-color: #166534 !important;
+      box-shadow: 0 0 25px rgba(34, 197, 94, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+      animation: correctFlash 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes correctFlash {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.04); filter: brightness(1.25); }
+    }
+
+    /* Cabeçalhos em Verde quando selecionados */
+    .header-col-btn.active-green, .header-row-btn.active-green {
+      background-color: #22c55e !important;
+      color: #ffffff !important;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    /* Estado Bloqueado */
+    .cell-disabled {
+      cursor: not-allowed;
+      opacity: 0.92;
+    }
+
+    /* Efeito Neon nos 4 cantos da tela ao errar */
+    .neon-corner {
+      position: fixed;
+      width: 120px;
+      height: 120px;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.15s ease-in-out;
+    }
+
+    .neon-top-left {
+      top: 0; left: 0;
+      border-top: 8px solid #ff0055;
+      border-left: 8px solid #ff0055;
+      box-shadow: -5px -5px 30px #ff0055, inset 5px 5px 25px #ff0055;
+      border-top-left-radius: 16px;
+    }
+
+    .neon-top-right {
+      top: 0; right: 0;
+      border-top: 8px solid #ff0055;
+      border-right: 8px solid #ff0055;
+      box-shadow: 5px -5px 30px #ff0055, inset -5px 5px 25px #ff0055;
+      border-top-right-radius: 16px;
+    }
+
+    .neon-bottom-left {
+      bottom: 0; left: 0;
+      border-bottom: 8px solid #ff0055;
+      border-left: 8px solid #ff0055;
+      box-shadow: -5px 5px 30px #ff0055, inset 5px -5px 25px #ff0055;
+      border-bottom-left-radius: 16px;
+    }
+
+    .neon-bottom-right {
+      bottom: 0; right: 0;
+      border-bottom: 8px solid #ff0055;
+      border-right: 8px solid #ff0055;
+      box-shadow: 5px 5px 30px #ff0055, inset -5px -5px 25px #ff0055;
+      border-bottom-right-radius: 16px;
+    }
+
+    @keyframes neonBlink {
+      0%, 100% { opacity: 0; }
+      15%, 85% { opacity: 1; }
+    }
+
+    .flash-neon {
+      animation: neonBlink 0.7s ease-in-out 2;
+    }
+
+    /* Canvas para Efeitos Especiais de Comemoração */
+    #fx-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 90;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-slate-800">
+
+  <!-- Canvas de Efeitos Especiais (Fogos, Raios, Confetes, Flores, Fumaça) -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Cantos Neon de Erro -->
+  <div id="neon-tl" class="neon-corner neon-top-left"></div>
+  <div id="neon-tr" class="neon-corner neon-top-right"></div>
+  <div id="neon-bl" class="neon-corner neon-bottom-left"></div>
+  <div id="neon-br" class="neon-corner neon-bottom-right"></div>
+
+  <!-- ================= TELA INICIAL (SOMENTE BOTÃO INICIAR) ================= -->
+  <div id="start-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-6">
+    <button id="btn-start" class="py-6 px-16 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 hover:from-red-500 hover:to-rose-400 active:scale-95 text-white font-black text-3xl tracking-widest rounded-3xl shadow-[0_0_40px_rgba(225,29,72,0.5)] border border-rose-400/30 transition-all duration-300 transform">
+      Iniciar
+    </button>
+  </div>
+
+  <!-- ================= TELA DO JOGO ================= -->
+  <div id="game-screen" class="hidden fixed inset-0 w-full h-full bg-[#cfd4dc] flex flex-col justify-between p-1 select-none">
+    
+    <!-- Barra de Ferramentas Oculta -->
+    <div id="toolbar" class="hidden w-full flex items-center justify-between px-4 py-1.5 bg-slate-900/90 backdrop-blur-md text-white rounded-xl border border-slate-700/60 text-xs font-semibold mb-1 z-30 shadow-2xl">
+      <div class="flex items-center space-x-6">
+        <span>Pontos: <strong id="score-display" class="text-emerald-400 font-bold text-base">0</strong></span>
+        <span>Sequência: <strong id="streak-display" class="text-amber-400 font-bold text-base">0</strong></span>
+        <span class="hidden sm:inline text-slate-400 text-[10px]" id="fx-name-display">Efeito: Verde + Especial</span>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btn-speak" title="Ouvir coordenada" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg border border-slate-600 flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-volume-high text-rose-400"></i>
+          <span>Repetir</span>
+        </button>
+
+        <button id="btn-toggle-sound" title="Alternar Som" class="p-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg border border-slate-600 transition">
+          <i id="icon-sound" class="fa-solid fa-volume-high text-emerald-400"></i>
+        </button>
+
+        <button id="btn-close-toolbar" title="Ocultar Barra" class="p-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg text-slate-300 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Container da Grade (Eixos X: A-H e Y: 1-6) -->
+    <div class="flex-1 w-full flex flex-col justify-center items-center">
+      <div id="grid-container" class="w-full h-full max-w-[100vw] max-h-[98vh] grid grid-cols-[38px_repeat(8,1fr)] grid-rows-[32px_repeat(6,1fr)] gap-1 p-0.5 bg-[#cfd4dc] rounded-lg">
+        
+        <!-- Canto Superior Esquerdo (Badge Vermelho da Questão) -->
+        <div class="flex items-center justify-center p-0">
+          <button id="target-badge" class="w-full h-full bg-gradient-to-br from-red-600 to-rose-700 active:from-red-700 active:to-rose-800 text-white font-black text-base sm:text-lg md:text-xl rounded-tl-xl rounded-br-xl shadow-lg border border-rose-400/40 flex items-center justify-center transition-all cursor-pointer">
+            --
+          </button>
+        </div>
+
+        <!-- Cabeçalhos das Colunas (A - H) -->
+        <button data-col="A" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">A</button>
+        <button data-col="B" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">B</button>
+        <button data-col="C" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">C</button>
+        <button data-col="D" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">D</button>
+        <button data-col="E" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">E</button>
+        <button data-col="F" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">F</button>
+        <button data-col="G" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">G</button>
+        <button data-col="H" class="header-col-btn font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all">H</button>
+
+        <!-- As células e eixos de linhas são montados dinamicamente no JS -->
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast de Sucesso e Nome do Efeito -->
+  <div id="feedback-toast" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/90 text-white px-8 py-3 rounded-2xl shadow-2xl border border-emerald-500/40 font-black text-lg sm:text-xl flex items-center space-x-3 z-50 backdrop-blur-md">
+    <i class="fa-solid fa-star text-amber-400 text-2xl animate-spin"></i>
+    <span id="feedback-text" class="bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">CORRETO!</span>
+  </div>
+
+  <script>
+    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const rows = ['1', '2', '3', '4', '5', '6'];
+    
+    let targetCoord = '';
+    let selectedCol = null;
+    let selectedRow = null;
+    let isTableUnlocked = false;
+    let score = 0;
+    let streak = 0;
+    let soundEnabled = true;
+    let isProcessingWin = false;
+
+    let audioCtx = null;
+    let longPressTimer = null;
+
+    /* ================= SÍNTESE DE ÁUDIO WEB AUDIO API ================= */
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playLetterSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+
+        osc1.frequency.setValueAtTime(523.25, now);
+        osc2.frequency.setValueAtTime(659.25, now);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.25);
+        osc2.stop(now + 0.25);
+      } catch (e) {}
+    }
+
+    function playNumberSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880.00, now + 0.18);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } catch (e) {}
+    }
+
+    function playCellSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(783.99, now);
+        osc.frequency.setValueAtTime(1046.50, now + 0.05);
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } catch (e) {}
+    }
+
+    function playErrorSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.setValueAtTime(110, now + 0.15);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } catch (e) {}
+    }
+
+    function playWinSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = i === notes.length - 1 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.06);
+
+          gain.gain.setValueAtTime(0.2, now + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.3);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 0.3);
+        });
+      } catch (e) {}
+    }
+
+    /* ================= SÍNTESE DE VOZ ================= */
+    function speakTarget(coord) {
+      if (!soundEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      const letter = coord.charAt(0);
+      const number = coord.charAt(1);
+      const utterance = new SpeechSynthesisUtterance(`Localize ${letter}... ${number}`);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.95;
+
+      const voices = window.speechSynthesis.getVoices();
+      const ptVoice = voices.find(v => v.lang.includes('pt') || v.lang.includes('PT'));
+      if (ptVoice) utterance.voice = ptVoice;
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    /* ================= CANVASES DE COMEMORAÇÃO ALEATÓRIA ================= */
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+    let fxAnimationId = null;
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function stopFX() {
+      if (fxAnimationId) {
+        cancelAnimationFrame(fxAnimationId);
+        fxAnimationId = null;
+      }
+      particles = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function triggerRandomSpecialEffect() {
+      stopFX();
+      const fxList = ['confetti', 'fireworks', 'lightning', 'flowers', 'smoke'];
+      const chosenFX = fxList[Math.floor(Math.random() * fxList.length)];
+      
+      const fxNames = {
+        'confetti': '🎉 Confetes Festivos!',
+        'fireworks': '🎆 Fogos de Artifício!',
+        'lightning': '⚡ Descarga Elétrica Neon!',
+        'flowers': '🌸 Tempestade de Pétalas!',
+        'smoke': '💨 Fumaça & Anéis Neon!'
+      };
+
+      document.getElementById('fx-name-display').textContent = `Efeito: ${fxNames[chosenFX]}`;
+      document.getElementById('feedback-text').textContent = fxNames[chosenFX];
+
+      const duration = 2400;
+      const startTime = Date.now();
+
+      if (chosenFX === 'confetti') initConfetti();
+      else if (chosenFX === 'fireworks') initFireworks();
+      else if (chosenFX === 'lightning') initLightning();
+      else if (chosenFX === 'flowers') initFlowers();
+      else if (chosenFX === 'smoke') initSmoke();
+
+      function loop() {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < duration) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (chosenFX === 'confetti') drawConfetti();
+          else if (chosenFX === 'fireworks') drawFireworks();
+          else if (chosenFX === 'lightning') drawLightning();
+          else if (chosenFX === 'flowers') drawFlowers();
+          else if (chosenFX === 'smoke') drawSmoke();
+
+          fxAnimationId = requestAnimationFrame(loop);
+        } else {
+          stopFX();
+        }
+      }
+      loop();
+    }
+
+    function initConfetti() {
+      const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+      for (let i = 0; i < 140; i++) {
+        particles.push({
+          x: canvas.width / 2, y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 18, vy: (Math.random() - 0.7) * 18,
+          size: Math.random() * 8 + 6, color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360, vRot: (Math.random() - 0.5) * 10
+        });
+      }
+    }
+    function drawConfetti() {
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.rotation += p.vRot;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color; ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      });
+    }
+
+    function initFireworks() {
+      const centers = [
+        { x: canvas.width * 0.3, y: canvas.height * 0.4 },
+        { x: canvas.width * 0.7, y: canvas.height * 0.35 },
+        { x: canvas.width * 0.5, y: canvas.height * 0.5 }
+      ];
+      const palette = ['#22c55e', '#ff0055', '#00e5ff', '#ffbe0b', '#7000ff'];
+      centers.forEach(c => {
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        for (let i = 0; i < 75; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 12 + 2;
+          particles.push({
+            x: c.x, y: c.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+            radius: Math.random() * 3 + 2, color: color, alpha: 1, decay: Math.random() * 0.015 + 0.01
+          });
+        }
+      });
+    }
+    function drawFireworks() {
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.alpha -= p.decay;
+        if (p.alpha > 0) {
+          ctx.save(); ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.color; ctx.shadowBlur = 10; ctx.shadowColor = p.color; ctx.fill();
+          ctx.restore();
+        }
+      });
+    }
+
+    function initLightning() {
+      particles = [];
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          branches: createLightningPath(Math.random() * canvas.width, 0, Math.random() * canvas.width, canvas.height)
+        });
+      }
+    }
+    function createLightningPath(x1, y1, x2, y2) {
+      let path = [{ x: x1, y: y1 }];
+      let curX = x1, curY = y1, steps = 12;
+      for (let i = 0; i < steps; i++) {
+        curX += (x2 - x1) / steps + (Math.random() - 0.5) * 60;
+        curY += (y2 - y1) / steps;
+        path.push({ x: curX, y: curY });
+      }
+      return path;
+    }
+    function drawLightning() {
+      if (Math.random() > 0.3) initLightning();
+      particles.forEach(p => {
+        ctx.save(); ctx.beginPath(); ctx.moveTo(p.branches[0].x, p.branches[0].y);
+        for (let i = 1; i < p.branches.length; i++) ctx.lineTo(p.branches[i].x, p.branches[i].y);
+        ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 4; ctx.shadowBlur = 20; ctx.shadowColor = '#4ade80';
+        ctx.stroke(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+      });
+    }
+
+    function initFlowers() {
+      const colors = ['#4ade80', '#22c55e', '#f472b6', '#fb7185'];
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: Math.random() * canvas.width, y: -20, vx: (Math.random() - 0.5) * 4, vy: Math.random() * 4 + 3,
+          size: Math.random() * 10 + 8, color: colors[Math.floor(Math.random() * colors.length)],
+          angle: Math.random() * Math.PI * 2, vAngle: (Math.random() - 0.5) * 0.08
+        });
+      }
+    }
+    function drawFlowers() {
+      particles.forEach(p => {
+        p.x += p.vx + Math.sin(p.angle) * 1.5; p.y += p.vy; p.angle += p.vAngle;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle);
+        ctx.fillStyle = p.color; ctx.beginPath(); ctx.ellipse(0, 0, p.size, p.size / 2, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.restore();
+      });
+    }
+
+    function initSmoke() {
+      for (let i = 0; i < 45; i++) {
+        particles.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 200, y: canvas.height / 2 + (Math.random() - 0.5) * 100,
+          radius: Math.random() * 20 + 10, color: Math.random() > 0.5 ? '#22c55e' : '#10b981',
+          alpha: 0.8, vRadius: Math.random() * 2 + 1.5
+        });
+      }
+    }
+    function drawSmoke() {
+      particles.forEach(p => {
+        p.radius += p.vRadius; p.alpha -= 0.012;
+        if (p.alpha > 0) {
+          ctx.save(); ctx.globalAlpha = Math.max(0, p.alpha); ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.strokeStyle = p.color;
+          ctx.lineWidth = 6; ctx.shadowBlur = 25; ctx.shadowColor = p.color; ctx.stroke(); ctx.restore();
+        }
+      });
+    }
+
+    /* ================= ESTRUTURA DO JOGO E CAMINHO VERDE ================= */
+
+    function buildGridUI() {
+      const grid = document.getElementById('grid-container');
+      document.querySelectorAll('.dynamic-grid-item').forEach(el => el.remove());
+
+      rows.forEach(r => {
+        // Eixo Y
+        const rowBtn = document.createElement('button');
+        rowBtn.className = 'header-row-btn dynamic-grid-item font-black text-slate-800 text-sm sm:text-base flex items-center justify-center hover:bg-slate-300/80 rounded transition-all';
+        rowBtn.setAttribute('data-row', r);
+        rowBtn.textContent = r;
+        grid.appendChild(rowBtn);
+
+        // Células
+        cols.forEach(c => {
+          const cellBtn = document.createElement('button');
+          cellBtn.className = 'grid-cell-btn dynamic-grid-item cell-disabled rounded-md text-base sm:text-xl font-black flex items-center justify-center';
+          cellBtn.setAttribute('data-coord', `${c}${r}`);
+          grid.appendChild(cellBtn);
+        });
+      });
+
+      attachDynamicEvents();
+    }
+
+    async function enterFullscreenAndLandscape() {
+      const docEl = document.documentElement;
+      if (!document.fullscreenElement) {
+        try {
+          if (docEl.requestFullscreen) await docEl.requestFullscreen();
+          else if (docEl.webkitRequestFullscreen) await docEl.webkitRequestFullscreen();
+        } catch (e) {}
+      }
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
+      } catch (e) {}
+    }
+
+    function triggerNeonError() {
+      playErrorSound();
+      const corners = [
+        document.getElementById('neon-tl'),
+        document.getElementById('neon-tr'),
+        document.getElementById('neon-bl'),
+        document.getElementById('neon-br')
+      ];
+
+      corners.forEach(c => {
+        c.classList.remove('flash-neon');
+        void c.offsetWidth;
+        c.classList.add('flash-neon');
+      });
+    }
+
+    function generateNewTarget() {
+      const randomCol = cols[Math.floor(Math.random() * cols.length)];
+      const randomRow = rows[Math.floor(Math.random() * rows.length)];
+      targetCoord = `${randomCol}${randomRow}`;
+      
+      resetRoundState();
+
+      setTimeout(() => {
+        speakTarget(targetCoord);
+      }, 300);
+    }
+
+    function resetRoundState() {
+      selectedCol = null;
+      selectedRow = null;
+      isTableUnlocked = false;
+
+      const badge = document.getElementById('target-badge');
+      badge.textContent = targetCoord;
+
+      document.querySelectorAll('.grid-cell-btn').forEach(btn => {
+        btn.textContent = '';
+        btn.classList.remove('col-selected', 'row-selected', 'intersection-selected', 'correct-win');
+        btn.classList.add('cell-disabled');
+      });
+
+      document.querySelectorAll('.header-col-btn').forEach(btn => {
+        btn.classList.remove('active-green');
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      });
+
+      document.querySelectorAll('.header-row-btn').forEach(btn => {
+        btn.classList.remove('active-green');
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'none';
+      });
+    }
+
+    function updateBoardVisuals() {
+      // 1. Destaque do Eixo da Letra em Verde Suave
+      document.querySelectorAll('.header-col-btn').forEach(btn => {
+        if (btn.getAttribute('data-col') === selectedCol) {
+          btn.classList.add('active-green');
+        } else {
+          btn.classList.remove('active-green');
+        }
+      });
+
+      if (selectedCol && !selectedRow) {
+        document.querySelectorAll('.header-row-btn').forEach(btn => {
+          btn.style.opacity = '1';
+          btn.style.pointerEvents = 'auto';
+          btn.classList.remove('active-green');
+        });
+
+        document.querySelectorAll('.grid-cell-btn').forEach(btn => {
+          const c = btn.getAttribute('data-coord').charAt(0);
+          btn.textContent = '';
+          btn.classList.remove('col-selected', 'row-selected', 'intersection-selected', 'correct-win');
+          if (c === selectedCol) {
+            btn.classList.add('col-selected');
+            btn.textContent = selectedCol;
+          }
+        });
+
+        document.getElementById('target-badge').textContent = selectedCol;
+      }
+
+      // 2. Destaque da Linha do Número em Verde Suave + Interseção Destacada
+      if (selectedCol && selectedRow) {
+        isTableUnlocked = true;
+
+        document.querySelectorAll('.header-row-btn').forEach(btn => {
+          if (btn.getAttribute('data-row') === selectedRow) {
+            btn.classList.add('active-green');
+          } else {
+            btn.classList.remove('active-green');
+          }
+        });
+
+        document.querySelectorAll('.grid-cell-btn').forEach(btn => {
+          const coord = btn.getAttribute('data-coord');
+          const c = coord.charAt(0);
+          const r = coord.charAt(1);
+
+          btn.classList.remove('col-selected', 'row-selected', 'intersection-selected', 'correct-win', 'cell-disabled');
+
+          if (c === selectedCol && r === selectedRow) {
+            btn.classList.add('intersection-selected');
+            btn.textContent = `${c}${r}`;
+          } else if (c === selectedCol) {
+            btn.classList.add('col-selected');
+            btn.textContent = selectedCol;
+          } else if (r === selectedRow) {
+            btn.classList.add('row-selected');
+            btn.textContent = selectedRow;
+          }
+        });
+
+        document.getElementById('target-badge').textContent = `${selectedCol}${selectedRow}`;
+      }
+    }
+
+    function checkAnswer(chosenCoord) {
+      if (isProcessingWin) return;
+
+      if (chosenCoord === targetCoord) {
+        // ACERTO - Preenchimento da Célula e Eixo com Verde + Efeitos Explosivos
+        isProcessingWin = true;
+        score += 10;
+        streak += 1;
+        document.getElementById('score-display').textContent = score;
+        document.getElementById('streak-display').textContent = streak;
+
+        // Ativa classe de verde radiante na célula e nos eixos selecionados
+        const winCell = document.querySelector(`[data-coord="${chosenCoord}"]`);
+        if (winCell) winCell.classList.add('correct-win');
+
+        playWinSound();
+        triggerRandomSpecialEffect();
+
+        const toast = document.getElementById('feedback-toast');
+        toast.classList.remove('hidden');
+
+        setTimeout(() => {
+          toast.classList.add('hidden');
+          isProcessingWin = false;
+          generateNewTarget();
+        }, 2400);
+      } else {
+        // ERRO
+        streak = 0;
+        document.getElementById('streak-display').textContent = streak;
+        
+        triggerNeonError();
+
+        setTimeout(() => {
+          resetRoundState();
+          speakTarget(targetCoord);
+        }, 800);
+      }
+    }
+
+    function attachDynamicEvents() {
+      document.querySelectorAll('.header-row-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (isProcessingWin || !selectedCol) return;
+          playNumberSound();
+          selectedRow = btn.getAttribute('data-row');
+          updateBoardVisuals();
+        });
+      });
+
+      document.querySelectorAll('.grid-cell-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (isProcessingWin) return;
+
+          if (!isTableUnlocked) {
+            triggerNeonError();
+            return;
+          }
+
+          playCellSound();
+          const coord = btn.getAttribute('data-coord');
+          checkAnswer(coord);
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      buildGridUI();
+
+      // Botão Iniciar na Tela Inicial
+      document.getElementById('btn-start').addEventListener('click', () => {
+        initAudio();
+        enterFullscreenAndLandscape();
+
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+
+        generateNewTarget();
+      });
+
+      // Clique no Eixo X (Letras)
+      document.querySelectorAll('.header-col-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (isProcessingWin) return;
+          playLetterSound();
+          selectedCol = btn.getAttribute('data-col');
+          selectedRow = null;
+          updateBoardVisuals();
+        });
+      });
+
+      // Interações com o Badge da Questão
+      const targetBadge = document.getElementById('target-badge');
+      let isLongPress = false;
+
+      targetBadge.addEventListener('mousedown', startPress);
+      targetBadge.addEventListener('touchstart', startPress, { passive: true });
+
+      targetBadge.addEventListener('mouseup', endPress);
+      targetBadge.addEventListener('mouseleave', cancelPress);
+      targetBadge.addEventListener('touchend', endPress);
+
+      function startPress() {
+        isLongPress = false;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true;
+          const toolbar = document.getElementById('toolbar');
+          toolbar.classList.toggle('hidden');
+          playCellSound();
+        }, 800);
+      }
+
+      function endPress() {
+        clearTimeout(longPressTimer);
+        if (!isLongPress) {
+          enterFullscreenAndLandscape();
+          speakTarget(targetCoord);
+        }
+      }
+
+      function cancelPress() {
+        clearTimeout(longPressTimer);
+      }
+
+      // Controles da Barra Oculta
+      document.getElementById('btn-speak').addEventListener('click', () => speakTarget(targetCoord));
+
+      document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        const icon = document.getElementById('icon-sound');
+        if (soundEnabled) {
+          icon.className = 'fa-solid fa-volume-high text-emerald-400';
+          speakTarget(targetCoord);
+        } else {
+          icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+      });
+
+      document.getElementById('btn-close-toolbar').addEventListener('click', () => {
+        document.getElementById('toolbar').classList.add('hidden');
+      });
+    });
+  </script>
+</body>
+</html>

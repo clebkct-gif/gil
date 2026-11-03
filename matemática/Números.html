@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aprenda os Números - App Educativo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #ffffff;
+        }
+
+        /* ---------------------------------------------------- */
+        /* TELA INICIAL (GRID 2x5 FULLSCREEN SEM BORDAS) */
+        /* ---------------------------------------------------- */
+        .grid-select-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            width: 100vw;
+            height: 100vh;
+            gap: 0;
+            padding: 0;
+            margin: 0;
+            background-color: #000;
+        }
+
+        .mode-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+            cursor: pointer;
+            border: none;
+            outline: none;
+            overflow: hidden;
+            transition: transform 0.15s ease, filter 0.15s ease;
+            padding: 0;
+        }
+
+        .mode-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.25), rgba(255,255,255,0));
+            pointer-events: none;
+        }
+
+        .mode-btn:active {
+            transform: scale(0.96);
+            filter: brightness(0.88);
+        }
+
+        /* Gradientes vibrantes e distintos */
+        .btn-grad-1  { background: linear-gradient(135deg, #FF0844 0%, #FFB199 100%); }
+        .btn-grad-2  { background: linear-gradient(135deg, #F12711 0%, #F5AF19 100%); }
+        .btn-grad-3  { background: linear-gradient(135deg, #11998E 0%, #38EF7D 100%); }
+        .btn-grad-4  { background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%); }
+        .btn-grad-5  { background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%); }
+        .btn-grad-6  { background: linear-gradient(135deg, #F80759 0%, #BC4E9C 100%); }
+        .btn-grad-7  { background: linear-gradient(135deg, #FC466B 0%, #3F5EFB 100%); }
+        .btn-grad-8  { background: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%); }
+        .btn-grad-9  { background: linear-gradient(135deg, #FF007F 0%, #7928CA 100%); }
+        .btn-grad-10 { background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%); }
+
+        /* ---------------------------------------------------- */
+        /* BOTÕES NUMÉRICOS */
+        /* ---------------------------------------------------- */
+        .btn-key {
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 800;
+            transition: transform 0.05s ease, box-shadow 0.05s ease;
+            cursor: pointer;
+            outline: none;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .btn-blue {
+            background-color: #002ff5;
+            box-shadow: 0 4px 0 #0020a6, 0 5px 10px rgba(0,0,0,0.2);
+        }
+        .btn-blue:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #0020a6, 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .btn-red {
+            background-color: #ff0000;
+            box-shadow: 0 4px 0 #b30000, 0 5px 10px rgba(0,0,0,0.2);
+        }
+        .btn-red:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b30000, 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .btn-yellow {
+            background-color: #ffc400;
+            box-shadow: 0 4px 0 #b38900, 0 5px 10px rgba(0,0,0,0.2);
+        }
+        .btn-yellow:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b38900, 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* Animação de Erro (Shake) */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
+        }
+        .shake {
+            animation: shake 0.35s ease-in-out;
+            color: #ef4444 !important;
+        }
+
+        /* Animação de Sucesso */
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); color: #16a34a; }
+            100% { transform: scale(1); }
+        }
+        .success-anim {
+            animation: successPulse 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #16a34a !important;
+        }
+
+        /* Cursor piscante */
+        .cursor-blink {
+            display: inline-block;
+            width: 6px;
+            height: 0.8em;
+            background-color: #9ca3af;
+            margin-left: 6px;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #displayBtn:active {
+            background-color: rgba(243, 244, 246, 0.4);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen m-0 p-0 overflow-hidden flex flex-col justify-between select-none bg-white">
+
+    <!-- 1. TELA INICIAL (10 BOTÕES EM 2 COLUNAS X 5 LINHAS - OCUPA A TELA TODA SEM BORDAS) -->
+    <div id="startScreen" class="grid-select-container fixed inset-0 z-50">
+        <button onclick="selectModeAndStart(0, 10, false)" class="mode-btn btn-grad-1 text-3xl sm:text-5xl md:text-6xl">
+            0 a 10
+        </button>
+        <button onclick="selectModeAndStart(0, 20, false)" class="mode-btn btn-grad-2 text-3xl sm:text-5xl md:text-6xl">
+            0 a 20
+        </button>
+        <button onclick="selectModeAndStart(10, 20, false)" class="mode-btn btn-grad-3 text-3xl sm:text-5xl md:text-6xl">
+            10 a 20
+        </button>
+        <button onclick="selectModeAndStart(0, 50, false)" class="mode-btn btn-grad-4 text-3xl sm:text-5xl md:text-6xl">
+            0 a 50
+        </button>
+        <button onclick="selectModeAndStart(50, 100, false)" class="mode-btn btn-grad-5 text-3xl sm:text-5xl md:text-6xl">
+            50 a 100
+        </button>
+        <button onclick="selectModeAndStart(0, 100, false)" class="mode-btn btn-grad-6 text-3xl sm:text-5xl md:text-6xl">
+            0 a 100
+        </button>
+        <button onclick="selectModeAndStart(100, 999, false)" class="mode-btn btn-grad-7 text-3xl sm:text-5xl md:text-6xl">
+            100 a 999
+        </button>
+        <button onclick="selectModeAndStart(0, 1000, false)" class="mode-btn btn-grad-8 text-3xl sm:text-5xl md:text-6xl">
+            0 a 1.000
+        </button>
+        <button onclick="selectModeAndStart(0, 9999, false)" class="mode-btn btn-grad-9 text-3xl sm:text-5xl md:text-6xl">
+            0 a 9999
+        </button>
+        <button onclick="selectModeAndStart(0, 9990, true)" class="mode-btn btn-grad-10 text-3xl sm:text-5xl md:text-6xl">
+            10x
+        </button>
+    </div>
+
+    <!-- 2. TELA DO JOGO (LANDSCAPE) -->
+    <div id="gameScreen" class="w-full h-full flex flex-col justify-between items-center p-1 sm:p-2 hidden relative bg-white">
+        
+        <!-- BOTÃO DISCRETO PARA VOLTAR À SELEÇÃO DE MODOS -->
+        <button onclick="backToMenu()" class="absolute top-2 left-2 z-30 p-2 text-gray-400 hover:text-gray-800 transition active:scale-95" title="Voltar ao Menu">
+            <svg class="w-7 h-7 sm:w-9 sm:h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+        </button>
+
+        <!-- TOPO: NÚMERO POR EXTENSO EM DESTAQUE E FONTE AMPLIADA -->
+        <div class="w-full text-center pt-1 px-8 flex justify-center items-center min-h-[55px] sm:min-h-[70px] z-10">
+            <div id="numberInWords" class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-black tracking-wide leading-tight cursor-pointer active:opacity-60 transition drop-shadow-sm" onclick="speakCurrentNumber()" title="Toque para ouvir novamente">
+                ---
+            </div>
+        </div>
+
+        <!-- CENTRO: LAYOUTS EM "L" E DISPLAY DE ESPAÇO TOTAL -->
+        <div class="w-full flex-1 flex flex-row items-stretch justify-between relative px-1 overflow-hidden">
+            
+            <!-- ---------------------------------------------------- -->
+            <!-- LADO ESQUERDO: LAYOUT EM "L" (0, 1 VERTICAL; 2, 3, 4 NA BASE) -->
+            <!-- ---------------------------------------------------- -->
+            <div class="flex flex-col justify-end items-start h-full pb-0.5 z-10">
+                <!-- Coluna Vertical: 0 e 1 -->
+                <div class="flex flex-col gap-1 mb-1 items-center">
+                    <button onclick="pressKey('0')" class="btn-key btn-blue w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">0</button>
+                    <button onclick="pressKey('1')" class="btn-key btn-red w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">1</button>
+                </div>
+                <!-- Base do L: Botão 2 (no canto) + Botão 3 + Botão 4 -->
+                <div class="flex flex-row gap-1 items-center">
+                    <button onclick="pressKey('2')" class="btn-key btn-yellow w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">2</button>
+                    <button onclick="pressKey('3')" class="btn-key btn-blue w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">3</button>
+                    <button onclick="pressKey('4')" class="btn-key btn-red w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">4</button>
+                </div>
+            </div>
+
+            <!-- ---------------------------------------------------- -->
+            <!-- CENTRO: DISPLAY PRINCIPAL DE RESPOSTA MAXIMIZADO -->
+            <!-- ---------------------------------------------------- -->
+            <div class="flex-1 flex flex-col items-center justify-between mx-1 my-auto h-full relative">
+                
+                <!-- Botão de Display Gigante no centro para facilidade de toque para limpar/prosseguir -->
+                <button id="displayBtn" onclick="handleDisplayClick()" class="w-full flex-1 flex items-center justify-center rounded-3xl transition-colors focus:outline-none cursor-pointer bg-transparent" title="Toque para apagar ou prosseguir">
+                    <div class="flex items-center justify-center pointer-events-none">
+                        <span id="displayText" class="text-7xl sm:text-8xl md:text-9xl font-black text-black tracking-wider transition-all duration-150">
+                            <!-- Número digitado -->
+                        </span>
+                        <span id="cursor" class="cursor-blink h-12 sm:h-20 md:h-24"></span>
+                    </div>
+                </button>
+
+                <!-- PLACAR CENTRALIZADO LOGO ACIMA DA BORDA INFERIOR (ENTRE 4 E 9) -->
+                <div class="flex flex-row items-center justify-center gap-6 sm:gap-12 pb-0.5 text-xl sm:text-2xl md:text-3xl font-bold leading-none z-10 pointer-events-none">
+                    <div id="statCorrect" class="text-green-600 font-extrabold" title="Acertos">0</div>
+                    <div id="statAverage" class="text-gray-800 font-bold" title="Média de Nota">0,00</div>
+                    <div id="statErrors" class="text-red-600 font-extrabold" title="Erros">0</div>
+                </div>
+            </div>
+
+            <!-- ---------------------------------------------------- -->
+            <!-- LADO DIREITO: LAYOUT EM "L INVERTIDO" (5, 6 VERTICAL; 9, 8, 7 NA BASE) -->
+            <!-- ---------------------------------------------------- -->
+            <div class="flex flex-col justify-end items-end h-full pb-0.5 z-10">
+                <!-- Coluna Vertical: 5 e 6 -->
+                <div class="flex flex-col gap-1 mb-1 items-center">
+                    <button onclick="pressKey('5')" class="btn-key btn-blue w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">5</button>
+                    <button onclick="pressKey('6')" class="btn-key btn-red w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">6</button>
+                </div>
+                <!-- Base do L Invertido: Botão 9 + Botão 8 + Botão 7 (no canto) -->
+                <div class="flex flex-row gap-1 items-center">
+                    <button onclick="pressKey('9')" class="btn-key btn-red w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">9</button>
+                    <button onclick="pressKey('8')" class="btn-key btn-blue w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">8</button>
+                    <button onclick="pressKey('7')" class="btn-key btn-yellow w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-2xl sm:text-3xl md:text-4xl">7</button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // --- ESTADO DA FAIXA SELECIONADA ---
+        let minRange = 0;
+        let maxRange = 9999;
+        let isTenMultipleMode = false;
+
+        // --- ESTADO DO JOGO ---
+        let currentTargetNumber = 0;
+        let currentTargetStr = "";
+        let userTypedInput = "";
+        let isRoundCompleted = false;
+
+        let totalRounds = 0;
+        let correctCount = 0;
+        let errorCount = 0;
+
+        // --- SINTETIZADOR DE EFETOS SONOROS (Web Audio API) ---
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playKeyClickSound(digit) {
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                const baseFreq = 380 + (parseInt(digit) || 0) * 45;
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(baseFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.6, now + 0.08);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } catch(e) {}
+        }
+
+        function playSuccessSound() {
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+
+                    gain.gain.setValueAtTime(0.22, now + idx * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.28);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(now + idx * 0.07);
+                    osc.stop(now + idx * 0.07 + 0.28);
+                });
+            } catch(e) {}
+        }
+
+        function playErrorSound() {
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(120, now + 0.15);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch(e) {}
+        }
+
+        // --- CONVERSOR DE NÚMEROS POR EXTENSO (0 a 9999) ---
+        function numberToWordsPT(num) {
+            if (num === 0) return "zero";
+
+            const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+            const especiais = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+            const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+            const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+            function convertLessThan1000(n) {
+                if (n === 0) return "";
+                if (n === 100) return "cem";
+
+                let parts = [];
+                let c = Math.floor(n / 100);
+                let d = Math.floor((n % 100) / 10);
+                let u = n % 10;
+
+                if (c > 0) parts.push(centenas[c]);
+
+                if (d === 1) {
+                    parts.push(especiais[u]);
+                } else {
+                    if (d > 1) parts.push(dezenas[d]);
+                    if (u > 0) parts.push(unidades[u]);
+                }
+
+                return parts.join(" e ");
+            }
+
+            let result = "";
+            let milhares = Math.floor(num / 1000);
+            let resto = num % 1000;
+
+            if (milhares > 0) {
+                if (milhares === 1) {
+                    result = "mil";
+                } else {
+                    result = convertLessThan1000(milhares) + " mil";
+                }
+
+                if (resto > 0) {
+                    if (resto < 100 || resto % 100 === 0) {
+                        result += " e ";
+                    } else {
+                        result += " ";
+                    }
+                }
+            }
+
+            if (resto > 0) {
+                result += convertLessThan1000(resto);
+            }
+
+            return result;
+        }
+
+        // --- REPRODUÇÃO DE ÁUDIO TTS (Text-to-Speech pt-BR com Fix iOS) ---
+        function speakCurrentNumber() {
+            if (!('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel();
+
+            const text = numberToWordsPT(currentTargetNumber);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 0.85;
+            utterance.pitch = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const ptVoice = voices.find(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
+            if (ptVoice) utterance.voice = ptVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {};
+        }
+
+        // --- SELEÇÃO DE MODO, TELA CHEIA E INÍCIO ---
+        async function selectModeAndStart(minVal, maxVal, is10x) {
+            minRange = minVal;
+            maxRange = maxVal;
+            isTenMultipleMode = is10x;
+
+            initAudio();
+            playKeyClickSound('5');
+
+            // Ativa Fullscreen
+            try {
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) {
+                    await docEl.requestFullscreen();
+                } else if (docEl.webkitRequestFullscreen) {
+                    await docEl.webkitRequestFullscreen();
+                } else if (docEl.msRequestFullscreen) {
+                    await docEl.msRequestFullscreen();
+                }
+            } catch (err) {}
+
+            // Trava orientação em Landscape
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                }
+            } catch (err) {}
+
+            // Alterna visibilidade
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            newRound();
+        }
+
+        function backToMenu() {
+            playKeyClickSound('0');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        // --- LÓGICA DAS RODADAS ---
+        function newRound() {
+            isRoundCompleted = false;
+            userTypedInput = "";
+            updateDisplayUI();
+
+            if (isTenMultipleMode) {
+                const minMult = Math.ceil(minRange / 10);
+                const maxMult = Math.floor(maxRange / 10);
+                const randomStep = Math.floor(Math.random() * (maxMult - minMult + 1)) + minMult;
+                currentTargetNumber = randomStep * 10;
+            } else {
+                currentTargetNumber = Math.floor(Math.random() * (maxRange - minRange + 1)) + minRange;
+            }
+
+            currentTargetStr = currentTargetNumber.toString();
+
+            // Atualiza o extenso
+            document.getElementById('numberInWords').innerText = numberToWordsPT(currentTargetNumber);
+
+            // Fala em voz alta
+            speakCurrentNumber();
+        }
+
+        function updateDisplayUI() {
+            const displayEl = document.getElementById('displayText');
+            displayEl.innerText = userTypedInput;
+            displayEl.classList.remove('shake', 'success-anim');
+        }
+
+        function updateStatsUI() {
+            document.getElementById('statCorrect').innerText = correctCount;
+            document.getElementById('statErrors').innerText = errorCount;
+
+            let average = 0;
+            if (totalRounds > 0) {
+                average = (correctCount / totalRounds) * 10;
+            }
+            document.getElementById('statAverage').innerText = average.toFixed(2).replace('.', ',');
+        }
+
+        // Evento de Pressionar Teclas Numéricas
+        function pressKey(digit) {
+            if (isRoundCompleted) {
+                newRound();
+                return;
+            }
+
+            playKeyClickSound(digit);
+
+            if (userTypedInput.length < currentTargetStr.length) {
+                userTypedInput += digit;
+                updateDisplayUI();
+
+                if (userTypedInput.length === currentTargetStr.length) {
+                    validateAnswer();
+                }
+            }
+        }
+
+        // Clique no display central
+        function handleDisplayClick() {
+            if (isRoundCompleted) {
+                newRound();
+            } else if (userTypedInput.length > 0) {
+                playKeyClickSound('1');
+                userTypedInput = "";
+                updateDisplayUI();
+            }
+        }
+
+        // Validação da resposta
+        function validateAnswer() {
+            totalRounds++;
+            const displayEl = document.getElementById('displayText');
+
+            if (userTypedInput === currentTargetStr) {
+                isRoundCompleted = true;
+                correctCount++;
+
+                playSuccessSound();
+                displayEl.classList.add('success-anim');
+
+                try {
+                    confetti({
+                        particleCount: 110,
+                        spread: 85,
+                        origin: { y: 0.6 }
+                    });
+                } catch(e){}
+
+            } else {
+                errorCount++;
+
+                playErrorSound();
+                displayEl.classList.add('shake');
+
+                setTimeout(() => {
+                    userTypedInput = "";
+                    updateDisplayUI();
+                }, 520);
+            }
+
+            updateStatsUI();
+        }
+
+        // Suporte a teclado físico
+        window.addEventListener('keydown', (e) => {
+            const gameScreenVisible = !document.getElementById('gameScreen').classList.contains('hidden');
+            if (!gameScreenVisible) return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                pressKey(e.key);
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                handleDisplayClick();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                if (isRoundCompleted) {
+                    newRound();
+                } else {
+                    speakCurrentNumber();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

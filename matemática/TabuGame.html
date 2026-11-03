@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Matemática</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Padronização dos botões redondos */
+        .circle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            font-weight: 900;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.1s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .circle-btn:focus { outline: none; }
+
+        .circle-btn:active {
+            transform: scale(0.92);
+            filter: brightness(0.9);
+        }
+
+        /* Botões superiores de controle */
+        .btn-top {
+            width: clamp(2.5rem, 6vw, 4rem);
+            height: clamp(2.5rem, 6vw, 4rem);
+            font-size: clamp(1.2rem, 3vw, 2rem);
+        }
+
+        /* Botões do teclado numérico */
+        .btn-num {
+            width: clamp(2.8rem, 6.5vw, 4.5rem);
+            height: clamp(2.8rem, 6.5vw, 4.5rem);
+            font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+            background-color: #0000ff;
+        }
+
+        /* Cores fiéis ao rascunho */
+        .bg-yellow-custom { background-color: #ffd700; color: #000000; }
+        .bg-red-custom { background-color: #ff0000; }
+        .bg-blue-custom { background-color: #0000ff; }
+        .text-blue-custom { color: #0000ff; }
+
+        /* Estilo do Oval de Resposta com estados dinâmicos */
+        .answer-oval {
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(10rem, 28vw, 22rem);
+            height: clamp(6rem, 16vw, 13rem);
+            font-weight: 900;
+            font-size: clamp(3rem, 10vw, 7.5rem);
+            line-height: 1;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+            cursor: pointer;
+        }
+
+        /* Estado Neutro (Apenas borda fina cinza ou fundo neutro) */
+        .oval-neutral {
+            background-color: #f8fafc;
+            border: 4px solid #cbd5e1;
+            color: #000000;
+        }
+
+        /* Estado Correto (Fundo Verde) */
+        .oval-correct {
+            background-color: #22c55e !important;
+            border: 4px solid #16a34a !important;
+            color: #ffffff !important;
+            animation: pulseSuccess 0.4s ease;
+        }
+
+        /* Estado Errado (Fundo Vermelho) */
+        .oval-wrong {
+            background-color: #ff0000 !important;
+            border: 4px solid #dc2626 !important;
+            color: #000000 !important;
+            animation: shakeError 0.4s ease;
+        }
+
+        @keyframes pulseSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between p-4 bg-white relative">
+
+    <!-- 1. TELA INICIAL (Apenas botão 'INICIAR') -->
+    <div id="start-screen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <button id="btn-start" onclick="startGame()" class="px-12 py-6 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-3xl md:text-5xl rounded-full shadow-2xl transition duration-200">
+            INICIAR
+        </button>
+    </div>
+
+    <!-- 2. INTERFACE DO JOGO -->
+    <div id="game-screen" class="w-full h-full flex flex-col justify-between hidden">
+        
+        <!-- CABEÇALHO -->
+        <header class="w-full flex items-center justify-between px-2 pt-1">
+            <!-- Botões Esquerdos: L, -, + -->
+            <div class="flex items-center gap-2 md:gap-4">
+                <button onclick="clearAllData()" class="circle-btn btn-top bg-yellow-custom" title="Limpar dados e estatísticas">L</button>
+                <button onclick="setOperation('-')" class="circle-btn btn-top bg-red-custom" title="Subtração (-)">-</button>
+                <button onclick="setOperation('+')" class="circle-btn btn-top bg-blue-custom" title="Adição (+)">+</button>
+            </div>
+
+            <!-- Título Central da Operação -->
+            <div id="op-title" class="text-blue-custom font-black text-2xl sm:text-4xl md:text-5xl tracking-wide uppercase text-center px-2">
+                MULTIPLICAÇÃO
+            </div>
+
+            <!-- Botões Direitos: X, /, Z -->
+            <div class="flex items-center gap-2 md:gap-4">
+                <button onclick="setOperation('*')" class="circle-btn btn-top bg-blue-custom" title="Multiplicação (X)">X</button>
+                <button onclick="setOperation('/')" class="circle-btn btn-top bg-red-custom" title="Divisão (/)">/</button>
+                <button onclick="toggleFullscreen()" class="circle-btn btn-top bg-yellow-custom" title="Tela cheia (Z)">Z</button>
+            </div>
+        </header>
+
+        <!-- ÁREA CENTRAL DE EXIBIÇÃO -->
+        <main class="flex-1 flex items-center justify-center gap-4 md:gap-8 my-auto px-4">
+            <!-- Expressão Matemática ex: "3 x 6 =" -->
+            <div id="expression-display" class="font-black text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-black tracking-tight whitespace-nowrap">
+                3 x 6 =
+            </div>
+
+            <!-- Oval da Resposta (Interativo) -->
+            <div id="answer-oval" class="answer-oval oval-neutral shrink-0" onclick="handleOvalClick()" title="Clique para apagar erro ou avançar questão">
+                <span id="answer-display"></span>
+            </div>
+        </main>
+
+        <!-- RODAPÉ: TECLADO NUMÉRICO E ESTATÍSTICAS -->
+        <footer class="w-full flex items-center justify-between px-2 pb-2 max-w-6xl mx-auto">
+            <!-- Teclado Numérico Esquerdo: 1, 2, 3, 4, 5 -->
+            <div class="flex items-center gap-1 sm:gap-2 md:gap-3">
+                <button onclick="pressNum(1)" class="circle-btn btn-num">1</button>
+                <button onclick="pressNum(2)" class="circle-btn btn-num">2</button>
+                <button onclick="pressNum(3)" class="circle-btn btn-num">3</button>
+                <button onclick="pressNum(4)" class="circle-btn btn-num">4</button>
+                <button onclick="pressNum(5)" class="circle-btn btn-num">5</button>
+            </div>
+
+            <!-- Painel Central de Estatísticas -->
+            <div class="flex flex-col items-center justify-center font-bold text-xs sm:text-sm md:text-base lg:text-lg leading-snug px-2 text-center select-text">
+                <div class="text-blue-custom font-black">MÉDIA : <span id="stat-media">0.00</span></div>
+                <div class="text-black font-black">TOTAL : <span id="stat-total">0</span></div>
+                <div class="text-green-600 font-black">ACERTOS : <span id="stat-acertos">0</span></div>
+                <div class="text-red-600 font-black">ERROS : <span id="stat-erros">0</span></div>
+            </div>
+
+            <!-- Teclado Numérico Direito: 6, 7, 8, 9, 0 -->
+            <div class="flex items-center gap-1 sm:gap-2 md:gap-3">
+                <button onclick="pressNum(6)" class="circle-btn btn-num">6</button>
+                <button onclick="pressNum(7)" class="circle-btn btn-num">7</button>
+                <button onclick="pressNum(8)" class="circle-btn btn-num">8</button>
+                <button onclick="pressNum(9)" class="circle-btn btn-num">9</button>
+                <button onclick="pressNum(0)" class="circle-btn btn-num">0</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- LÓGICA EM JAVASCRIPT -->
+    <script>
+        // Variáveis de Estado do Jogo
+        let currentOp = '*'; // Padrão: Multiplicação
+        const MAX_NUM = 9; // Maior número usado nas questões
+        let num1 = 0;
+        let num2 = 0;
+        let correctAnswer = 0;
+        let userInput = '';
+
+        // Estados do oval: 'neutral', 'correct', 'wrong'
+        let ovalState = 'neutral';
+
+        let totalAttempts = 0;
+        let acertosCount = 0;
+        let errosCount = 0;
+
+        // Configuração de Sintetizador de Voz (Web Speech API)
+        let synth = window.speechSynthesis;
+        let selectedVoice = null;
+
+        function initVoices() {
+            if (!synth) return;
+            let voices = synth.getVoices();
+            selectedVoice = voices.find(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR')) || 
+                            voices.find(v => v.lang.startsWith('pt')) || null;
+        }
+
+        if (synth) {
+            initVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = initVoices;
+            }
+        }
+
+        // Efeitos Sonoros via Web Audio API
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            return audioCtx;
+        }
+        function playTone(freq, type, duration) {
+            try {
+                const audioCtx = getAudioCtx();
+                if (!audioCtx) return;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) { console.log(e); }
+        }
+
+        function playSuccessAudio() {
+            playTone(523.25, 'sine', 0.15); // C5
+            setTimeout(() => playTone(659.25, 'sine', 0.25), 100); // E5
+        }
+
+        function playErrorAudio() {
+            playTone(220, 'sawtooth', 0.2); // A3
+            setTimeout(() => playTone(180, 'sawtooth', 0.3), 150);
+        }
+
+        // Fala em voz alta em Português
+        function speak(text, callback) {
+            if (!synth) {
+                if(callback) callback();
+                return;
+            }
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.0;
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            if (callback) {
+                utterance.onend = callback;
+                utterance.onerror = callback;
+            }
+            synth.speak(utterance);
+        }
+
+        // Inicia o app em tela cheia e bloqueia rotação
+        let gameStarted = false;
+        async function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+            try {
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    await document.documentElement.webkitRequestFullscreen();
+                }
+            } catch (err) {
+                console.log("Tela cheia não suportada ou recusada", err);
+            }
+
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                }
+            } catch (err) {
+                console.log("Bloqueio de orientação não suportado", err);
+            }
+
+            const ctx = getAudioCtx();
+            if (ctx && ctx.state === 'suspended') {
+                ctx.resume();
+            }
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+
+            generateNewQuestion();
+        }
+
+        // Troca de Operação
+        function setOperation(op) {
+            currentOp = op;
+            updateTitle();
+            generateNewQuestion();
+        }
+
+        // Botão L: limpa todos os dados e estatísticas
+        function clearAllData() {
+            totalAttempts = 0;
+            acertosCount = 0;
+            errosCount = 0;
+            updateStats();
+            generateNewQuestion();
+        }
+
+        // Botão Z: entra/sai da tela cheia
+        async function toggleFullscreen() {
+            const doc = document;
+            const el = doc.documentElement;
+            const isFull = doc.fullscreenElement || doc.webkitFullscreenElement;
+            try {
+                if (!isFull) {
+                    if (el.requestFullscreen) await el.requestFullscreen();
+                    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+                } else {
+                    if (doc.exitFullscreen) await doc.exitFullscreen();
+                    else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+                }
+            } catch (err) {
+                console.log("Tela cheia não suportada ou recusada", err);
+            }
+        }
+
+        function updateTitle() {
+            const titleElem = document.getElementById('op-title');
+            switch(currentOp) {
+                case '*': titleElem.textContent = 'MULTIPLICAÇÃO'; break;
+                case '+': titleElem.textContent = 'ADIÇÃO'; break;
+                case '-': titleElem.textContent = 'SUBTRAÇÃO'; break;
+                case '/': titleElem.textContent = 'DIVISÃO'; break;
+            }
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Gera uma nova questão e limpa o oval para neutro
+        function generateNewQuestion() {
+            userInput = '';
+            setOvalState('neutral');
+            updateAnswerDisplay();
+
+            const maxNum = MAX_NUM;
+            const prevKey = `${currentOp}|${num1}|${num2}`;
+            let tries = 0;
+
+            do {
+                if (currentOp === '*') {
+                    num1 = getRandomInt(1, maxNum);
+                    num2 = getRandomInt(1, maxNum);
+                    correctAnswer = num1 * num2;
+                } else if (currentOp === '+') {
+                    num1 = getRandomInt(1, maxNum * 3);
+                    num2 = getRandomInt(1, maxNum * 3);
+                    correctAnswer = num1 + num2;
+                } else if (currentOp === '-') {
+                    num1 = getRandomInt(1, maxNum * 4);
+                    num2 = getRandomInt(1, num1);
+                    correctAnswer = num1 - num2;
+                } else if (currentOp === '/') {
+                    num2 = getRandomInt(1, maxNum);
+                    correctAnswer = getRandomInt(1, maxNum);
+                    num1 = num2 * correctAnswer;
+                }
+                tries++;
+            } while (`${currentOp}|${num1}|${num2}` === prevKey && tries < 10);
+
+            let opSymbol = currentOp;
+            if (currentOp === '*') opSymbol = 'x';
+            if (currentOp === '/') opSymbol = '÷';
+
+            document.getElementById('expression-display').textContent = `${num1} ${opSymbol} ${num2} =`;
+
+            let opName = "vezes";
+            if (currentOp === '+') opName = "mais";
+            if (currentOp === '-') opName = "menos";
+            if (currentOp === '/') opName = "dividido por";
+
+            speak(`Quanto é ${num1} ${opName} ${num2}?`);
+        }
+
+        // Atualiza a classe/cor do oval conforme o estado
+        function setOvalState(state) {
+            ovalState = state;
+            const ovalElem = document.getElementById('answer-oval');
+            
+            ovalElem.classList.remove('oval-neutral', 'oval-correct', 'oval-wrong');
+
+            if (state === 'neutral') {
+                ovalElem.classList.add('oval-neutral');
+            } else if (state === 'correct') {
+                ovalElem.classList.add('oval-correct');
+            } else if (state === 'wrong') {
+                ovalElem.classList.add('oval-wrong');
+            }
+        }
+
+        // Digitação Numérica
+        function pressNum(digit) {
+            // Se já respondeu (está verde ou vermelho), ignorar digitação direta até interagir com o oval
+            if (ovalState !== 'neutral') return;
+
+            const maxLen = String(correctAnswer).length;
+            if (userInput.length >= maxLen) return;
+            userInput += String(digit);
+
+            updateAnswerDisplay();
+
+            // Valida automaticamente quando atinge o número de dígitos esperado
+            if (userInput.length === String(correctAnswer).length) {
+                checkAnswer();
+            }
+        }
+
+        function updateAnswerDisplay() {
+            document.getElementById('answer-display').textContent = userInput;
+        }
+
+        // Ação de clicar no oval de resposta
+        function handleOvalClick() {
+            if (ovalState === 'wrong') {
+                // Se estava vermelho: limpa a resposta e volta para neutro
+                userInput = '';
+                updateAnswerDisplay();
+                setOvalState('neutral');
+            } else if (ovalState === 'correct') {
+                // Se estava verde: carrega uma nova questão
+                generateNewQuestion();
+            } else if (ovalState === 'neutral' && userInput.length > 0) {
+                // Se clicou enquanto neutro: apaga a digitação
+                userInput = '';
+                updateAnswerDisplay();
+            }
+        }
+
+        // Validação da Resposta
+        function checkAnswer() {
+            if (userInput === '') return;
+
+            const val = parseInt(userInput, 10);
+            totalAttempts++;
+
+            if (val === correctAnswer) {
+                // Acerto: Oval fica VERDE
+                acertosCount++;
+                playSuccessAudio();
+                setOvalState('correct');
+                speak("Correto!");
+            } else {
+                // Erro: Oval fica VERMELHO
+                errosCount++;
+                playErrorAudio();
+                setOvalState('wrong');
+                speak("Incorreto!");
+            }
+
+            updateStats();
+        }
+
+        // Atualização de Estatísticas
+        function updateStats() {
+            document.getElementById('stat-total').textContent = totalAttempts;
+            document.getElementById('stat-acertos').textContent = acertosCount;
+            document.getElementById('stat-erros').textContent = errosCount;
+
+            const media = totalAttempts > 0 ? (acertosCount / totalAttempts) * 10 : 0;
+            document.getElementById('stat-media').textContent = media.toFixed(2);
+        }
+
+        // Remove o foco dos botões após clicar (evita Enter/Espaço acionarem o botão de novo)
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (btn) btn.blur();
+        });
+
+        // Atalhos de Teclado Físico
+        window.addEventListener('keydown', (e) => {
+            // Ignora combinações como Ctrl+/ , Ctrl+- (zoom) e teclas mantidas pressionadas
+            if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+
+            if (!document.getElementById('start-screen').classList.contains('hidden')) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    startGame();
+                }
+                return;
+            }
+
+            if (e.key >= '0' && e.key <= '9') {
+                pressNum(parseInt(e.key, 10));
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                if (ovalState === 'wrong') {
+                    handleOvalClick();
+                } else if (ovalState === 'neutral') {
+                    userInput = userInput.slice(0, -1);
+                    updateAnswerDisplay();
+                }
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (ovalState !== 'neutral') {
+                    handleOvalClick();
+                } else {
+                    checkAnswer();
+                }
+            } else if (e.key === '+') {
+                setOperation('+');
+            } else if (e.key === '-') {
+                setOperation('-');
+            } else if (e.key === '*' || e.key === 'x' || e.key === 'X') {
+                setOperation('*');
+            } else if (e.key === '/') {
+                e.preventDefault();
+                setOperation('/');
+            } else if (e.key === 'z' || e.key === 'Z') {
+                toggleFullscreen();
+            }
+        });
+    </script>
+</body>
+</html>

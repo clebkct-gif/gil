@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full w-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matemática Divertida PWA</title>
+    <!-- Inline PWA Manifest -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Matem%C3%A1tica%20Divertida%22%2C%22short_name%22%3A%22MathApp%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22fullscreen%22%2C%22orientation%22%3A%22landscape%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%23ffffff%22%7D">
+    <meta name="theme-color" content="#ffffff">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Fredoka', cursive, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        @keyframes pulse-green-glow {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.9); transform: scale(1); }
+            50% { box-shadow: 0 0 0 35px rgba(34, 197, 94, 0); transform: scale(1.03); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); transform: scale(1); }
+        }
+        @keyframes pulse-red-glow {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.9); transform: scale(1); }
+            50% { box-shadow: 0 0 0 35px rgba(239, 68, 68, 0); transform: scale(1.03); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); }
+        }
+        .anim-green {
+            animation: pulse-green-glow 0.8s ease-out;
+        }
+        .anim-red {
+            animation: pulse-red-glow 0.8s ease-out;
+        }
+
+        #orientation-warning {
+            display: none;
+        }
+        @media screen and (orientation: portrait) {
+            #orientation-warning {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body class="h-full w-full bg-white overflow-hidden flex flex-col justify-between select-none relative">
+
+    <div id="orientation-warning" class="fixed inset-0 z-50 bg-black bg-opacity-95 flex-col items-center justify-center p-6 text-center">
+        <div class="bg-blue-600 p-6 rounded-3xl shadow-2xl max-w-sm border-4 border-yellow-300 text-white">
+            <svg class="w-14 h-14 mx-auto mb-3 text-yellow-300 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            <h2 class="text-2xl font-black mb-1 text-yellow-300">Gire o Celular!</h2>
+            <p class="text-sm font-semibold">Por favor, vire o aparelho para a horizontal para manter o layout original[span_0](start_span)[span_0](end_span).</p>
+        </div>
+    </div>
+
+    <!-- HISTORICO MODAL / ABA -->
+    <div id="history-modal" class="fixed inset-0 z-50 bg-white bg-opacity-98 hidden flex-col p-6">
+        <div class="flex items-center justify-between pb-4 border-b-2 border-slate-200">
+            <h2 class="text-2xl md:text-3xl font-black text-blue-700">Histórico de Consultas (Dificuldades)</h2>
+            <button onclick="closeHistory()" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-black text-lg rounded-2xl shadow-md transition-all cursor-pointer">
+                VOLTAR
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4">
+            <p class="text-sm font-semibold text-slate-600 mb-4">Lista de operações (tabuadas/contas) que foram consultadas (ajuda do display)[span_1](start_span)[span_1](end_span):</p>
+            <div id="history-list" class="flex flex-col gap-2">
+                <!-- Itens injetados via JS[span_2](start_span)[span_2](end_span) -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP HEADER BAR: L, -, + (Left) | OPERATION TITLE / FULLSCREEN (Center) | A, X, /, Z (Right) -->
+    <header class="w-full flex items-center justify-between px-4 pt-3 pb-1 relative">
+        <!-- Top Left: L button, minus, plus -->
+        <div class="flex items-center gap-3">
+            <button id="btn-lr" onclick="toggleLR()" class="w-11 h-11 md:w-14 md:h-14 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-green-500 font-black text-2xl rounded-full shadow-md flex items-center justify-center border-2 border-yellow-200 transition-all cursor-pointer" title="Modo Lento / Rápido">
+                L
+            </button>
+            <button onclick="setOperation('-')" class="w-11 h-11 md:w-14 md:h-14 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer" title="Subtração">
+                -
+            </button>
+            <button onclick="setOperation('+')" class="w-11 h-11 md:w-14 md:h-14 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer" title="Adição">
+                +
+            </button>
+        </div>
+
+        <!-- Top Center: Operation Name / Fullscreen Toggle Button -->
+        <div class="flex flex-col items-center">
+            <button id="fullscreen-btn" onclick="handleTitleClick()" class="text-blue-700 hover:text-blue-800 font-black text-xl md:text-3xl tracking-widest uppercase transition py-1 px-3" title="Toque para alternar tela cheia">
+                MULTIPLICAÇÃO
+            </button>
+        </div>
+
+        <!-- Top Right: A (Aleatório), X, /, Z -->
+        <div class="flex items-center gap-3">
+            <button onclick="setOperation('random')" class="w-11 h-11 md:w-14 md:h-14 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-black text-2xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer" title="Aleatório">
+                A
+            </button>
+            <button onclick="setOperation('x')" class="w-11 h-11 md:w-14 md:h-14 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-2xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer" title="Multiplicação">
+                ×
+            </button>
+            <button onclick="setOperation('/')" class="w-11 h-11 md:w-14 md:h-14 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-2xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer" title="Divisão">
+                ÷
+            </button>
+            <button id="btn-z" onclick="resetStats()" class="w-11 h-11 md:w-14 md:h-14 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-black text-2xl rounded-full shadow-md flex items-center justify-center border-2 border-yellow-200 transition-all cursor-pointer" title="Zera Tudo">
+                Z
+            </button>
+        </div>
+
+        <!-- Média Posicionada no Centro Vertical (entre Título e Igual) e Levemente à Esquerda -->
+        <div class="absolute left-[47%] -translate-x-1/2 top-20 md:top-24 pointer-events-none">
+            <span id="stat-avg" class="text-3xl md:text-5xl font-black text-transparent drop-shadow-sm">0.00</span>
+        </div>
+    </header>
+
+    <!-- CENTER MAIN AREA: Math Question + Oval Display Button -->
+    <main class="flex-1 w-full flex items-center justify-center px-6 gap-6 md:gap-12 my-auto">
+        <!-- Math Question Text -->
+        <div id="question-display" class="text-6xl md:text-9xl font-black tracking-wider text-black drop-shadow-sm whitespace-nowrap">
+            3 × 6 =
+        </div>
+
+        <!-- Oval Display Button (Toque longo abre histórico de consultas) -->
+        <button id="display-btn" class="w-48 h-28 md:w-80 md:h-48 bg-slate-100 border-4 border-slate-300 active:scale-95 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer relative">
+            <span id="display-text" class="text-5xl md:text-8xl font-black text-black drop-shadow-sm"></span>
+        </button>
+    </main>
+
+    <!-- BOTTOM NUMERIC BAR: 1 2 3 4 5 [ESPAÇO VAZIO] 6 7 8 9 0 -->
+    <footer class="w-full flex items-center justify-center px-3 pb-3 pt-1 gap-1 md:gap-3 bg-white relative">
+        <!-- Number 1 -->
+        <button onclick="appendNumber(1)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">1</button>
+        <!-- Number 2 -->
+        <button onclick="appendNumber(2)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">2</button>
+        <!-- Number 3 -->
+        <button onclick="appendNumber(3)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">3</button>
+        <!-- Number 4 -->
+        <button onclick="appendNumber(4)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">4</button>
+        <!-- Number 5 -->
+        <button onclick="appendNumber(5)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">5</button>
+
+        <!-- Espaçamento Vazio Exatamente com as Dimensões de uma Tecla para Afastar os Grupos -->
+        <div class="w-11 h-11 md:w-16 md:h-16 visibility-hidden opacity-0 pointer-events-none"></div>
+
+        <!-- Número Total Flutuante Acima do Teclado (Preto, Destacado e Centralizado no Espaço Vazio) -->
+        <div class="absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none">
+            <span id="stat-total" class="text-4xl md:text-6xl font-black text-black text-transparent drop-shadow-sm">0</span>
+        </div>
+
+        <!-- Number 6 -->
+        <button onclick="appendNumber(6)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">6</button>
+        <!-- Number 7 -->
+        <button onclick="appendNumber(7)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">7</button>
+        <!-- Number 8 -->
+        <button onclick="appendNumber(8)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">8</button>
+        <!-- Number 9 -->
+        <button onclick="appendNumber(9)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">9</button>
+        <!-- Number 0 -->
+        <button onclick="appendNumber(0)" class="w-11 h-11 md:w-16 md:h-16 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xl md:text-3xl rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer">0</button>
+    </footer>
+
+    <script>
+        // --- SOFT, RELAXING WEB AUDIO API SOUND ENGINE ---
+        let audioCtx = null;
+
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {
+                console.log("Audio init info[span_3](start_span)[span_3](end_span):", e);
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(550, now + 0.05);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'correct') {
+                    [523.25, 659.25, 783.99].forEach((freq, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + i * 0.05);
+                        gain.gain.setValueAtTime(0.08, now + i * 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i * 0.05);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + i * 0.05);
+                        osc.stop(now + 0.35 + i * 0.05);
+                    });
+                } else if (type === 'error') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(170, now + 0.2);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'reveal') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(330, now);
+                    osc.frequency.exponentialRampToValueAtTime(440, now + 0.2);
+                    gain.gain.setValueAtTime(0.07, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch (e) {
+                console.log("Audio info[span_4](start_span)[span_4](end_span):", e);
+            }
+        }
+
+        function triggerVibration(pattern) {
+            if ("vibrate" in navigator) {
+                try {
+                    navigator.vibrate(pattern);
+                } catch (e) {
+                    // Ignore if restricted[span_5](start_span)[span_5](end_span)
+                }
+            }
+        }
+
+        // --- GAME STATE ---
+        let currentOp = 'x'; 
+        let modeLR = 'L';    
+        let num1 = 3;
+        let num2 = 6;
+        let correctAnswer = 18;
+        let userInput = '';
+        let isProcessing = false;
+        let isRevealedState = false;
+
+        let statsTotal = 0;
+        let statsCorrect = 0;
+        let statsErrors = 0;
+
+        let consultationHistory = {};
+
+        // DOM Elements
+        const questionDisplay = document.getElementById('question-display');
+        const displayText = document.getElementById('display-text');
+        const displayBtn = document.getElementById('display-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const btnLR = document.getElementById('btn-lr');
+        const btnZ = document.getElementById('btn-z');
+        const historyModal = document.getElementById('history-modal');
+        const historyList = document.getElementById('history-list');
+
+        const statTotalEl = document.getElementById('stat-total');
+        const statAvgEl = document.getElementById('stat-avg');
+
+        function getOperationName(op) {
+            switch(op) {
+                case 'x': return 'MULTIPLICAÇÃO';
+                case '/': return 'DIVISÃO';
+                case '+': return 'ADIÇÃO';
+                case '-': return 'SUBTRAÇÃO';
+                case 'random': return 'ALEATÓRIO';
+                default: return 'MULTIPLICAÇÃO';
+            }
+        }
+
+        function updateFullscreenButtonText() {
+            fullscreenBtn.textContent = getOperationName(currentOp);
+        }
+
+        function generateNewProblem() {
+            isProcessing = false;
+            isRevealedState = false;
+            userInput = '';
+            
+            displayBtn.className = "w-48 h-28 md:w-80 md:h-48 bg-slate-100 border-4 border-slate-300 active:scale-95 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer relative";
+            displayText.className = "text-5xl md:text-8xl font-black text-black drop-shadow-sm";
+            displayText.textContent = '';
+
+            let activeOp = currentOp;
+            if (activeOp === 'random') {
+                const ops = ['x', '/', '+', '-'];
+                activeOp = ops[Math.floor(Math.random() * ops.length)];
+            }
+
+            const maxVal = modeLR === 'L' ? 10 : 20;
+
+            if (activeOp === 'x') {
+                num1 = Math.floor(Math.random() * (maxVal === 10 ? 10 : 12)) + 1;
+                num2 = Math.floor(Math.random() * (maxVal === 10 ? 10 : 12)) + 1;
+                correctAnswer = num1 * num2;
+                questionDisplay.textContent = `${num1} × ${num2} =`;
+            } else if (activeOp === '+') {
+                num1 = Math.floor(Math.random() * maxVal) + 1;
+                num2 = Math.floor(Math.random() * maxVal) + 1;
+                correctAnswer = num1 + num2;
+                questionDisplay.textContent = `${num1} + ${num2} =`;
+            } else if (activeOp === '-') {
+                num1 = Math.floor(Math.random() * maxVal) + 5;
+                num2 = Math.floor(Math.random() * num1) + 1;
+                correctAnswer = num1 - num2;
+                questionDisplay.textContent = `${num1} - ${num2} =`;
+            } else if (activeOp === '/') {
+                num2 = Math.floor(Math.random() * 9) + 1;
+                let multiplier = Math.floor(Math.random() * (maxVal === 10 ? 10 : 15)) + 1;
+                num1 = num2 * multiplier;
+                correctAnswer = multiplier;
+                questionDisplay.textContent = `${num1} ÷ ${num2} =`;
+            }
+        }
+
+        function appendNumber(num) {
+            if (isProcessing) return;
+
+            if (isRevealedState) {
+                isRevealedState = false;
+                userInput = '';
+                displayBtn.className = "w-48 h-28 md:w-80 md:h-48 bg-slate-100 border-4 border-slate-300 active:scale-95 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer relative";
+                displayText.className = "text-5xl md:text-8xl font-black text-black drop-shadow-sm";
+                displayText.textContent = '';
+            }
+
+            initAudio();
+            playSound('click');
+            triggerVibration(20);
+
+            userInput += num.toString();
+            
+            const strCorrect = correctAnswer.toString();
+            if (userInput.length > strCorrect.length) {
+                userInput = num.toString();
+            }
+
+            displayText.textContent = userInput;
+
+            const userNum = parseInt(userInput, 10);
+
+            if (userInput.length === strCorrect.length) {
+                isProcessing = true;
+                statsTotal++;
+
+                if (userNum === correctAnswer) {
+                    statsCorrect++;
+                    updateStats();
+                    playSound('correct');
+                    triggerVibration([50, 30, 50]);
+
+                    displayBtn.className = "w-48 h-28 md:w-80 md:h-48 bg-emerald-500 rounded-full shadow-2xl flex items-center justify-center transition-all anim-green";
+                    displayText.className = "text-5xl md:text-8xl font-black text-white drop-shadow-sm";
+                    displayText.textContent = correctAnswer;
+
+                    const delay = modeLR === 'L' ? 1800 : 900;
+                    setTimeout(() => {
+                        generateNewProblem();
+                    }, delay);
+                } else {
+                    statsErrors++;
+                    updateStats();
+                    playSound('error');
+                    triggerVibration([120, 60, 120]);
+
+                    displayBtn.className = "w-48 h-28 md:w-80 md:h-48 bg-red-600 rounded-full shadow-2xl flex items-center justify-center transition-all anim-red";
+                    displayText.className = "text-5xl md:text-8xl font-black text-white drop-shadow-sm";
+
+                    const delay = modeLR === 'L' ? 1500 : 800;
+                    setTimeout(() => {
+                        userInput = '';
+                        displayText.textContent = '';
+                        displayText.className = "text-5xl md:text-8xl font-black text-black drop-shadow-sm";
+                        displayBtn.className = "w-48 h-28 md:w-80 md:h-48 bg-slate-100 border-4 border-slate-300 active:scale-95 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer relative";
+                        isProcessing = false;
+                    }, delay);
+                }
+            }
+        }
+
+        function handleDisplayClick() {
+            if (isProcessing) return;
+
+            // Se houver digitação parcial em andamento, limpa a digitação sem duplicar comandos
+            if (userInput !== '') {
+                initAudio();
+                playSound('click');
+                triggerVibration(20);
+                userInput = '';
+                displayText.textContent = '';
+                displayText.className = "text-5xl md:text-8xl font-black text-black drop-shadow-sm";
+                return;
+            }
+
+            // Consulta protegida com trava imediata para evitar duplo clique e duplo incremento
+            if (userInput === '' && !isRevealedState) {
+                isProcessing = true;
+                isRevealedState = true;
+                statsTotal++;
+                statsErrors++;
+                updateStats();
+
+                const currentQuestionStr = questionDisplay.textContent;
+                consultationHistory[currentQuestionStr] = (consultationHistory[currentQuestionStr] || 0) + 1;
+
+                playSound('reveal');
+                triggerVibration([30, 30, 30]);
+
+                displayText.textContent = correctAnswer;
+                displayText.className = "text-5xl md:text-8xl font-black text-white drop-shadow-sm";
+                displayBtn.className = "w-48 h-28 md:w-80 md:h-48 bg-sky-400 rounded-full shadow-2xl flex items-center justify-center transition-all cursor-pointer";
+            }
+        }
+
+        displayBtn.addEventListener('click', handleDisplayClick);
+
+        let displayLongPressTimer = null;
+
+        displayBtn.addEventListener('mousedown', startDisplayLongPress);
+        displayBtn.addEventListener('touchstart', startDisplayLongPress, {passive: true});
+        displayBtn.addEventListener('mouseup', cancelDisplayLongPress);
+        displayBtn.addEventListener('mouseleave', cancelDisplayLongPress);
+        displayBtn.addEventListener('touchend', cancelDisplayLongPress);
+
+        function startDisplayLongPress() {
+            if (isProcessing) return;
+            displayLongPressTimer = setTimeout(() => {
+                showHistoryModal();
+            }, 800);
+        }
+
+        function cancelDisplayLongPress() {
+            if (displayLongPressTimer) {
+                clearTimeout(displayLongPressTimer);
+                displayLongPressTimer = null;
+            }
+        }
+
+        function showHistoryModal() {
+            initAudio();
+            playSound('correct');
+            triggerVibration([60, 60, 60]);
+
+            historyList.innerHTML = '';
+            const keys = Object.keys(consultationHistory);
+            if (keys.length === 0) {
+                historyList.innerHTML = `<p class="text-slate-500 font-semibold">Nenhuma ajuda solicitada ainda[span_6](start_span)[span_6](end_span).</p>`;
+            } else {
+                keys.forEach(q => {
+                    const count = consultationHistory[q];
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center bg-slate-100 p-3 rounded-2xl border border-slate-200";
+                    item.innerHTML = `<span class="text-xl font-bold text-slate-800">Questão: ${q}</span> <span class="bg-blue-600 text-white font-black px-3 py-1 rounded-full text-sm">Consultas: ${count}</span>`;
+                    historyList.appendChild(item);
+                });
+            }
+
+            historyModal.classList.remove('hidden');
+            historyModal.classList.add('flex');
+        }
+
+        function closeHistory() {
+            initAudio();
+            playSound('click');
+            triggerVibration(20);
+            historyModal.classList.remove('flex');
+            historyModal.classList.add('hidden');
+        }
+
+        function updateStats() {
+            if (statsTotal > 0) {
+                statTotalEl.textContent = statsTotal;
+                statTotalEl.classList.remove('text-transparent');
+
+                let rawAvg = (statsCorrect / statsTotal) * 10;
+                let avg = Math.min(10.0, Math.max(0.0, rawAvg)); // Proteção matemática contra valores excedentes
+                
+                statAvgEl.textContent = avg.toFixed(1).replace('.', ',');
+                statAvgEl.classList.remove('text-transparent');
+
+                statAvgEl.classList.remove('text-red-600', 'text-blue-600', 'text-emerald-600');
+                if (avg < 6) {
+                    statAvgEl.classList.add('text-red-600');
+                } else if (avg > 8.5) {
+                    statAvgEl.classList.add('text-emerald-600');
+                } else {
+                    statAvgEl.classList.add('text-blue-600');
+                }
+            } else {
+                statTotalEl.textContent = '0';
+                statTotalEl.classList.add('text-transparent');
+                statAvgEl.textContent = '0,0';
+                statAvgEl.classList.add('text-transparent');
+            }
+        }
+
+        function resetStats() {
+            initAudio();
+            playSound('click');
+            triggerVibration(25);
+            statsTotal = 0;
+            statsCorrect = 0;
+            statsErrors = 0;
+            updateStats();
+        }
+
+        function setOperation(op) {
+            initAudio();
+            playSound('click');
+            triggerVibration(30);
+            currentOp = op;
+            updateFullscreenButtonText();
+            generateNewProblem();
+        }
+
+        function toggleLR() {
+            initAudio();
+            playSound('click');
+            triggerVibration(30);
+            if (modeLR === 'L') {
+                modeLR = 'R';
+                btnLR.textContent = 'R';
+                btnLR.className = "w-11 h-11 md:w-14 md:h-14 bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-black text-2xl rounded-full shadow-md flex items-center justify-center border-2 border-rose-300 transition-all cursor-pointer";
+            } else {
+                modeLR = 'L';
+                btnLR.textContent = 'L';
+                btnLR.className = "w-11 h-11 md:w-14 md:h-14 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-green-500 font-black text-2xl rounded-full shadow-md flex items-center justify-center border-2 border-yellow-200 transition-all cursor-pointer";
+            }
+            generateNewProblem();
+        }
+
+        function handleTitleClick() {
+            initAudio();
+            playSound('click');
+            triggerVibration(30);
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("Fullscreen request info[span_7](start_span)[span_7](end_span):", err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // PWA Service Worker Registration robusto com fallback otimizado
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('activate', e => self.clients.claim());
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(
+                            caches.match(e.request).then(response => response || fetch(e.request)).catch(() => {})
+                        );
+                    });
+                `;
+                try {
+                    const blob = new Blob([swCode], {type: 'application/javascript'});
+                    const swUrl = URL.createObjectURL(blob);
+                    navigator.serviceWorker.register(swUrl).catch(err => console.log("SW info[span_8](start_span)[span_8](end_span):", err));
+                } catch (e) {
+                    console.log("SW register info[span_9](start_span)[span_9](end_span):", e);
+                }
+            });
+        }
+
+        window.onload = function() {
+            updateFullscreenButtonText();
+            updateStats();
+            generateNewProblem();
+        };
+    </script>
+</body>
+</html>
