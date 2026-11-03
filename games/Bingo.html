@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>Bingo Profissional Pro</title><meta name="theme-color" content="#000000">
+<style>
+:root{--primary:#007aff;--success:#4cd964;--danger:#ff3b30;--warning:#ffcc00}
+*{box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#000;color:#fff;overflow:hidden;touch-action:manipulation;width:100vw;height:100vh;height:100dvh}
+.hidden{display:none!important}
+.tela{width:100vw;height:100vh;height:100dvh;padding:15px;display:flex;flex-direction:column;overflow-y:auto}
+h1,.logo-cartela{text-align:center;font-size:15vw;margin:0 0 30px;align-self:center;flex-shrink:0;font-weight:bold}
+h1 span:nth-child(1),.logo-cartela span:nth-child(1),h1 span:nth-child(5),.logo-cartela span:nth-child(5){color:var(--danger)}
+h1 span:nth-child(2),.logo-cartela span:nth-child(2){color:var(--primary)}
+h1 span:nth-child(3),.logo-cartela span:nth-child(3){color:var(--warning)}
+h1 span:nth-child(4),.logo-cartela span:nth-child(4){color:var(--success)}
+.logo-cartela{font-size:10vw;margin-bottom:10px}
+.menu-container{display:flex;flex-direction:column;gap:20px;width:100%;max-width:400px;margin:auto}
+.btn-acao{width:100%;padding:20px;font-size:22px;border-radius:15px;border:none;font-weight:bold;cursor:pointer}
+.btn-jogador{background:linear-gradient(45deg,#007aff,#005bb7);color:#fff}
+.btn-operador{background:#333;color:#fff;border:2px solid #555}
+.btn-voltar{background:transparent;color:#888;text-decoration:underline;font-size:14px;border:none;margin-top:10px;align-self:center}
+#grid-criador-5x5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:15px}
+#grid-seletor-4x4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:15px;background:rgba(255,255,255,.05);border-radius:15px}
+.btn-num-criador{aspect-ratio:1;border-radius:10px;font-size:22px;font-weight:900;border:2px solid #fff;color:#fff;text-shadow:1px 1px 2px #000}
+.faixa-comandos{display:flex;gap:8px;width:100%;margin:5px 0;flex-shrink:0}
+.btn-protegido{flex:1;padding:14px 4px;font-size:12px;font-weight:bold;border-radius:8px;border:1px solid #444;background:#222;color:#fff}
+.btn-alerta-vermelho{background:var(--danger)!important;border:2px solid #fff!important}
+.flash-warning{animation:fw 1s infinite alternate;border-color:var(--warning)!important;box-shadow:inset 0 0 15px var(--warning)}
+@keyframes fw{from{opacity:1}to{opacity:.4}}
+.vencedora-pulsante{background:var(--warning)!important;color:#000!important;pointer-events:none}
+.cartela-travada{pointer-events:none;filter:contrast(.8)}
+#qrBox{background:#fff;padding:8px;border-radius:15px;margin:8px auto;width:90vw;max-width:420px;flex-shrink:0}
+#qrBox canvas{width:100%;display:block;image-rendering:pixelated}
+#abas{display:flex;gap:8px;margin-bottom:8px;flex-shrink:0}
+#abas button{flex:1;padding:12px;border-radius:10px;border:2px solid #444;background:#111;color:#fff;font-weight:bold;font-size:16px}
+#abas button.on{border-color:var(--primary);background:#0a2a55}
+#tela-painel-op{display:grid;grid-template-columns:340px 1fr;gap:20px;padding:10px;height:100vh;overflow:hidden}
+.painel-lateral-op{display:flex;flex-direction:column;height:100%;background:#050505;border-right:1px solid #222;padding-right:15px;overflow:hidden}
+#display-bola-vez{background:#111;border:4px solid #333;border-radius:25px;font-size:150px;font-weight:900;color:var(--warning);text-align:center;line-height:1.2;margin-bottom:10px}
+#display-bola-vez.fullscreen-mode{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;display:flex;align-items:center;justify-content:center;font-size:75vh;background:#000}
+#painel-sorteio{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;align-content:start;overflow-y:auto;height:100%}
+.num-globo{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:#111;border:1px solid #282828;color:#666;font-size:2vw;font-weight:900;border-radius:10px}
+.num-globo.ativo{background:var(--primary);color:#fff;border-color:#fff}
+.num-globo.vibrante{animation:fw 1s infinite alternate;border:3px solid var(--warning);color:#fff}
+#cartela{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:5px;flex-shrink:0}
+.celula{background:#111;border:3px solid #333;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10vw;font-weight:bold;border-radius:12px}
+.marcada{background:var(--success)!important;color:#000!important}
+video{width:100%;border-radius:12px;background:#000}
+.status-clicavel{padding:10px;border:2px solid #444;border-radius:10px;background:#111;margin-bottom:5px;text-align:center;font-weight:bold;color:var(--warning)}
+input.campo{background:#111;color:#fff;border:2px solid var(--primary);text-align:center;border-radius:12px;padding:12px;font-size:20px;width:100%;margin-bottom:10px}
+#manual{position:fixed;inset:0;background:#000e;z-index:99999;padding:20px;overflow-y:auto;font-size:15px;line-height:1.5}
+#manual b{color:var(--warning)}
+#tela-jogo{padding:8px 12px}
+#tela-jogo .logo-cartela{font-size:6vw;margin:0 0 4px;cursor:pointer}
+#barra{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;flex-shrink:0}
+#barra .btn-protegido,#sessao-topo-op .btn-protegido{flex:none;padding:4px 8px;font-size:11px;border-radius:6px}
+#sessao-topo-op .faixa-comandos{flex-wrap:wrap;gap:4px;margin:3px 0}
+#abas button{padding:7px;font-size:14px}
+#abas{margin-bottom:5px}
+.status-clicavel{padding:6px;font-size:13px}
+#tela-painel-op{grid-template-columns:270px 1fr;gap:10px}
+#painel-sorteio{grid-template-rows:repeat(8,1fr);gap:5px;overflow:hidden}
+.num-globo{aspect-ratio:auto;font-size:min(3.6vw,6.5vh)}
+#display-bola-vez{font-size:min(100px,18vh);margin-bottom:4px;border-width:3px}
+#sessao-topo-op .btn-protegido{font-size:12px;padding:5px 8px}
+#box-camera video{max-height:42vh;object-fit:cover}
+@media (orientation:portrait){#tela-painel-op{grid-template-columns:1fr}#tela-painel-op{grid-template-rows:minmax(0,1fr) auto}#painel-sorteio{grid-template-rows:none;gap:3px;height:auto;overflow:visible;padding-bottom:6px}.num-globo{aspect-ratio:1;font-size:4vw;border-radius:6px}.painel-lateral-op{min-height:0}
+.painel-lateral-op{border:0;padding:0}#display-bola-vez{font-size:15vw}#box-camera video{max-height:55vh}
+#sessao-topo-op .btn-protegido{font-size:15px;padding:9px 12px}}
+#topo{display:flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0}
+#topo .logo-cartela{margin:0}
+#btn-desf{padding:6px 12px;border-radius:8px;border:2px solid var(--warning);background:#222;color:var(--warning);font-weight:bold;font-size:13px}
+#sessao-topo-op .btn-protegido{padding:2px 6px;font-size:14px;line-height:1.15;font-weight:800;border-radius:5px}
+@media (orientation:portrait){#sessao-topo-op .btn-protegido{padding:3px 8px;font-size:17px}}
+#menu-ev{position:fixed;inset:0;background:#000f;z-index:99999;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;align-items:center}
+.mb{width:min(90vw,420px);padding:12px;font-size:17px;border-radius:12px;border:2px solid #555;background:#333;color:#fff;font-weight:bold}
+#ev-qr canvas,#jq canvas{width:100%;display:block;image-rendering:pixelated}
+@media (orientation:landscape){#tela-painel-op{grid-template-rows:minmax(0,1fr)}#painel-sorteio{align-content:stretch;min-height:0;height:100%}.painel-lateral-op{min-height:0}}
+#display-bola-vez .dv-top,#display-bola-vez .dv-tick{display:none}
+#display-bola-vez.fullscreen-mode{flex-direction:column;gap:2vh;font-size:initial;line-height:1}
+#display-bola-vez.fullscreen-mode .dv-top{display:block;text-align:center;font-weight:800;color:#fff;font-size:min(6vh,7vw);line-height:1.2;padding:0 3vw}
+#display-bola-vez.fullscreen-mode .dv-top b{display:block;color:#4cd964;font-size:min(10vh,12vw)}
+#display-bola-vez.fullscreen-mode .dv-num{font-size:min(50vh,62vw);line-height:1;color:var(--warning);font-weight:900}
+#display-bola-vez.fullscreen-mode .dv-tick{display:block;width:100%;overflow:hidden;white-space:nowrap;font-size:min(8vh,10vw);font-weight:900;color:#4cd964}
+.dv-tick span{display:inline-block;padding-left:100%;animation:tk 12s linear infinite}
+@keyframes tk{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+#rod-info{text-align:center;font-size:13px;font-weight:bold;color:var(--warning);background:#111;border:1px solid #333;border-radius:8px;padding:4px 6px;margin-bottom:5px;flex-shrink:0}
+#qr-rodada{position:fixed;inset:0;background:#000;z-index:99999;padding:16px;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center}
+#qr-rodada canvas{width:100%;display:block;image-rendering:pixelated}
+.pede-bak{animation:fw 1s infinite alternate;border-color:#ff6b60!important;color:#ff6b60!important}
+#rod-info{cursor:pointer}
+#tst .l{display:flex;gap:8px;align-items:flex-start;background:#111;border:1px solid #333;border-radius:8px;padding:6px 8px}
+#tst .l small{color:#aaa;display:block;font-weight:normal}
+#ultimas{display:flex;gap:4px;overflow-x:auto;white-space:nowrap;font-size:12px;margin:2px 0;align-items:center;flex-shrink:0;min-height:0}
+#ultimas .ch{flex:none;background:#0a2a55;border:1px solid #007aff;border-radius:6px;padding:2px 7px;font-weight:bold;cursor:pointer}
+#ultimas .ch0{background:#7a5a00;border-color:var(--warning)}
+</style></head>
+<body>
+<div id="tela-menu" class="tela">
+ <h1><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></h1>
+ <div class="menu-container">
+  <button class="btn-acao btn-jogador" onclick="entrar('j')">MODO JOGADOR</button>
+  <button class="btn-acao btn-operador" onclick="entrar('o')">MODO OPERADOR</button>
+  <button class="btn-voltar" onclick="restaurar()">📥 Restaurar cartela</button>
+  <button class="btn-voltar" onclick="testarAparelho()">🧪 Testar aparelho</button>
+  <div id="ver" style="color:#666;font-size:12px;text-align:center;margin-top:6px"></div>
+ </div>
+</div>
+
+<div id="tela-selecao" class="tela hidden">
+ <div class="logo-cartela"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+ <div style="display:flex;gap:6px;align-items:flex-start"><input id="campo-ev" class="campo" style="flex:1" placeholder="Código do evento (ex.: K7Q2-4821-261011)" autocapitalize="characters" autocomplete="off"><button class="btn-protegido" style="flex:none;height:52px;font-size:22px" onclick="lerEv()">📷</button></div>
+ <div id="cam-ev" class="hidden" style="margin-bottom:10px"><video id="video-ev" playsinline muted></video></div>
+ <input id="campo-nome" class="campo" maxlength="20" placeholder="Seu nome" autocomplete="off">
+ <button id="btn-ok" class="btn-acao btn-jogador" onclick="okCria()">OK</button>
+ <button class="btn-protegido" style="flex:none;margin:10px 0" onclick="restaurar()">📥 RESTAURAR CARTELA</button>
+ <div id="bloco-cria" class="hidden">
+  <div id="grid-criador-5x5"></div>
+  <button id="btn-proximo-criador" class="btn-acao btn-jogador hidden" style="margin-bottom:12px">GERAR CARTELA</button>
+  <button class="btn-protegido" style="flex:none;margin-bottom:10px" onclick="sortearPraMim()">🎲 SORTEAR PARA MIM</button>
+  <div id="status-criador" style="text-align:center;font-weight:bold;margin-bottom:10px;text-transform:uppercase"></div>
+  <div id="grid-seletor-4x4" class="hidden"></div>
+ </div>
+ <button class="btn-voltar" onclick="location.reload()">Voltar</button>
+</div>
+
+<div id="tela-jogo" class="tela hidden">
+ <div id="topo"><div class="logo-cartela" onclick="$('barra').classList.toggle('hidden')"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span><span> ☰</span></div><button id="btn-desf" class="hidden" onclick="desfazer()">↩ DESFAZER</button></div>
+ <div id="barra" class="hidden">
+  <button class="btn-protegido" onclick="enviarCarta()">📤 QR</button>
+  <button class="btn-protegido" onclick="backup()">💾 BACKUP</button>
+  <button class="btn-protegido" onclick="restaurar()">📥 RESTAURAR</button>
+  <button class="btn-protegido" onclick="sincronizar()">🔄 SINCRONIZAR</button>
+  <button class="btn-protegido" id="btn-mod" onclick="trocaMod()">🎯 MODALIDADE</button>
+  <button class="btn-protegido" onclick="novaCarta()">＋ 2ª CARTELA</button>
+  <button class="btn-protegido" style="color:var(--danger)" onclick="sair()">SAIR</button>
+ </div>
+ <div id="abas"></div>
+ <div id="rod-info" onclick="sincronizar()"></div>
+ <div id="cartela"></div>
+ <div id="info" style="text-align:center;font-size:12px;color:#aaa;margin:3px 0"></div>
+ <div id="qrBox"></div>
+</div>
+
+<div id="tela-painel-op" class="tela hidden">
+ <div class="painel-lateral-op">
+  <div id="sessao-topo-op">
+   <div id="display-bola-vez" onclick="clicaBola(this)"><div class="dv-top"></div><div class="dv-num">-</div><div class="dv-tick hidden"><span></span></div></div>
+   <div id="ultimas"></div>
+   <div class="faixa-comandos">
+    <button class="btn-protegido" onclick="scan()">📷 SCAN</button>
+    <button class="btn-protegido" onclick="$('arq').click()">🖼 IMAGENS</button>
+    <button class="btn-protegido" onclick="colar()">📋 COLAR</button>
+   </div>
+   <div class="faixa-comandos">
+    <button class="btn-protegido" onclick="rodada()">🎁 RODADA</button>
+    <button class="btn-protegido" onclick="qrRodada()">🔄 QR RODADA</button>
+    <button class="btn-protegido" id="btn-lista" onclick="lista()">💾 LISTA</button>
+    <button class="btn-protegido" onclick="$('manual').classList.remove('hidden')">📖 MANUAL</button>
+    <button class="btn-protegido" style="background:var(--success);color:#000" onclick="novoEv()">NEW</button>
+   </div>
+   <input id="arq" type="file" accept="image/*,.txt,.json" multiple class="hidden">
+  </div>
+  <div id="status-val" class="status-clicavel" onclick="menuEv()">Aguardando...</div>
+  <div style="flex-grow:1;border:2px dashed #222;border-radius:20px;overflow-y:auto;padding:10px">
+   <div id="box-camera" class="hidden"><video id="video-feed" playsinline muted></video></div>
+   <div id="resultado-mini" style="font-size:13px"></div>
+  </div>
+ </div>
+ <div id="painel-sorteio"></div>
+</div>
+
+<div id="cam-rest" class="hidden" style="position:fixed;inset:0;background:#000;z-index:99999;padding:12px;display:flex;flex-direction:column;gap:10px"><div id="msg-rest" style="text-align:center;font-weight:bold"></div><video id="video-rest" playsinline muted style="flex:1;min-height:0;object-fit:cover"></video><button class="mb" style="align-self:center" onclick="fechaRest()">Fechar</button></div>
+<div id="menu-ev" class="hidden"></div>
+<div id="qr-rodada" class="hidden" onclick="this.classList.add('hidden')"></div>
+<div id="manual" class="hidden">
+<b>MANUAL RÁPIDO</b><br><br>
+<b>Antes:</b><br>
+0. Na tela inicial, 🧪 <b>Testar aparelho</b> confere câmera, leitor de QR, voz, tela cheia e armazenamento.<br>
+1. Toque no <b>nome do evento</b> para exibir o código, mostrar o QR ou enviá-lo (texto/WhatsApp). Passe-o só a quem vai jogar.<br>
+2. Cada jogador gera a cartela (até 2 por pessoa) e mostra o QR ou envia a imagem/código por WhatsApp.<br>
+3. Cadastre: 📷 SCAN (uma a uma), 🖼 IMAGENS (várias de uma vez) ou 📋 COLAR. Alterada, repetida ou de outro evento é recusada.<br>
+4. Faça backup em 💾 LISTA › Fazer backup (envia um arquivo). O botão pisca e a barra mostra ⚠️ quando há backup pendente (a cada 5 cartelas novas, 10 bolas ou nova rodada).<br><br>
+<b>Durante:</b><br>
+5. 🎁 RODADA: informe o prêmio, escolha <b>Horiz·Vert·Diag</b> ou <b>Cartela cheia</b> e, para recomeçar, marque "nova rodada" (zera as bolas). O QR da rodada abre sozinho ao aplicar (para rever: 🔄 QR RODADA). Os jogadores tocam na faixa da rodada (ou ☰ › 🔄) e leem o QR: modalidade, prêmio e rodada chegam ao app deles e as marcações são zeradas.<br>
+6. Toque nas bolas. Errou? Toque no número em <b>🎱 Últimas</b> (qualquer uma pode ser removida). O painel gigante do número fecha sozinho (ajuste ao tocar no nome do evento). A 1ª bola fecha o cadastro.<br>
+7. Gritaram bingo? Escaneie a cartela ou toque no nome do jogador › 🎯 Conferir cartela: ✅ BINGO, ⚠️ PASSOU BATIDO ou ❌ FALSO, com a minicartela na tela (toque nela para fechar). Cartela 🚫 NÃO REGISTRADA não vale.<br><br>
+<b>Imprevistos:</b><br>
+8. Jogador perdeu o app: toque no nome dele na lista › ▦ QR da cartela para ele ler (ou enviar o texto); ele cola em 📥 RESTAURAR (o texto do operador não traz as marcações; o 💾 BACKUP do próprio jogador traz).<br>
+9. <b>Jogador:</b> a modalidade vem do operador pelo QR da rodada (☰ › 🔄 SINCRONIZAR). Sem câmera, ☰ › 🎯 alterna entre Linhas e Cheia manualmente.<br>10. A câmera exige abrir o app por link https (ex.: GitHub). Sem câmera, use 🖼 ou 📋.<br><br>
+<button class="btn-acao btn-jogador" onclick="$('manual').classList.add('hidden')">FECHAR</button>
+</div>
+
+<script>
+// ===== QR (byte, EC M, v1-9) =====
+function qrMatrix(text){
+ const B=[...new TextEncoder().encode(text)],EC=[10,16,26,18,24,16,18,22,22],BL=[1,1,1,2,2,4,4,4,5],TOT=[26,44,70,100,134,172,196,242,292];
+ let v=0;while(v<9&&TOT[v]-EC[v]*BL[v]<B.length+2)v++;if(v>=9)throw Error('QR grande');
+ const nd=TOT[v]-EC[v]*BL[v],V=v+1,N=17+4*V,bits=[],put=(x,l)=>{for(let i=l-1;i>=0;i--)bits.push(x>>i&1)};
+ put(4,4);put(B.length,8);B.forEach(x=>put(x,8));put(0,Math.min(4,nd*8-bits.length));
+ while(bits.length%8)bits.push(0);for(let p=0;bits.length<nd*8;p^=1)put(p?17:236,8);
+ const cw=[];for(let i=0;i<bits.length;i+=8)cw.push(parseInt(bits.slice(i,i+8).join(''),2));
+ const E=[],L=[];for(let i=0,x=1;i<255;i++){E[i]=x;L[x]=i;x<<=1;if(x>255)x^=285}
+ const mul=(a,b)=>a&&b?E[(L[a]+L[b])%255]:0,ec=EC[v];let g=[1];
+ for(let i=0;i<ec;i++){const n=Array(g.length+1).fill(0);g.forEach((c,j)=>{n[j]^=c;n[j+1]^=mul(c,E[i])});g=n}
+ const nb=BL[v],sh=Math.floor(nd/nb),lg=nd%nb,bk=[];let pos=0;
+ for(let i=0;i<nb;i++){const len=sh+(i>=nb-lg?1:0),d=cw.slice(pos,pos+len);pos+=len;const r=[...d,...Array(ec).fill(0)];
+  for(let j=0;j<d.length;j++){const c=r[j];if(c)g.forEach((gc,k)=>{r[j+k]^=mul(gc,c)})}bk.push({d,e:r.slice(d.length)})}
+ const out=[];for(let i=0;i<=sh;i++)bk.forEach(k=>{if(i<k.d.length)out.push(k.d[i])});
+ for(let i=0;i<ec;i++)bk.forEach(k=>out.push(k.e[i]));
+ const m=Array.from({length:N},()=>Array(N).fill(0)),f=Array.from({length:N},()=>Array(N).fill(0));
+ const set=(r,c,x)=>{if(r>=0&&c>=0&&r<N&&c<N){m[r][c]=x;f[r][c]=1}};
+ const fin=(r,c)=>{for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++)set(r+i,c+j,+(i>=0&&i<=6&&(j==0||j==6)||j>=0&&j<=6&&(i==0||i==6)||i>=2&&i<=4&&j>=2&&j<=4))};
+ fin(0,0);fin(0,N-7);fin(N-7,0);
+ const AP=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46]][v];
+ AP.forEach(r=>AP.forEach(c=>{if(f[r][c])return;for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)set(r+i,c+j,+(Math.max(Math.abs(i),Math.abs(j))!=1))}));
+ for(let i=8;i<N-8;i++){if(!f[6][i])set(6,i,+(i%2==0));if(!f[i][6])set(i,6,+(i%2==0))}
+ for(let i=0;i<9;i++){f[8][i]=1;f[i][8]=1}for(let i=0;i<8;i++){f[8][N-1-i]=1;f[N-1-i][8]=1}
+ if(V>=7){let r=V;for(let i=0;i<12;i++)r=r<<1^(r>>11)*0x1F25;const vi=V<<12|r;
+  for(let i=0;i<18;i++){const x=vi>>i&1,a=Math.floor(i/3),b=N-11+i%3;set(a,b,x);set(b,a,x)}}
+ let k=0;for(let rt=N-1;rt>=1;rt-=2){if(rt==6)rt=5;for(let vt=0;vt<N;vt++)for(let j=0;j<2;j++){
+  const x=rt-j,y=((rt+1)&2)==0?N-1-vt:vt;if(!f[y][x]&&k<out.length*8){m[y][x]=out[k>>3]>>(7-(k&7))&1;k++}}}
+ const MK=[(r,c)=>(r+c)%2==0,(r)=>r%2==0,(r,c)=>c%3==0,(r,c)=>(r+c)%3==0,(r,c)=>(Math.floor(r/2)+Math.floor(c/3))%2==0,(r,c)=>r*c%2+r*c%3==0,(r,c)=>(r*c%2+r*c%3)%2==0,(r,c)=>((r+c)%2+r*c%3)%2==0];
+ const fmt=(t,q)=>{let r=q;for(let i=0;i<10;i++)r=r<<1^(r>>9)*0x537;const bt=(q<<10|r)^0x5412,g=i=>bt>>i&1;
+  for(let i=0;i<=5;i++)t[i][8]=g(i);t[7][8]=g(6);t[8][8]=g(7);t[8][7]=g(8);for(let i=9;i<15;i++)t[8][14-i]=g(i);
+  for(let i=0;i<8;i++)t[8][N-1-i]=g(i);for(let i=8;i<15;i++)t[N-15+i][8]=g(i);t[N-8][8]=1};
+ const pen=t=>{let p=0;for(let a=0;a<N;a++)for(const h of[0,1]){let run=1;for(let b=1;b<N;b++){
+   if(h?t[a][b]==t[a][b-1]:t[b][a]==t[b-1][a]){run++;if(run==5)p+=3;else if(run>5)p++}else run=1}}
+  for(let r=0;r<N-1;r++)for(let c=0;c<N-1;c++)if(t[r][c]==t[r][c+1]&&t[r][c]==t[r+1][c]&&t[r][c]==t[r+1][c+1])p+=3;return p};
+ let best,bp=1e9;for(let q=0;q<8;q++){const t=m.map(r=>r.slice());
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(!f[r][c]&&MK[q](r,c))t[r][c]^=1;
+  fmt(t,q);const p=pen(t);if(p<bp){bp=p;best=t}}
+ return best}
+function qrCanvas(text,px){const m=qrMatrix(text),n=m.length,s=Math.max(2,Math.floor(px/(n+4))),cv=document.createElement('canvas');
+ cv.width=cv.height=(n+4)*s;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';
+ m.forEach((r,i)=>r.forEach((d,j)=>{if(d)x.fillRect((j+2)*s,(i+2)*s,s,s)}));return cv}
+// ===== SHA-256 =====
+function sha(s){const R=(x,n)=>x>>>n|x<<32-n,P=Math.pow,W=P(2,32),h=[],k=[],ip={};let pc=0;
+ for(let c=2;pc<64;c++)if(!ip[c]){for(let i=0;i<313;i+=c)ip[i]=c;if(pc<8)h[pc]=P(c,.5)*W|0;k[pc++]=P(c,1/3)*W|0}
+ const q=unescape(encodeURIComponent(s))+'\x80',w=[];for(let i=0;i<q.length;i++)w[i>>2]|=q.charCodeAt(i)<<24-i%4*8;
+ const n=((q.length+8>>6)+1)*16;for(let i=0;i<n;i++)w[i]=w[i]|0;w[n-1]=(q.length-1)*8;
+ for(let j=0;j<n;j+=16){const x=w.slice(j,j+16);
+  for(let i=16;i<64;i++){const a=x[i-15],c=x[i-2];x[i]=x[i-16]+(R(a,7)^R(a,18)^a>>>3)+x[i-7]+(R(c,17)^R(c,19)^c>>>10)|0}
+  let v=h.slice();for(let i=0;i<64;i++){const[a,b,c,d,e,f,g,hh]=v,t1=hh+(R(e,6)^R(e,11)^R(e,25))+(e&f^~e&g)+k[i]+x[i],t2=(R(a,2)^R(a,13)^R(a,22))+(a&b^a&c^b&c);v=[t1+t2|0,a,b,c,d+t1|0,e,f,g]}
+  for(let i=0;i<8;i++)h[i]=h[i]+v[i]|0}
+ return h.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('')}
+</script>
+<script>
+const APP_VER='3.0';
+const $=id=>document.getElementById(id);
+const rnd=n=>crypto.getRandomValues(new Uint32Array(1))[0]%n;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const falar=m=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(m));u.lang='pt-BR';speechSynthesis.speak(u)}catch(e){}};
+const navegar=id=>{document.querySelectorAll('.tela').forEach(t=>t.classList.add('hidden'));$(id).classList.remove('hidden')};
+const pad=x=>String(x).padStart(2,'0'),fdata=d=>d.slice(4)+'/'+d.slice(2,4)+'/'+d.slice(0,2);
+try{navigator.storage.persist()}catch(e){}
+// dígito verificador do código do evento (4º dígito do bloco central): detecta erro de digitação
+const chk=(id,a,d)=>{let t=0;(id+a+d).split('').forEach((ch,i)=>t+=ch.charCodeAt(0)*(i+1));return t%10};
+const codOk=c=>{const p=c.split('-');return chk(p[0],p[1].slice(0,3),p[2])===+p[1][3]};
+function regras(m){const r=[];
+ if(m.includes('H'))for(let i=0;i<5;i++)r.push([0,1,2,3,4].map(v=>v+i*5));
+ if(m.includes('V'))for(let i=0;i<5;i++)r.push([0,5,10,15,20].map(v=>v+i));
+ if(m.includes('D')){r.push([0,6,12,18,24]);r.push([4,8,12,16,20])}
+ if(m==='FULL')r.push([...Array(25).keys()]);return r}
+// ----- cartão: BG1|ev|serial|nome|data|nums|selo -----
+const selo=(cod,s,nome,d,n)=>sha(cod+'|'+s+'|'+nome+'|'+d+'|'+n.map(pad).join('')).slice(0,8);
+function ler(t){const p=String(t).trim().split('|');if(p[0]!=='BG1'||p.length!==7||p[5].length!==50)return null;
+ return{ev:p[1],serial:p[2],nome:p[3],data:p[4],n:p[5].match(/../g).map(Number),seal:p[6],txt:p.join('|')}}
+const nOk=n=>n.length===25&&new Set(n).size===25&&n.every((v,i)=>v>=Math.floor(i/5)*16+1&&v<=Math.floor(i/5)*16+16);
+// separa vários códigos colados/arquivo (mesmo que as quebras de linha tenham virado espaço)
+const partes=t=>String(t||'').split(/(?=BG1\|)/).map(x=>x.trim()).filter(Boolean);
+// valida/normaliza o estado do jogador vindo do armazenamento
+function normJ(j){j=(j&&typeof j==='object')?j:{};const cs=(Array.isArray(j.cartas)?j.cartas:[]).filter(c=>c&&typeof c.txt==='string'&&ler(c.txt)).map(c=>({...c,m:Array.isArray(c.m)?c.m.map(Number).filter(i=>i>=0&&i<25):[]}));
+ return{...j,ev:String(j.ev||''),mod:j.mod==='FULL'?'FULL':'HVD',rod:Math.max(0,parseInt(j.rod)||0),premio:String(j.premio||'').slice(0,30),cartas:cs,at:(j.at>=0&&j.at<cs.length)?j.at:0}}
+// o navegador pode ter BarcodeDetector sem suporte a QR (ex.: desktop Linux/Windows)
+async function temQR(){try{if(!('BarcodeDetector' in window))return false;const f=await BarcodeDetector.getSupportedFormats();return f.includes('qr_code')}catch(e){return 'BarcodeDetector' in window}}
+// mantém a tela ligada durante o jogo
+let wl=null;async function manterTela(){try{if('wakeLock' in navigator&&document.visibilityState==='visible'&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}}catch(e){wl=null}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)manterTela()});
+// retorna true se o envio/cópia foi concluído e false se o usuário cancelou
+async function enviar(text,cv,arq){try{let f=arq||null;if(!f&&cv){const b=await new Promise(r=>cv.toBlob(r));f=new File([b],'cartela.png',{type:'image/png'})}
+ if(f&&navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share(arq?{files:[f],title:arq.name}:{files:[f],text});return true}
+ await navigator.share({text});return true}
+ catch(e){if(e&&e.name==='AbortError')return false;
+  if(arq){const a=document.createElement('a');a.href=URL.createObjectURL(arq);a.download=arq.name;document.body.appendChild(a);a.click();a.remove();return true}
+  try{await navigator.clipboard.writeText(text);alert('Compartilhar indisponível: texto copiado para a área de transferência.');return true}catch(x){prompt('Copie o texto:',text);return true}}}
+// ===== 🧪 teste do aparelho =====
+async function testarAparelho(){const m=$('menu-ev');
+ m.innerHTML=`<h3 style="margin:0">🧪 Teste do aparelho</h3><div style="color:#888;font-size:12px">Bingo v${APP_VER}</div><div id="tst-sum" style="font-weight:bold"></div><div id="tst" style="width:min(92vw,460px);display:flex;flex-direction:column;gap:6px;font-size:14px">Verificando…</div><div id="tst-res" style="min-height:22px;text-align:center;font-weight:bold"></div><button class="mb" onclick="tstCam()">📷 Testar câmera</button><button class="mb" onclick="tstVoz()">🔊 Testar voz</button><button class="mb" onclick="tstSom()">🔔 Testar som e vibração</button><button class="btn-voltar" onclick="$('menu-ev').classList.add('hidden')">Fechar</button>`;
+ m.classList.remove('hidden');const L=[],add=(st,t,h)=>L.push({st,t,h:h||''});   // st: 1 ok, 2 atenção, 0 problema
+ add(window.isSecureContext?1:0,'Link seguro (https)','A câmera só funciona se o app for aberto por um link https (ex.: GitHub Pages).');
+ add(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?1:0,'Câmera disponível','Este navegador não oferece câmera ao app. Use IMAGENS ou COLAR.');
+ add((await temQR())?1:2,'Leitor de QR','Sem leitor de QR neste navegador (iPhone/Safari, por ex.). O SCAN não funciona: use 🖼 IMAGENS ou 📋 COLAR, ou um Android/Chrome.');
+ let vz=[];try{vz=speechSynthesis.getVoices();if(!vz.length){await new Promise(r=>{speechSynthesis.onvoiceschanged=r;setTimeout(r,800)});vz=speechSynthesis.getVoices()}}catch(e){}
+ add('speechSynthesis' in window?(vz.some(v=>/^pt/i.test(v.lang))?1:2):0,'Voz que fala os números','Sem voz em português a chamada pode sair em outro idioma, ou nem sair. Instale a voz pt-BR nas configurações do aparelho.');
+ add(document.fullscreenEnabled||document.webkitFullscreenEnabled?1:2,'Tela cheia','Este navegador não permite tela cheia (comum no iPhone). O app funciona, mas com barras do navegador.');
+ add('wakeLock' in navigator?1:2,'Manter a tela ligada','Sem esta função a tela pode apagar durante o jogo. Aumente o tempo de tela ligada nas configurações do aparelho.');
+ let st=1,h='';try{localStorage.setItem('bg_t','1');localStorage.removeItem('bg_t')}catch(e){st=0;h='O navegador bloqueia o armazenamento (aba anônima?). O app não consegue guardar cartelas nem o evento.'}
+ try{const e=await navigator.storage.estimate(),pe=await navigator.storage.persisted(),livre=Math.round((e.quota-e.usage)/1048576);
+  if(st&&livre<50){st=2;h='Pouco espaço livre ('+livre+' MB).'}else if(st&&!pe){st=2;h='O navegador pode apagar os dados se faltar espaço. Faça backups.'}}catch(e){}
+ add(st,'Armazenamento dos dados',h);
+ add(navigator.share?1:2,'Compartilhar (WhatsApp/backup)','Sem compartilhamento o backup vira download de arquivo ou cópia de texto.');
+ add(navigator.vibrate?1:2,'Vibração','Sem vibração, o aviso de leitura será só sonoro e visual.');
+ add(navigator.serviceWorker&&navigator.serviceWorker.controller?1:2,'Uso sem internet','O app ainda não está guardado para abrir offline (precisa do sw.js junto do arquivo, em https, e abrir uma vez com internet).');
+ try{if(navigator.getBattery){const b=await navigator.getBattery(),p=Math.round(b.level*100);add(p<30&&!b.charging?2:1,'Bateria: '+p+'%'+(b.charging?' (carregando)':''),'Bateria baixa: ligue o carregador antes do evento.')}}catch(e){}
+ const ic=['❌','✅','⚠️'];$('tst').innerHTML=L.map(x=>`<div class="l"><span>${ic[x.st]}</span><div><b>${esc(x.t)}</b>${x.st!==1&&x.h?'<small>'+esc(x.h)+'</small>':''}</div></div>`).join('');
+ const ruins=L.filter(x=>x.st===0).length,av=L.filter(x=>x.st===2).length;$('tst-sum').innerHTML=ruins?'<span style="color:#ff6b60">❌ '+ruins+' problema(s)</span>'+(av?' · ⚠️ '+av+' aviso(s)':''):av?'<span style="color:var(--warning)">⚠️ '+av+' aviso(s)</span>':'<span style="color:#4cd964">✅ Tudo certo</span>'}
+async function tstCam(){const r=$('tst-res');r.textContent='Abrindo câmera…';try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),t=s.getVideoTracks()[0];s.getTracks().forEach(x=>x.stop());r.textContent='✅ Câmera funcionando'+(t&&t.label?' ('+t.label+')':'')}catch(e){r.textContent='❌ Câmera: '+(e.name==='NotAllowedError'?'permissão negada. Libere nas configurações do navegador.':(e.message||e.name))}}
+function tstVoz(){falar('Bola vinte e dois. Bingo!');$('tst-res').textContent='🔊 Você ouviu a voz? Se não, aumente o volume.'}
+function tstSom(){try{sinal.a=sinal.a||new(window.AudioContext||window.webkitAudioContext)();sinal.a.resume()}catch(e){}sinal(true);$('tst-res').textContent='🔔 Tocou o bipe e vibrou? Se não, confira volume e modo silencioso.'}
+let fsOff=false,escT=0;
+const tc=force=>{try{const d=document,el=d.documentElement;if(force===true)fsOff=false;if(fsOff||d.fullscreenElement||d.webkitFullscreenElement)return;
+ const f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const p=f.call(el);if(p&&p.catch)p.catch(()=>{})}}catch(e){}};
+// qualquer toque volta ao fullscreen se ele foi perdido (prompt/confirm, câmera, compartilhar...); Esc no desktop = sair de propósito
+['click','touchend'].forEach(ev=>document.addEventListener(ev,()=>tc(),true));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')escT=Date.now()},true);
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&Date.now()-escT<1000)fsOff=true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>tc(),300)});
+let tDisp=0;
+function abreDisplay(){$('display-bola-vez').classList.add('fullscreen-mode');clearTimeout(tDisp);if(typeof EV!=='undefined'&&EV&&EV.fecha>0)tDisp=setTimeout(fechaDisplay,EV.fecha*1000)}
+function fechaDisplay(){clearTimeout(tDisp);$('display-bola-vez').classList.remove('fullscreen-mode')}
+function clicaBola(el){tc(true);el.classList.contains('fullscreen-mode')?fechaDisplay():abreDisplay()}
+function entrar(m){tc();manterTela();m==='j'?jogador():operador()}
+
+// ================= JOGADOR =================
+let J={ev:'',cartas:[],at:0},bloq=false;
+let avSave=0;const gv=(k,v)=>{try{localStorage.setItem(k,v);return true}catch(e){if(Date.now()-avSave>30000){avSave=Date.now();alert('⚠️ Não foi possível salvar neste aparelho (armazenamento cheio ou bloqueado). Faça um BACKUP agora!')}return false}};
+const saveJ=()=>gv('bg_j',JSON.stringify(J));
+function sair(){if(!confirm('SAIR apaga as cartelas e marcações deste aparelho.\nFaça o 💾 BACKUP antes.\n\nApagar mesmo?'))return;
+ try{localStorage.setItem('bg_j_bak',localStorage.getItem('bg_j')||'')}catch(e){}localStorage.removeItem('bg_j');location.reload()}
+function jogador(){falar('Som ativado');try{J=normJ(JSON.parse(localStorage.getItem('bg_j')))}catch(e){J=normJ(null)}
+ if(!J.cartas||!J.cartas.length){J={ev:'',cartas:[],at:0};try{const b=normJ(JSON.parse(localStorage.getItem('bg_j_bak')));
+  if(b&&b.cartas&&b.cartas.length&&confirm('Encontrei cartelas apagadas por "SAIR" ('+b.cartas.length+'). Recuperar?')){J=b;saveJ();return mostrar()}}catch(e){}}
+ if(J.cartas.length)mostrar();else criador()}
+let fAtu=0,selL=0,edit=false,cel=null,tFx=0;const cores=['#ff3b30','#4cd964','#ffcc00','#007aff','#ff00ff'],NF='BINGO';
+function criador(){navegar('tela-selecao');$('bloco-cria').classList.add('hidden');$('btn-ok').classList.remove('hidden');$('campo-ev').value=J.ev||'';const g=$('grid-criador-5x5');g.innerHTML='';fAtu=0;edit=false;
+ $('btn-proximo-criador').classList.add('hidden');
+ for(let i=0;i<25;i++){const c=document.createElement('div');c.className='celula';c.id='c-c-'+i;c.onclick=()=>abrir(i);g.appendChild(c)}faixa(0)}
+function faixa(idx,sub=false){const g=$('grid-seletor-4x4'),st=$('status-criador');g.innerHTML='';if(!sub)selL=0;g.classList.remove('hidden');
+ const us=[...document.querySelectorAll('.celula[id^=c-c-]')].filter((x,k)=>Math.floor(k/5)===idx&&k!==cel).map(x=>+x.innerText);
+ st.style.color=cores[idx];st.innerText=(sub?'Trocar: Faixa ':'Escolha 5: Faixa ')+NF[idx];
+ for(let n=idx*16+1;n<=idx*16+16;n++){const b=document.createElement('button');b.className='btn-num-criador';b.style.backgroundColor=cores[idx];b.innerText=pad(n);
+  if(sub&&us.includes(n)){b.disabled=true;b.style.opacity='.2'}
+  b.onclick=()=>{if(sub){$('c-c-'+cel).innerText=n;$('c-c-'+cel).style.borderColor='#333';fim()}else add(n,b,idx)};g.appendChild(b)}}
+function add(n,b,idx){if(selL<5){$('c-c-'+(idx*5+selL)).innerText=n;b.disabled=true;b.style.opacity='.2';selL++;
+ if(selL===5){fAtu++;fAtu<5?(tFx=setTimeout(()=>faixa(fAtu),300)):fim()}}}
+function fim(){clearTimeout(tFx);edit=true;$('grid-seletor-4x4').classList.add('hidden');$('btn-proximo-criador').classList.remove('hidden');$('status-criador').innerText='Toque num número para editar';$('status-criador').style.color='#fff'}
+function abrir(i){if(!edit)return;cel=i;$('btn-proximo-criador').classList.add('hidden');faixa(Math.floor(i/5),true);
+ document.querySelectorAll('[id^=c-c-]').forEach(x=>x.style.borderColor='#333');$('c-c-'+i).style.borderColor='var(--success)'}
+function sortearPraMim(){for(let f=0;f<5;f++){const p=[...Array(16).keys()].map(x=>x+f*16+1);for(let i=0;i<5;i++)$('c-c-'+(f*5+i)).innerText=p.splice(rnd(p.length),1)[0]}fim()}
+$('btn-proximo-criador').onclick=()=>{
+ const cod=$('campo-ev').value.trim().toUpperCase(),nome=$('campo-nome').value.replace(/[|~]/g,'').trim();
+ if(!/^[A-Z0-9]{4}-\d{4}-\d{6}$/.test(cod))return alert('Código do evento inválido. Peça ao operador.');
+ if(!nome)return alert('Digite seu nome.');
+ const n=[...document.querySelectorAll('.celula[id^=c-c-]')].map(x=>+x.innerText);if(!nOk(n))return alert('Cartela incompleta.');
+ const ch0=n.slice().sort((a,b)=>a-b).join();if(J.cartas.some(c=>ler(c.txt).n.slice().sort((a,b)=>a-b).join()===ch0))return alert('Você já tem uma cartela com esses números. Mude pelo menos um número.');
+ const s=[...crypto.getRandomValues(new Uint8Array(5))].map(x=>pad(x.toString(16))).join(''),d=cod.slice(10);
+ const txt=['BG1',cod.slice(0,4),s,nome,d,n.map(pad).join(''),selo(cod,s,nome,d,n)].join('|');
+ J.ev=cod;J.cartas.push({txt,m:[]});J.at=J.cartas.length-1;saveJ();mostrar();
+ setTimeout(()=>alert('Cartela gerada! Mostre o QR ao operador ou toque em 📤 ENVIAR QR. Faça também um 💾 BACKUP.'),300)};
+function okCria(){paraEv();const cod=$('campo-ev').value.trim().toUpperCase();
+ if(!/^[A-Z0-9]{4}-\d{4}-\d{6}$/.test(cod))return alert('Código do evento inválido. Peça ao operador.');
+ if(!$('campo-nome').value.replace(/[|~]/g,'').trim())return alert('Digite seu nome.');
+ if(!codOk(cod)&&!confirm('O código do evento não confere (pode haver erro de digitação).\nConfira com o operador.\n\nUsar mesmo assim?'))return;
+ $('bloco-cria').classList.remove('hidden');$('btn-ok').classList.add('hidden')}
+let se=null,te=null,bEv=false;
+async function lerEv(){if(se)return paraEv();if(bEv)return;bEv=true;
+ if(!(await temQR())){bEv=false;return alert('Leitor de QR indisponível neste navegador. Digite ou cole o código.')}
+ try{se=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){bEv=false;return alert('Câmera indisponível. Abra o app por link https ou digite o código.')}bEv=false;
+ const v=$('video-ev');v.srcObject=se;$('cam-ev').classList.remove('hidden');v.play().catch(()=>{});const d=new BarcodeDetector({formats:['qr_code']});
+ clearInterval(te);te=setInterval(async()=>{try{const r=await d.detect(v),i=r[0]&&lerEvTxt(r[0].rawValue);
+  if(i){$('campo-ev').value=i.cod;paraEv();const a=aplicaEv(i);if(!a.ok&&i.completo)alert(a.msg)}}catch(e){}},300)}
+function paraEv(){clearInterval(te);if(se)se.getTracks().forEach(t=>t.stop());se=null;$('cam-ev').classList.add('hidden')}
+function novaCarta(){if(J.cartas.length>=2)return alert('Máximo de 2 cartelas por pessoa.');if(!J.ev)J.ev=prompt('Código do evento:')||'';J.ev=J.ev.toUpperCase();criador();$('campo-nome').value=ler(J.cartas[0].txt).nome}
+function mostrar(){navegar('tela-jogo');bloq=false;$('cartela').classList.remove('cartela-travada');const a=$('abas');a.innerHTML='';
+ J.cartas.forEach((c,i)=>{const b=document.createElement('button');b.textContent='Cartela '+(i+1);if(i===J.at)b.className='on';b.onclick=()=>{J.at=i;saveJ();mostrar()};a.appendChild(b)});
+ const c=J.cartas[J.at],d=ler(c.txt),g=$('cartela');g.innerHTML='';
+ d.n.forEach((n,i)=>{const e=document.createElement('div');e.className='celula'+(c.m.includes(i)?' marcada':'');e.id='cel-j-'+i;e.textContent=n;
+  e.onclick=()=>{if(bloq)return;e.classList.toggle('marcada');const on=e.classList.contains('marcada');c.u=on?i:null;c.ut=Date.now();c.m=[...g.children].map((x,k)=>x.classList.contains('marcada')?k:-1).filter(k=>k>=0);saveJ();verif(false);quando()};g.appendChild(e)});
+ $('info').textContent=d.nome+' · '+fdata(d.data)+' · série '+d.serial.toUpperCase();$('btn-mod').textContent='🎯 '+(prompt_mod()==='FULL'?'Cheia':'Linhas')+' (trocar)';
+ $('rod-info').innerHTML=(J.rod?'Rodada '+J.rod+' · ':'')+(J.premio?'🎁 '+esc(J.premio)+' · ':'')+'<span style="color:'+(prompt_mod()==='FULL'?'#ff6b60':'#4cd964')+'">'+MODL[prompt_mod()]+'</span> <small style="color:#aaa">'+(J.rod?'· 🔄 toque':'(toque aqui para sincronizar com o operador)')+'</small>';
+ const box=$('qrBox');box.innerHTML='';try{box.appendChild(qrCanvas(c.txt,640))}catch(e){box.textContent='Erro no QR: '+e.message}
+ verif(true);quando()}
+function verif(sil){const ce=document.querySelectorAll('#cartela .celula');ce.forEach(c=>c.classList.remove('flash-warning','vencedora-pulsante'));let v=false;
+ const rg=regras(prompt_mod());rg.forEach(r=>{const mk=r.filter(i=>ce[i].classList.contains('marcada'));
+  if(mk.length===r.length-1)ce[r.find(i=>!ce[i].classList.contains('marcada'))].classList.add('flash-warning');
+  if(mk.length===r.length){v=true;r.forEach(i=>ce[i].classList.add('vencedora-pulsante'))}});
+ if(v&&!bloq){bloq=true;$('cartela').classList.add('cartela-travada');if(!sil)falar('Bingo!')}}
+const MODN={HVD:'Horiz+Vert+Diag',FULL:'Cheia'},MODL={HVD:'Horizontal · Vertical · Diagonal',FULL:'CARTELA CHEIA'};
+const prompt_mod=()=>J.mod==='FULL'?'FULL':'HVD';   // vem do QR do operador (🔄); troca manual só como alternativa
+function trocaMod(){J.mod=prompt_mod()==='FULL'?'HVD':'FULL';saveJ();mostrar()}
+// Botão desfazer: sempre visível enquanto a cartela estiver travada (bingo); senão, 8s após a última marcação DESTA cartela
+let tdesf;function quando(){clearTimeout(tdesf);const c=J.cartas[J.at],b=$('btn-desf');if(!c)return;
+ const rest=(c.u!=null&&c.m.includes(c.u))?8000-(Date.now()-(c.ut||0)):0;
+ if(bloq){b.textContent='↩ ENGANO? DESFAZER';b.classList.remove('hidden')}
+ else if(rest>0){b.textContent='↩ DESFAZER';b.classList.remove('hidden');tdesf=setTimeout(quando,rest+50)}
+ else b.classList.add('hidden')}
+const temBingo=m=>regras(prompt_mod()).some(r=>r.every(i=>m.includes(i)));
+function desfazer(){const c=J.cartas[J.at];if(!c)return;
+ if(c.u!=null)c.m=c.m.filter(k=>k!==c.u);
+ // cartela travada sem última jogada conhecida (ex.: recarga): libera desmarcando uma casa da linha completa
+ if(temBingo(c.m)){const r=regras(prompt_mod()).find(r=>r.every(i=>c.m.includes(i)));const k=r[r.length-1];c.m=c.m.filter(x=>x!==k)}
+ c.u=null;saveJ();mostrar()}
+const enviarCarta=()=>{const c=J.cartas[J.at];enviar(c.txt,$('qrBox').querySelector('canvas'))};
+const backup=()=>enviar(J.cartas.map(c=>c.txt+'~'+c.m.join(',')).join('\n'));
+// QR do evento: CÓDIGO|L ou C|rodada|prêmio  (L = linhas H+V+D, C = cartela cheia). Só o código também é aceito.
+function lerEvTxt(t){const p=String(t||'').trim().split('|'),cod=p[0].trim().toUpperCase();if(!/^[A-Z0-9]{4}-\d{4}-\d{6}$/.test(cod))return null;
+ return{cod,completo:p.length>1,mod:p[1]==='C'?'FULL':'HVD',rod:Math.max(1,parseInt(p[2])||1),premio:p.slice(3).join('|').trim().slice(0,30)}}
+function aplicaEv(i){if(J.cartas.length&&J.ev&&J.ev!==i.cod)return{ok:false,msg:'❌ Este QR é de outro evento ('+i.cod+')'};
+ if(i.completo){if(J.rod&&i.rod<J.rod)return{ok:false,msg:'❌ QR de rodada antiga ('+i.rod+'). Você está na rodada '+J.rod};
+  const nova=J.rod>0&&i.rod>J.rod;J.mod=i.mod;J.premio=i.premio;if(nova)J.cartas.forEach(c=>{c.m=[];c.u=null});J.rod=i.rod;
+  if(!J.ev)J.ev=i.cod;saveJ();if(!$('tela-jogo').classList.contains('hidden'))mostrar();
+  return{ok:true,msg:'Rodada '+i.rod+' · '+MODL[i.mod]+(i.premio?' · 🎁 '+i.premio:'')+(nova?' — marcações zeradas':'')}}
+ return{ok:false,msg:'❌ Este QR não traz a rodada. Peça o QR atualizado ao operador.'}}
+let modoCam='';
+async function sincronizar(){if(sr||bRest)return;bRest=true;
+ if(!(await temQR())){bRest=false;const t=prompt('Cole aqui o código da rodada enviado pelo operador:');if(!t)return;const i=lerEvTxt(t);return alert(i?aplicaEv(i).msg:'Código inválido.')}
+ try{sr=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){bRest=false;return alert('Câmera indisponível. Abra o app por link https.')}bRest=false;
+ modoCam='sinc';const v=$('video-rest');v.srcObject=sr;$('cam-rest').classList.remove('hidden');v.play().catch(()=>{});$('msg-rest').textContent='Aponte para o QR do evento (tela do operador)';const d=new BarcodeDetector({formats:['qr_code']});
+ clearInterval(tr);tr=setInterval(async()=>{try{const r=await d.detect(v),i=r[0]&&lerEvTxt(r[0].rawValue);if(!i)return;const a=aplicaEv(i);$('msg-rest').textContent=a.ok?'✅ '+a.msg:a.msg;
+  if(a.ok){clearInterval(tr);try{navigator.vibrate&&navigator.vibrate(150)}catch(e){}setTimeout(fechaRest,1200)}}catch(e){}},300)}
+let sr=null,tr=null,bRest=false;
+async function lerRest(){if(sr||bRest)return;if(J.cartas.length>=2)return alert('Você já tem 2 cartelas neste aparelho.');bRest=true;modoCam='rest';
+ if(!(await temQR())){bRest=false;return alert('Leitor de QR indisponível neste navegador. Use o texto colado.')}
+ try{sr=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){bRest=false;return alert('Câmera indisponível. Abra o app por link https.')}bRest=false;
+ const v=$('video-rest');v.srcObject=sr;$('cam-rest').classList.remove('hidden');v.play().catch(()=>{});$('msg-rest').textContent='Aponte para o QR da cartela';const d=new BarcodeDetector({formats:['qr_code']});
+ let lr='';clearInterval(tr);tr=setInterval(async()=>{try{const r=await d.detect(v);if(!r[0]||J.cartas.length>=2)return;const raw=r[0].rawValue,c=ler(raw);
+  if(!c||!nOk(c.n)){if(raw!==lr){lr=raw;$('msg-rest').textContent='❌ Este QR não é de uma cartela'}return}
+  if(J.cartas.some(k=>ler(k.txt).serial===c.serial)){if(raw!==lr){lr=raw;$('msg-rest').textContent='ℹ️ Essa cartela já está restaurada'}return}
+  lr=raw;J.cartas.push({txt:c.txt,m:[]});saveJ();$('msg-rest').textContent='✅ '+c.nome+' · cartela '+J.cartas.length+' restaurada'+(J.cartas.length<2?' — aponte para a próxima ou feche':'');
+  if(J.cartas.length>=2)setTimeout(fechaRest,800)}catch(e){}},300)}
+function fechaRest(){clearInterval(tr);if(sr)sr.getTracks().forEach(t=>t.stop());sr=null;$('cam-rest').classList.add('hidden');if(J.cartas.length){if(modoCam!=='sinc')J.at=0;saveJ();mostrar()}}
+function restaurar(){try{J=normJ(JSON.parse(localStorage.getItem('bg_j')))}catch(e){}if(confirm('OK = ler o QR com a câmera\nCancelar = colar o texto'))return lerRest();const t=prompt('Cole aqui o backup ou o texto recebido do operador:');if(!t)return;let n=0;
+ partes(t).forEach(l=>{const[tx,m]=l.split('~'),d=ler(tx);if(d&&nOk(d.n)&&J.cartas.length<2&&!J.cartas.some(c=>ler(c.txt).serial===d.serial)){J.cartas.push({txt:d.txt,m:m?m.split(',').filter(x=>x!=='').map(Number):[]});n++}});
+ if(n){J.at=0;saveJ();mostrar()}else alert('Nada novo para restaurar.')}
+
+// ================= OPERADOR =================
+let EV=null;const saveE=()=>{EV.ver=APP_VER;return gv('bg_ev',JSON.stringify(EV))};
+function normEv(e){if(!e||typeof e!=='object'||typeof e.cod!=='string'||!e.cod||!e.cartas||typeof e.cartas!=='object'||Array.isArray(e.cartas))return null;
+ const c={};for(const k in e.cartas){const x=e.cartas[k];if(x&&typeof x.txt==='string'&&typeof x.nome==='string'&&Array.isArray(x.n)){const n=x.n.map(Number);if(nOk(n))c[k]={...x,n}}}
+ const b=[...new Set((Array.isArray(e.bolas)?e.bolas:[]).map(Number).filter(n=>n>=1&&n<=80))];
+ return{...e,ver:String(e.ver||''),fecha:e.fecha===0?0:Math.min(60,Math.max(1,parseInt(e.fecha)||8)),ultBak:+e.ultBak||0,nBak:+e.nBak||0,bBak:+e.bBak||0,rBak:+e.rBak||0,nome:String(e.nome||'Bingo'),id:String(e.id||e.cod.slice(0,4)),data:String(e.data||e.cod.slice(10)),bolas:b,cartas:c,
+  mod:e.mod==='FULL'?'FULL':'HVD',rod:Math.max(1,parseInt(e.rod)||1),premio:String(e.premio||'').slice(0,30),fechado:!!e.fechado||b.length>0}}
+const nCar=e=>Object.keys((e&&e.cartas)||{}).length;
+const bakEv=o=>{try{localStorage.setItem('bg_ev_bak',JSON.stringify(o))}catch(e){}};
+function operador(){let raw=null;EV=null;try{raw=JSON.parse(localStorage.getItem('bg_ev'));EV=normEv(raw)}catch(e){}
+ if(EV&&nCar(raw)>nCar(EV))alert('Atenção: '+(nCar(raw)-nCar(EV))+' cartela(s) do evento salvo estavam corrompidas e foram descartadas.');
+ if(!EV){try{const b=normEv(JSON.parse(localStorage.getItem('bg_ev_bak')));
+  if(b&&confirm('Encontrei um evento apagado: '+b.nome+' ('+b.cod+', '+nCar(b)+' cartelas, '+b.bolas.length+' bolas).\nRecuperar?')){EV=b;saveE()}}catch(e){}}
+ if(EV&&!confirm('Continuar o evento '+EV.nome+' ('+EV.cod+')?\nCancelar = criar novo evento.')){
+  if(confirm('⚠️ Criar um novo evento SUBSTITUI o atual ('+EV.nome+': '+nCar(EV)+' cartelas, '+EV.bolas.length+' bolas).\nSubstituir mesmo?\n\nCancelar = continuar o evento atual.')){const old=EV;if(criarEv())bakEv(old)}}
+ else if(!EV&&!criarEv())return navegar('tela-menu');
+ navegar('tela-painel-op');render()}
+function criarEv(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',D=new Date(),d0=String(D.getFullYear()).slice(2)+pad(D.getMonth()+1)+pad(D.getDate());
+ const nome=prompt('Nome do evento:','Bingo');if(nome===null)return false;
+ let d='';for(;;){const dd=prompt('Data (AAMMDD, 6 dígitos):',d||d0);if(dd===null)return false;d=(dd||d0).replace(/\D/g,'');
+  const mm=+d.slice(2,4),dia=+d.slice(4,6);if(d.length===6&&mm>=1&&mm<=12&&dia>=1&&dia<=31)break;alert('Data inválida. Use 6 dígitos: AAMMDD (ex.: '+d0+').')}
+ const id=Array.from({length:4},()=>A[rnd(32)]).join(''),s3=String(rnd(1000)).padStart(3,'0'),sn=s3+chk(id,s3,d);
+ EV={nome:nome||'Bingo',cod:id+'-'+sn+'-'+d,id,data:d,bolas:[],cartas:{},mod:'HVD',rod:1,premio:'',fecha:8};msgS='';confH='';saveE();return true}
+function novoEv(){if(!confirm('Criar NOVO evento?\nO atual ('+EV.nome+': '+nCar(EV)+' cartelas, '+EV.bolas.length+' bolas) será substituído.\n(Fica uma cópia de recuperação.)'))return;
+ const old=EV;if(criarEv())bakEv(old);render()}
+let rdMod='HVD';
+function rodada(){rdMod=EV.mod;const m=$('menu-ev');
+ m.innerHTML=`<h3 style="margin:0">🎁 Rodada ${EV.rod||1}</h3><input id="rd-premio" class="campo" style="width:min(90vw,420px)" maxlength="30" placeholder="Prêmio (ex.: Bike)" autocomplete="off"><div style="display:flex;gap:8px;width:min(90vw,420px)"><button class="mb" id="rd-HVD" style="flex:1;width:auto" onclick="rdSet('HVD')">Horiz · Vert · Diag</button><button class="mb" id="rd-FULL" style="flex:1;width:auto" onclick="rdSet('FULL')">Cartela cheia</button></div>`+
+ `<label style="display:flex;gap:8px;align-items:center;font-size:16px"><input type="checkbox" id="rd-nova" style="width:22px;height:22px"> Iniciar NOVA rodada (zera as bolas)</label><button class="mb" style="background:var(--success);color:#000" onclick="aplicaRodada()">✔ APLICAR</button><button class="btn-voltar" onclick="$('menu-ev').classList.add('hidden')">Cancelar</button>`;
+ $('rd-premio').value=EV.premio;$('rd-nova').checked=EV.bolas.length>0;rdSet(EV.mod);m.classList.remove('hidden')}
+function rdSet(x){rdMod=x;['HVD','FULL'].forEach(k=>{$('rd-'+k).style.borderColor=k===x?'#4cd964':'#555';$('rd-'+k).style.background=k===x?'#14401f':'#333'})}
+function aplicaRodada(){const nova=$('rd-nova').checked;if(nova&&EV.bolas.length&&!confirm('Zerar as '+EV.bolas.length+' bolas e iniciar a rodada '+((EV.rod||1)+1)+'?'))return;
+ EV.premio=$('rd-premio').value.replace(/[|~\n\r]/g,' ').trim().slice(0,30);EV.mod=rdMod;if(nova){EV.bolas=[];EV.rod=(EV.rod||1)+1}
+ batidos();confH='';msgS='';saveE();$('menu-ev').classList.add('hidden');render();qrRodada();
+ falar('Rodada '+EV.rod+'. '+MODL[EV.mod].toLowerCase()+(EV.premio?'. Prêmio '+EV.premio:''))}
+function render(){const p=$('painel-sorteio');p.innerHTML='';const u=EV.bolas.length?EV.bolas[EV.bolas.length-1]:null;
+ for(let i=1;i<=80;i++){const d=document.createElement('div');d.className='num-globo'+(EV.bolas.includes(i)?' ativo':'')+(i===u?' vibrante':'');d.textContent=i;
+  d.onclick=()=>{if(!EV.bolas.includes(i))sortear(i);else if(i===u)desfazerBola()};p.appendChild(d)}
+ const dv=$('display-bola-vez');dv.querySelector('.dv-num').textContent=u||'-';
+ dv.querySelector('.dv-top').innerHTML=(EV.premio?'<b>🎁 '+esc(EV.premio)+'</b>':'')+esc(MODL[EV.mod]);
+ dv.querySelector('.dv-tick').classList.toggle('hidden',!EV.premio);dv.querySelector('.dv-tick span').textContent=('🎁 PRÊMIO: '+EV.premio.toUpperCase()+'    ✦    ').repeat(3);
+ const ks=Object.values(EV.cartas);$('status-val').innerHTML=(msgS||'🎱 <b>'+esc(EV.nome)+'</b> ▾')+'<br><small>'+ks.length+' cartelas · '+'Rodada '+(EV.rod||1)+' · '+(EV.premio?'🎁 '+esc(EV.premio)+' · ':'')+MODN[EV.mod]+(fechado()?'':' · cadastro ABERTO')+' · '+bkTxt()+'</small>';
+ $('btn-lista').classList.toggle('pede-bak',bkPend());
+ const ul=$('ultimas');ul.innerHTML=EV.bolas.length?'<span style="color:#888;flex:none">🎱 '+EV.bolas.length+'/80 ›</span>'+EV.bolas.slice(-14).reverse().map((n,k)=>'<span class="ch'+(k?'':' ch0')+'" data-n="'+n+'">'+n+'</span>').join(''):'';
+ ul.querySelectorAll('.ch').forEach(c=>c.onclick=()=>desfazerBola(+c.dataset.n));
+ const por={};ks.forEach(c=>{const nm=c.ap||c.nome,k=nm.toLowerCase(),x=por[k]=por[k]||{nome:nm,t:[],f:{}},o=falta(c.n);x.t.push(c.txt);for(const q in o)x.f[q]=Math.min(x.f[q]??99,o[q])});
+ const ls=Object.values(por);if(EV.bolas.length)ls.sort((a,b)=>Math.min(...Object.values(a.f))-Math.min(...Object.values(b.f)));
+ $('resultado-mini').innerHTML=confH+ls.map(x=>'<div style="padding:5px 0;border-bottom:1px solid #222;display:flex;justify-content:space-between;gap:6px" data-k="'+esc(x.nome.toLowerCase())+'"><span>'+esc(x.nome)+' ▸ '+x.t.length+'</span><b>'+Object.entries(x.f).map(([k,v])=>'<span style="color:'+(v==0?'#4cd964':v==1?'#ffcc00':'#aaa')+'">'+v+k+'</span>').join(' ')+'</b></div>').join('');
+ $('resultado-mini').querySelectorAll('[data-k]').forEach(d=>d.onclick=()=>menuJog(por[d.dataset.k]))}
+let msgS='',confH='',lote=null;const msg=t=>{if(lote){lote.push(t);return}msgS=t;$('display-bola-vez').classList.remove('fullscreen-mode');render()};
+function proc(t){t=(t||'').trim().split('~')[0];if(!t||!EV)return;const c=ler(t);if(!c)return msg('❌ Código ilegível');fechado()?conferir(c):cadastrar(c)}
+function valida(c){return c.ev===EV.id&&c.data===EV.data&&nOk(c.n)&&selo(EV.cod,c.serial,c.nome,c.data,c.n)===c.seal}
+function cadastrar(c){if(!valida(c))return msg('❌ Inválida ou de outro evento');
+ if(EV.cartas[c.serial])return msg('ℹ️ '+esc(EV.cartas[c.serial].ap||c.nome)+': já cadastrada');
+ const ch=c.n.slice().sort((a,b)=>a-b).join();if(Object.values(EV.cartas).some(x=>x.n.slice().sort((a,b)=>a-b).join()===ch))return msg('❌ Mesmos números de outra cartela');
+ const cnt=l=>Object.values(EV.cartas).filter(x=>(x.ap||x.nome).toLowerCase()===l.toLowerCase()).length;
+ let lab=c.nome,k=1;while(cnt(lab)>=2){k++;lab=c.nome+' ('+k+')'}
+ if(k>1&&!confirm('Já existem 2 cartelas de "'+c.nome+'".\nÉ OUTRA pessoa com o mesmo nome?\n\nOK = cadastrar como "'+lab+'"'))return msg('❌ '+esc(c.nome)+' já tem 2 cartelas');
+ EV.cartas[c.serial]={txt:c.txt,nome:c.nome,n:c.n,hora:new Date().toLocaleTimeString()};if(k>1)EV.cartas[c.serial].ap=lab;saveE();msg('✅ '+esc(lab)+' cadastrada')}
+function conferir(c){if(!valida(c)){confH='';return msg('❌ CARTELA INVÁLIDA OU ALTERADA')}
+ const rc=EV.cartas[c.serial],reg=rc&&rc.txt===c.txt,nm=(rc&&rc.ap)||c.nome,B=EV.bolas;let bw=null,iw=999,sw=[],bat=false;
+ regras(EV.mod).forEach(r=>{if(r.every(i=>B.includes(c.n[i]))){bat=true;const mx=Math.max(...r.map(i=>B.indexOf(c.n[i])));if(mx<iw){iw=mx;bw=B[mx];sw=r}}});
+ let s=!bat?'❌ BINGO FALSO':bw===B[B.length-1]?'✅ BINGO! (Bola '+bw+')':'⚠️ PASSOU BATIDO! (Bola '+bw+')';
+ if(!reg)s='🚫 NÃO REGISTRADA — NÃO VALE';
+ confH='<div style="margin-bottom:10px;cursor:pointer" onclick="confH=\'\';render()"><b>'+esc(nm)+'</b> · '+fdata(c.data)+' <small style="color:#888">(toque para fechar)</small><br><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:#1a1a1a;padding:10px;border-radius:12px;margin-top:6px">'+
+  c.n.map((n,i)=>{const o=B.includes(n),w=n===bw;return'<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border-radius:6px;background:'+(w?'var(--warning)':sw.includes(i)?'rgba(76,217,100,.3)':'#111')+';color:'+(w?'#000':o?'#fff':'#444')+';border:1px solid '+(sw.includes(i)?'var(--success)':'#333')+'">'+n+'</div>'}).join('')+'</div></div>';
+ msg(s)}
+// ----- backup da lista (cartelas + bolas) -----
+function bkPend(){const c=nCar(EV);if(!c&&!EV.bolas.length)return false;if(!EV.ultBak)return true;return c-(EV.nBak||0)>=5||EV.bolas.length-(EV.bBak||0)>=10||(EV.rBak||1)!==(EV.rod||1)}
+const bkTxt=()=>(EV.ultBak?'💾 '+new Date(EV.ultBak).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'💾 sem backup')+(bkPend()?' <b style="color:#ff6b60">⚠️ pendente</b>':'');
+function lista(){const m=$('menu-ev');
+ m.innerHTML=`<h3 style="margin:0">💾 Lista / Backup</h3><div style="text-align:center;font-size:15px">${bkTxt()}<br><small style="color:#aaa">${nCar(EV)} cartelas · ${EV.bolas.length} bolas · rodada ${EV.rod||1}</small></div><button class="mb" style="background:#14401f;border-color:#4cd964" onclick="backupLista()">📤 Fazer backup agora (enviar arquivo)</button><button class="mb" onclick="importaColar()">📋 Importar colando o texto</button><button class="mb" onclick="$('menu-ev').classList.add('hidden');$('arq').click()">📂 Importar arquivo (.json)</button><div style="font-size:12px;color:#aaa;text-align:center;width:min(90vw,420px)">Envie o arquivo para o WhatsApp/e-mail de alguém. Se o celular falhar, importe-o em outro aparelho (MODO OPERADOR › Lista).</div><button class="btn-voltar" onclick="$('menu-ev').classList.add('hidden')">Fechar</button>`;
+ m.classList.remove('hidden')}
+async function backupLista(){const txt=JSON.stringify(EV),f=new File([txt],'bingo-'+EV.cod+'-r'+(EV.rod||1)+'.json',{type:'application/json'});
+ if(await enviar(txt,null,f)){EV.ultBak=Date.now();EV.nBak=nCar(EV);EV.bBak=EV.bolas.length;EV.rBak=EV.rod||1;saveE();$('menu-ev').classList.add('hidden');render()}}
+function importaColar(){const t=prompt('Cole a lista exportada:');if(t)importaLista(t)}
+function importaLista(t){let raw=null,n=null;try{raw=JSON.parse(t);n=normEv(raw)}catch(x){}
+ if(!n)return alert('Lista inválida.');
+ if(!confirm('Importar "'+n.nome+'" ('+nCar(n)+' cartelas, '+n.bolas.length+' bolas, rodada '+n.rod+')?'+(n.ver&&n.ver!==APP_VER?'\n⚠️ Arquivo da versão v'+n.ver+'; este app é v'+APP_VER+'.':'')+(nCar(raw)>nCar(n)?'\n⚠️ '+(nCar(raw)-nCar(n))+' cartela(s) inválida(s) serão descartadas.':'')+'\n\nIsto SUBSTITUI o evento atual ('+EV.nome+': '+nCar(EV)+' cartelas).\n(Fica uma cópia de recuperação.)'))return;
+ bakEv(EV);EV=n;saveE();confH='';msgS='';$('menu-ev').classList.add('hidden');render()}
+// câmera e arquivos
+const fechado=()=>EV.fechado||EV.bolas.length>0;
+function falta(n){const B=EV.bolas,g=r=>r.filter(i=>!B.includes(n[i])).length,mn=m=>Math.min(...regras(m).map(g)),m=EV.mod,o={};
+ if(m==='FULL')o.C=g(regras('FULL')[0]);else{if(m.includes('H'))o.H=mn('H');if(m.includes('V'))o.V=mn('V');if(m.includes('D'))o.D=mn('D')}return o}
+function batidos(){const B=EV.bolas,out=[];Object.values(EV.cartas).forEach(c=>{let iw=-1;
+ regras(EV.mod).forEach(r=>{if(r.every(i=>B.includes(c.n[i]))){const mx=Math.max(...r.map(i=>B.indexOf(c.n[i])));if(iw<0||mx<iw)iw=mx}});
+ if(iw<0||iw===B.length-1)c.av=false;else if(!c.av){c.av=true;out.push((c.ap||c.nome)+' passou batido com o número '+B[iw])}});return out}
+let ultBola=0;
+function sortear(n){n=+n;if(!(n>=1&&n<=80)||EV.bolas.includes(n))return;if(Date.now()-ultBola<600)return;ultBola=Date.now();EV.bolas.push(n);EV.fechado=true;confH='';tc();abreDisplay();const a=batidos();saveE();falar([n,...a].join('. '));render()}
+function desfazerBola(n){if(!EV.bolas.length)return;const last=EV.bolas[EV.bolas.length-1];n=n||last;const i=EV.bolas.indexOf(n);if(i<0)return;
+ if(!confirm(n===last?'Desfazer a bola '+n+'?':'Remover a bola '+n+' (a '+(i+1)+'ª de '+EV.bolas.length+')?\nAs conferências passam a usar a nova ordem.'))return;
+ EV.bolas.splice(i,1);batidos();saveE();render()}
+const evTxt=()=>EV.cod+'|'+(EV.mod==='FULL'?'C':'L')+'|'+(EV.rod||1)+'|'+EV.premio.replace(/[|\n\r]/g,' ');
+const evRes=()=>'Rodada '+(EV.rod||1)+' · '+MODL[EV.mod]+(EV.premio?' · 🎁 '+EV.premio:'');
+function menuEv(){const m=$('menu-ev');
+ m.innerHTML=`<h3 style="margin:0">${esc(EV.nome)}</h3><div style="color:var(--warning);font-weight:bold;text-align:center">${esc(evRes())}</div><div id="ev-cod" class="hidden" style="font-size:8vmin;font-weight:bold;letter-spacing:.08em;text-align:center">${esc(EV.cod)}</div><div id="ev-qr" class="hidden" style="background:#fff;padding:7px;border-radius:12px;width:min(80vw,55vh)"></div>`+
+ `<button class="mb" onclick="$('ev-cod').classList.toggle('hidden')">👁 Exibir código do evento</button><button class="mb" onclick="evQR()">▦ QR da rodada (jogadores 🔄)</button><button class="mb" onclick="enviarEv()">📤 Enviar código + QR (WhatsApp)</button><button class="mb" onclick="testarAparelho()">🧪 Testar aparelho</button><div style="font-size:14px;color:#aaa">Painel gigante fecha sozinho em:</div><div style="display:flex;gap:6px;width:min(90vw,420px)">${[4,8,15,0].map(v=>`<button class="mb" style="flex:1;width:auto;padding:8px 4px;font-size:15px;${EV.fecha===v?'border-color:#4cd964;background:#14401f':''}" onclick="setFecha(${v})">${v?v+'s':'Fixo'}</button>`).join('')}</div><div style="color:#666;font-size:12px">Bingo v${APP_VER}</div><button class="btn-voltar" onclick="$('menu-ev').classList.add('hidden')">Fechar</button>`;
+ m.classList.remove('hidden')}
+function setFecha(v){EV.fecha=v;saveE();menuEv()}
+let JOG=null;
+function menuJog(x,i=0){JOG=x;const m=$('menu-ev');
+ m.innerHTML=`<h3 style="margin:0">${esc(x.nome)}</h3>`+(x.t.length>1?'<div style="display:flex;gap:8px">'+x.t.map((t,k)=>`<button class="mb" style="width:auto;padding:8px 14px;${k===i?'border-color:#007aff':''}" onclick="menuJog(JOG,${k})">Cartela ${k+1} · ${esc(ler(t).serial.toUpperCase().slice(0,5))}</button>`).join('')+'</div>':'')+
+ `<button class="mb" style="background:#0a2a55;border-color:#007aff" onclick="conferirCad(${i})">🎯 Conferir cartela (minicartela)</button><button class="mb" onclick="jogQR(${i})">▦ QR da cartela (restaurar)</button>`+
+ `<div id="jq" class="hidden" style="background:#fff;padding:7px;border-radius:12px;width:min(92vw,62vh)"></div><div id="jqx" class="hidden" style="flex-direction:column;gap:10px;align-items:center"><div style="font-size:12px;color:#aaa;text-align:center">O jogador toca em 📥 Restaurar, escolhe a câmera e lê este QR</div><button class="mb" onclick="enviar(JOG.t[${i}])">📤 Enviar esta cartela (texto)</button>`+(x.t.length>1?'<button class="mb" onclick="enviar(JOG.t.join(\'\\n\'))">📤 Enviar todas (texto)</button>':'')+`</div><button class="btn-voltar" onclick="$('menu-ev').classList.add('hidden')">Fechar</button>`;
+ m.classList.remove('hidden')}
+function jogQR(i){const q=$('jq');q.innerHTML='';q.appendChild(qrCanvas(JOG.t[i],700));q.classList.remove('hidden');const x=$('jqx');x.classList.remove('hidden');x.style.display='flex'}
+function conferirCad(i){$('menu-ev').classList.add('hidden');$('display-bola-vez').classList.remove('fullscreen-mode');if(!EV.bolas.length)return msg('ℹ️ Nenhuma bola sorteada ainda');conferir(ler(JOG.t[i]))}
+function qrRodada(){const m=$('qr-rodada');
+ m.innerHTML=`<div style="font-size:min(6.5vw,5vh);font-weight:800;color:var(--warning);text-align:center">${esc(evRes())}</div><div id="qrr" style="background:#fff;padding:8px;border-radius:14px;width:min(88vw,62vh)"></div><div style="text-align:center;font-size:min(4.5vw,3.4vh)">Jogadores: toque na <b>faixa da rodada</b> (ou ☰ › 🔄) e leia este QR</div><div style="color:#888;font-size:13px">toque para fechar</div>`;
+ $('qrr').appendChild(qrCanvas(evTxt(),700));m.classList.remove('hidden')}
+function evQR(){const q=$('ev-qr');q.innerHTML='';q.appendChild(qrCanvas(evTxt(),600));q.classList.toggle('hidden')}
+const enviarEv=()=>enviar('🎱 '+EV.nome+'\nCódigo do evento: '+EV.cod+'\n'+evRes()+'\nAbra o Bingo, toque em MODO JOGADOR e informe o código. Para sincronizar a rodada: ☰ › 🔄 SINCRONIZAR e leia o QR do operador.',qrCanvas(evTxt(),600));
+let st=null,tm=null,bScan=false;
+function sinal(ok){try{navigator.vibrate&&navigator.vibrate(ok?[150]:[80,60,80,60,80])}catch(e){}
+ try{const a=sinal.a;if(a){a.resume&&a.resume();const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=ok?1000:220;g.gain.value=.3;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+(ok?.2:.4))}}catch(e){}
+ const s=$('status-val');s.style.background=ok?'#1f8a3a':'#a11';setTimeout(()=>{s.style.background=''},900)}
+async function scan(){$('display-bola-vez').classList.remove('fullscreen-mode');confH='';
+ try{sinal.a=sinal.a||new(window.AudioContext||window.webkitAudioContext)();sinal.a.resume()}catch(e){}
+ if(st)return stop();if(bScan)return;bScan=true;
+ if(!(await temQR())){bScan=false;return alert('Leitor de QR indisponível neste navegador. Use 🖼 IMAGENS ou 📋 COLAR.')}
+ try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch(e){bScan=false;return alert('Câmera indisponível. Abra o app por link https.')}bScan=false;
+ const v=$('video-feed');v.srcObject=st;$('box-camera').classList.remove('hidden');v.play().catch(()=>{});const d=new BarcodeDetector({formats:['qr_code']});let la='',lt=0;
+ clearInterval(tm);tm=setInterval(async()=>{try{const r=await d.detect(v);if(r[0]&&(r[0].rawValue!==la||Date.now()-lt>3000)){la=r[0].rawValue;lt=Date.now();
+  if(ler(la)){stop();proc(la);sinal(/^(✅|⚠️)|BINGO FALSO/.test(msgS));tc();return}  // leu uma cartela: desliga a câmera, avisa e processa
+  proc(la)}}catch(e){}},300)}
+function stop(){clearInterval(tm);if(st)st.getTracks().forEach(t=>t.stop());st=null;$('video-feed').srcObject=null;$('box-camera').classList.add('hidden')}
+function fechaLote(semQR,semLeitor){const L=lote;lote=null;
+ if(semLeitor)alert('Leitor de QR indisponível neste navegador: '+semLeitor+' imagem(ns) ignorada(s). Use 📷 SCAN ou 📋 COLAR.');
+ if(L.length===1&&!semQR&&!semLeitor)return msg(L[0]);
+ if(!L.length)return msg('❌ Nenhuma cartela encontrada'+(semQR?' ('+semQR+' sem QR)':''));
+ const c=p=>L.filter(x=>x.startsWith(p)).length,ruins=L.filter(x=>!x.startsWith('✅'));
+ msg('📥 '+L.length+' lida(s): ✅ '+c('✅')+(c('ℹ️')?' · ℹ️ '+c('ℹ️'):'')+(c('❌')+c('🚫')?' · ❌ '+(c('❌')+c('🚫')):'')+(semQR?' · sem QR: '+semQR:'')+
+  (ruins.length?'<br><small>'+ruins.slice(0,8).join('<br>')+(ruins.length>8?'<br>…':'')+'</small>':''))}
+function colar(){const t=prompt('Cole o código da cartela (pode colar vários):');if(!t||!EV)return;lote=[];partes(t).forEach(l=>proc(l));if(!lote.length&&t.trim())proc(t);fechaLote(0,0)}
+$('arq').onchange=async e=>{let d=null;try{d=new BarcodeDetector({formats:['qr_code']})}catch(x){}
+ lote=[];let semQR=0,semLeitor=0,imp=0;
+ for(const f of e.target.files){try{if(/\.json$/i.test(f.name)){imp++;importaLista(await f.text())}else if(f.type.startsWith('text')||/\.txt$/i.test(f.name))partes(await f.text()).forEach(l=>proc(l));
+  else if(!d)semLeitor++;else{const r=await d.detect(await createImageBitmap(f));if(!r.length)semQR++;r.forEach(q=>proc(q.rawValue))}}catch(x){semQR++}}
+ e.target.value='';if(imp&&!lote.length&&!semQR&&!semLeitor){lote=null;return}fechaLote(semQR,semLeitor)};
+try{$('ver').textContent='Bingo v'+APP_VER}catch(e){}
+// offline: guarda o app para abrir sem internet (precisa de https e do arquivo sw.js na mesma pasta)
+try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(r=>r.active&&r.active.postMessage({cache:location.href.split('#')[0]})).catch(()=>{})}}catch(e){}
+try{if(/^https?:/.test(location.protocol)){const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Bingo Profissional Pro',short_name:'Bingo',display:'fullscreen',background_color:'#000000',theme_color:'#000000',start_url:location.href.split('#')[0]})],{type:'application/manifest+json'}));document.head.appendChild(l)}}catch(e){}
+</script>
+</body></html>

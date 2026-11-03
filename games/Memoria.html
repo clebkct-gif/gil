@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jogo da Memória Mágico 🌈</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fontes do Google: Fredoka & Quicksand -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700;900&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        /* Fundo Mágico com Gradiente Cósmico Dinâmico */
+        body {
+            background: linear-gradient(-45deg, #1b0a2a, #2a0845, #001f3f, #1f0036);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Botão Pulsante Inicial */
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 25px rgba(255, 0, 127, 0.8), 0 0 50px rgba(255, 204, 0, 0.6);
+            }
+            50% {
+                transform: scale(1.06);
+                box-shadow: 0 0 45px rgba(0, 255, 204, 1), 0 0 75px rgba(255, 0, 204, 0.9);
+            }
+        }
+
+        .btn-start-anim {
+            animation: pulseGlow 2.2s infinite ease-in-out;
+        }
+
+        /* SELEÇÃO DE CATEGORIAS: 10 MODOS (2 COLUNAS x 5 LINHAS) - SEM NENHUM TEXTO */
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 480px;
+            height: 85vh;
+            padding: 8px;
+        }
+
+        .theme-card {
+            background: rgba(255, 255, 255, 0.12);
+            border: 3px solid rgba(255, 255, 255, 0.35);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            width: 100%;
+            height: 100%;
+        }
+
+        .theme-card:hover, .theme-card:active {
+            transform: translateY(-4px) scale(1.04);
+            border-color: #FFCC00;
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 10px 25px rgba(255, 204, 0, 0.5);
+        }
+
+        .theme-icon {
+            font-size: clamp(2.2rem, 5.5vh, 3.8rem);
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* BARRA SUPERIOR DISCRETA DO TABULEIRO */
+        .top-bar {
+            width: 100%;
+            height: 45px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 50;
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(5px);
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 1.2rem;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.12);
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        /* GRID DAS CARTAS 4x5 FULLSCREEN */
+        .board-container {
+            width: 100%;
+            height: calc(100vh - 45px);
+            padding: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* CARTAS RETANGULARES E ANIMAÇÃO DE ENTRADA */
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateY(40px) scale(0.7);
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card-container.deal-anim {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-container.flipped .card-inner, .card-container.matched .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.8rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+
+        /* VERSO DA CARTA (DESIGN COM ESTRELA) */
+        .card-back {
+            background: linear-gradient(135deg, #FF007F 0%, #7928CA 50%, #00E5FF 100%);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            font-size: 2.2rem;
+            color: #FFCC00;
+            text-shadow: 0 0 12px rgba(255, 204, 0, 0.8);
+        }
+
+        /* FRENTE DA CARTA COM IMAGEM GIGANTE CENTRALIZADA */
+        .card-front {
+            transform: rotateY(180deg);
+            border: 3px solid #ffffff;
+            font-size: clamp(3rem, 7.5vh, 5rem);
+            font-weight: 900;
+            color: #111;
+            background-color: #ffffff;
+        }
+
+        /* EFEITO SVG NAS FORMAS GEOMÉTRICAS */
+        .card-front svg {
+            width: 80%;
+            height: 80%;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));
+        }
+
+        /* ANIMAÇÃO DE ACERTO */
+        @keyframes correctPulse {
+            0% { transform: scale(1) rotateY(180deg); }
+            50% { transform: scale(1.08) rotateY(180deg); box-shadow: 0 0 35px #FFCC00; filter: brightness(1.2); }
+            100% { transform: scale(1) rotateY(180deg); }
+        }
+
+        .correct-matched .card-inner {
+            animation: correctPulse 0.55s ease-in-out forwards;
+        }
+
+        /* ANIMAÇÃO DE ERRO */
+        @keyframes shakeError {
+            0%, 100% { transform: rotateY(180deg) translateX(0); }
+            20%, 60% { transform: rotateY(180deg) translateX(-8px) rotate(-2deg); }
+            40%, 80% { transform: rotateY(180deg) translateX(8px) rotate(2deg); }
+        }
+
+        .wrong-shake .card-inner {
+            animation: shakeError 0.45s ease-in-out;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.9);
+        }
+
+        /* CELEBRAÇÃO DA VITÓRIA */
+        .win-party .card-inner {
+            animation: winPartyAnim 0.8s infinite alternate ease-in-out;
+        }
+
+        @keyframes winPartyAnim {
+            0% { transform: rotateY(180deg) translateY(0); }
+            100% { transform: rotateY(180deg) translateY(-8px); }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex items-center justify-center overflow-hidden">
+
+    <!-- Canvas de Partículas de Fundo -->
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- TELA 1: TELA INICIAL -->
+    <div id="startScreen" class="relative z-10 flex flex-col items-center justify-center w-full h-full px-4 text-center">
+        <div class="mb-8 transform hover:scale-105 transition-transform duration-300">
+            <div class="text-6xl mb-3 animate-bounce">🦄✨</div>
+            <h1 class="text-4xl md:text-6xl font-black text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)] tracking-wider">
+                MEMÓRIA MÁGICA 🌈
+            </h1>
+        </div>
+
+        <button id="btnStart" class="btn-start-anim px-10 py-5 text-2xl md:text-3xl font-black text-white bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 rounded-full border-4 border-white shadow-2xl cursor-pointer hover:brightness-110 active:scale-95 transition-all duration-200 flex items-center gap-3">
+            <span>🎮 INICIAR JOGO 🎮</span>
+        </button>
+    </div>
+
+    <!-- TELA 2: SELEÇÃO DE CATEGORIAS (2 COLUNAS x 5 LINHAS - SEM TEXTOS) -->
+    <div id="menuScreen" class="hidden relative z-10 flex-col items-center justify-center w-full h-full p-4">
+        <div class="themes-grid" id="themesGrid"></div>
+    </div>
+
+    <!-- TELA 3: TABULEIRO 4x5 -->
+    <div id="gameScreen" class="hidden relative z-10 w-full h-full flex-col items-center justify-center">
+        <div class="top-bar">
+            <div style="display: flex; gap: 10px;">
+                <button id="btnBack" class="icon-btn" title="Voltar aos Temas">↩️</button>
+                <button id="btnHome" class="icon-btn" title="Início">🏠</button>
+            </div>
+            <button id="btnFullscreen" class="icon-btn" title="Tela Cheia">⛶</button>
+        </div>
+
+        <div class="board-container">
+            <div id="gridBoard" class="board"></div>
+        </div>
+    </div>
+
+    <!-- MODAL DE VITÓRIA -->
+    <div id="victoryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="glass-panel bg-white/90 border-4 border-yellow-300 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl transform animate-bounce" style="animation-duration: 2s;">
+            <div class="text-6xl mb-3">🎉🏆🎆</div>
+            <h2 class="text-4xl font-black text-purple-900 mb-2">SENSACIONAL!</h2>
+            <p class="text-2xl font-bold text-pink-600 mb-6">Você completou o desafio!</p>
+            
+            <div class="flex justify-center gap-4">
+                <button id="btnPlayAgain" class="btn-start-anim px-8 py-4 text-2xl font-black text-white bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-full border-4 border-white shadow-lg cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+                    JOGAR DE NOVO 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================
+           1. ÁUDIO WEB API
+           ========================================== */
+        class MagicSoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playFlipSound() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.1);
+
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+
+            playMatchSound() {
+                this.init();
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                const now = this.ctx.currentTime;
+
+                notes.forEach((freq, index) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.08);
+
+                    gain.gain.setValueAtTime(0, now + index * 0.08);
+                    gain.gain.linearRampToValueAtTime(0.25, now + index * 0.08 + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + index * 0.08);
+                    osc.stop(now + index * 0.08 + 0.35);
+                });
+            }
+
+            playWrongSound() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.22);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+
+            playVictorySound() {
+                this.init();
+                const melody = [
+                    { f: 523.25, d: 0.15 },
+                    { f: 659.25, d: 0.15 },
+                    { f: 783.99, d: 0.15 },
+                    { f: 1046.50, d: 0.3 },
+                    { f: 880.00, d: 0.15 },
+                    { f: 1318.51, d: 0.5 }
+                ];
+                
+                let timeOffset = 0;
+                const now = this.ctx.currentTime;
+
+                melody.forEach(note => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(note.f, now + timeOffset);
+
+                    gain.gain.setValueAtTime(0.28, now + timeOffset);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + note.d);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + timeOffset);
+                    osc.stop(now + timeOffset + note.d);
+
+                    timeOffset += note.d + 0.03;
+                });
+            }
+        }
+
+        const sounds = new MagicSoundEngine();
+
+        /* ==========================================
+           2. PALETA VIBRANTE DE CORES
+           ========================================== */
+        const paletteColors = [
+            '#FF0055', '#FF0000', '#FF6600', '#FFCC00', '#76FF03',
+            '#00E5FF', '#0066FF', '#7928CA', '#FF00CC', '#00FFCC'
+        ];
+
+        const alphabetPairs = [
+            { a: 'A', b: 'a' }, { a: 'B', b: 'b' }, { a: 'C', b: 'c' }, { a: 'D', b: 'd' }, { a: 'E', b: 'e' },
+            { a: 'F', b: 'f' }, { a: 'G', b: 'g' }, { a: 'H', b: 'h' }, { a: 'I', b: 'i' }, { a: 'J', b: 'j' },
+            { a: 'K', b: 'k' }, { a: 'L', b: 'l' }, { a: 'M', b: 'm' }, { a: 'N', b: 'n' }, { a: 'O', b: 'o' },
+            { a: 'P', b: 'p' }, { a: 'Q', b: 'q' }, { a: 'R', b: 'r' }, { a: 'S', b: 's' }, { a: 'T', b: 't' }
+        ];
+
+        // SÍMBOLOS MATEMÁTICOS E DA INTERNET
+        const mathSymbols = ['+', '-', '$', '@', '?', '!', '*', 'π', '§', '%', '#', '✓', ':', '/', '<', '>'];
+
+        // GERADOR DE SVGs DAS FORMAS GEOMÉTRICAS (PREENCHIDAS E VAZADAS)
+        const geometricShapes = [
+            { id: 'circle_filled', svg: color => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="${color}" /></svg>` },
+            { id: 'circle_outline', svg: color => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" stroke="${color}" stroke-width="8" fill="none" /></svg>` },
+            { id: 'square_filled', svg: color => `<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" rx="8" fill="${color}" /></svg>` },
+            { id: 'square_outline', svg: color => `<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" rx="8" stroke="${color}" stroke-width="8" fill="none" /></svg>` },
+            { id: 'triangle_filled', svg: color => `<svg viewBox="0 0 100 100"><polygon points="50,15 88,80 12,80" fill="${color}" /></svg>` },
+            { id: 'triangle_outline', svg: color => `<svg viewBox="0 0 100 100"><polygon points="50,15 88,80 12,80" stroke="${color}" stroke-width="8" fill="none" stroke-linejoin="round" /></svg>` },
+            { id: 'star_filled', svg: color => `<svg viewBox="0 0 100 100"><polygon points="50,10 63,38 93,40 70,60 77,90 50,74 23,90 30,60 7,40 37,38" fill="${color}" /></svg>` },
+            { id: 'star_outline', svg: color => `<svg viewBox="0 0 100 100"><polygon points="50,10 63,38 93,40 70,60 77,90 50,74 23,90 30,60 7,40 37,38" stroke="${color}" stroke-width="7" fill="none" stroke-linejoin="round" /></svg>` },
+            { id: 'diamond_filled', svg: color => `<svg viewBox="0 0 100 100"><polygon points="50,10 88,50 50,90 12,50" fill="${color}" /></svg>` },
+            { id: 'hexagon_filled', svg: color => `<svg viewBox="0 0 100 100"><polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="${color}" /></svg>` },
+            { id: 'ellipse_outline', svg: color => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="42" ry="26" stroke="${color}" stroke-width="8" fill="none" /></svg>` },
+            { id: 'tictactoe', svg: color => `<svg viewBox="0 0 100 100"><path d="M35 15 V85 M65 15 V85 M15 35 H85 M15 65 H85" stroke="${color}" stroke-width="8" stroke-linecap="round" fill="none" /></svg>` }
+        ];
+
+        // 10 MODOS NO TOTAL (2 COLUNAS x 5 LINHAS)
+        const themes = [
+            { id: 'colors', icon: '🎨', type: 'color' },
+            { id: 'uppercase', icon: 'AA', type: 'uppercase' },
+            { id: 'lowercase', icon: 'Bb', type: 'lowercase' },
+            { id: 'assoc', icon: 'Aa', type: 'assoc' },
+            { id: 'numbers', icon: '🔢', type: 'numbers' },
+            { id: 'shapes', icon: '🔺', type: 'shapes' },
+            { id: 'symbols', icon: '%#', type: 'symbols' },
+            { id: 'dinos', icon: '🦖', type: 'emoji', items: ['🦖', '🦕', '🥚', '🌴', '🌋', '🐾', '🌿', '☄️', '🦴', '🐲'] },
+            { id: 'fruits', icon: '🍉', type: 'emoji', items: ['🍉', '🍓', '🍌', '🍍', '🥝', '🍇', '🍊', '🍎', '🍑', '🍋'] },
+            { id: 'space', icon: '🚀', type: 'emoji', items: ['🚀', '👨‍🚀', '🌍', '👽', '⭐', '🌙', '🛸', '☄️', '🛰️', '🪐'] }
+        ];
+
+        /* ==========================================
+           3. ESTADO GLOBAL
+           ========================================== */
+        let currentTheme = themes[0];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let isProcessing = false;
+
+        const startScreen = document.getElementById('startScreen');
+        const menuScreen = document.getElementById('menuScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const victoryModal = document.getElementById('victoryModal');
+        const gridBoard = document.getElementById('gridBoard');
+        const themesGrid = document.getElementById('themesGrid');
+
+        /* ==========================================
+           4. RENDERIZAR SELEÇÃO DE CATEGORIAS (2x5)
+           ========================================== */
+        themes.forEach(theme => {
+            const card = document.createElement('div');
+            card.className = 'theme-card';
+            card.innerHTML = `<div class="theme-icon">${theme.icon}</div>`;
+            card.addEventListener('click', () => loadGame(theme));
+            themesGrid.appendChild(card);
+        });
+
+        /* ==========================================
+           5. CONTROLES E FULLSCREEN
+           ========================================== */
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', () => {
+            sounds.init();
+            toggleFullscreen();
+            startScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+            menuScreen.classList.add('flex');
+        });
+
+        document.getElementById('btnBack').addEventListener('click', () => {
+            gameScreen.classList.remove('flex');
+            gameScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+            menuScreen.classList.add('flex');
+        });
+
+        document.getElementById('btnHome').addEventListener('click', () => {
+            gameScreen.classList.remove('flex');
+            gameScreen.classList.add('hidden');
+            menuScreen.classList.remove('flex');
+            menuScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        });
+
+        document.getElementById('btnFullscreen').addEventListener('click', toggleFullscreen);
+
+        document.getElementById('btnPlayAgain').addEventListener('click', () => {
+            victoryModal.classList.add('hidden');
+            loadGame(currentTheme);
+        });
+
+        /* ==========================================
+           6. MONTAGEM DO JOGO
+           ========================================== */
+        function loadGame(theme) {
+            currentTheme = theme;
+            menuScreen.classList.remove('flex');
+            menuScreen.classList.add('hidden');
+            victoryModal.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+
+            buildBoard();
+        }
+
+        function buildBoard() {
+            gridBoard.innerHTML = '';
+            matchedPairs = 0;
+            flippedCards = [];
+            isProcessing = true;
+
+            let deck = [];
+
+            if (currentTheme.type === 'color') {
+                let colors = shuffle([...paletteColors]);
+                colors.forEach(c => {
+                    deck.push({ matchId: c, display: '', bg: c });
+                    deck.push({ matchId: c, display: '', bg: c });
+                });
+            } else if (currentTheme.type === 'uppercase') {
+                let selected = shuffle([...alphabetPairs]).slice(0, 10);
+                selected.forEach(pair => {
+                    deck.push({ matchId: pair.a, display: pair.a, bg: '#ffffff', color: '#7928CA' });
+                    deck.push({ matchId: pair.a, display: pair.a, bg: '#ffffff', color: '#7928CA' });
+                });
+            } else if (currentTheme.type === 'lowercase') {
+                let selected = shuffle([...alphabetPairs]).slice(0, 10);
+                selected.forEach(pair => {
+                    deck.push({ matchId: pair.b, display: pair.b, bg: '#ffffff', color: '#FF007F' });
+                    deck.push({ matchId: pair.b, display: pair.b, bg: '#ffffff', color: '#FF007F' });
+                });
+            } else if (currentTheme.type === 'assoc') {
+                let selected = shuffle([...alphabetPairs]).slice(0, 10);
+                selected.forEach(pair => {
+                    deck.push({ matchId: pair.a, display: pair.a, bg: '#ffffff', color: '#7928CA' });
+                    deck.push({ matchId: pair.a, display: pair.b, bg: '#ffffff', color: '#FF007F' });
+                });
+            } else if (currentTheme.type === 'numbers') {
+                let numPool = Array.from({length: 51}, (_, i) => i);
+                let chosenNums = shuffle(numPool).slice(0, 10);
+                chosenNums.forEach(num => {
+                    deck.push({ matchId: num, display: num, bg: '#ffffff', color: '#0066FF' });
+                    deck.push({ matchId: num, display: num, bg: '#ffffff', color: '#0066FF' });
+                });
+            } else if (currentTheme.type === 'symbols') {
+                let selectedSyms = shuffle([...mathSymbols]).slice(0, 10);
+                selectedSyms.forEach(sym => {
+                    deck.push({ matchId: sym, display: sym, bg: '#ffffff', color: '#FF6600' });
+                    deck.push({ matchId: sym, display: sym, bg: '#ffffff', color: '#FF6600' });
+                });
+            } else if (currentTheme.type === 'shapes') {
+                let selectedShapes = shuffle([...geometricShapes]).slice(0, 10);
+                let colors = shuffle([...paletteColors]);
+                selectedShapes.forEach((shape, i) => {
+                    let color = colors[i % colors.length];
+                    let svgHtml = shape.svg(color);
+                    deck.push({ matchId: shape.id, display: svgHtml, bg: '#ffffff', isSvg: true });
+                    deck.push({ matchId: shape.id, display: svgHtml, bg: '#ffffff', isSvg: true });
+                });
+            } else {
+                let items = shuffle([...currentTheme.items]).slice(0, 10);
+                items.forEach(item => {
+                    deck.push({ matchId: item, display: item, bg: '#ffffff' });
+                    deck.push({ matchId: item, display: item, bg: '#ffffff' });
+                });
+            }
+
+            deck = shuffle(deck);
+
+            deck.forEach((cardData, idx) => {
+                const cardEl = createCardElement(cardData, idx);
+                gridBoard.appendChild(cardEl);
+
+                setTimeout(() => {
+                    cardEl.classList.add('deal-anim');
+                    sounds.playFlipSound();
+                    if (idx === deck.length - 1) {
+                        isProcessing = false;
+                    }
+                }, idx * 40);
+            });
+        }
+
+        function shuffle(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function createCardElement(cardData, index) {
+            const container = document.createElement('div');
+            container.className = 'card-container';
+            container.dataset.matchId = cardData.matchId;
+
+            const frontStyle = cardData.bg.startsWith('#') && cardData.display === '' 
+                ? `background-color: ${cardData.bg};`
+                : `background-color: ${cardData.bg}; color: ${cardData.color || '#111'};`;
+
+            container.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-back">★</div>
+                    <div class="card-front" style="${frontStyle}">
+                        ${cardData.display}
+                    </div>
+                </div>
+            `;
+
+            container.addEventListener('click', () => handleCardClick(container));
+            return container;
+        }
+
+        /* ==========================================
+           7. LÓGICA DO JOGO & FEEDBACKS
+           ========================================== */
+        function handleCardClick(cardEl) {
+            if (isProcessing) return;
+            if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
+
+            sounds.playFlipSound();
+            cardEl.classList.add('flipped');
+            flippedCards.push(cardEl);
+
+            triggerSlowCardConfetti(cardEl);
+
+            if (flippedCards.length === 2) {
+                isProcessing = true;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [c1, c2] = flippedCards;
+            const isMatch = c1.dataset.matchId === c2.dataset.matchId;
+
+            if (isMatch) {
+                setTimeout(() => {
+                    sounds.playMatchSound();
+                    c1.classList.add('matched', 'correct-matched');
+                    c2.classList.add('matched', 'correct-matched');
+
+                    triggerFireworksOnMatch(c1, c2);
+                    matchedPairs++;
+
+                    setTimeout(() => {
+                        c1.classList.remove('correct-matched');
+                        c2.classList.remove('correct-matched');
+                        flippedCards = [];
+                        isProcessing = false;
+                    }, 500);
+
+                    if (matchedPairs === 10) {
+                        setTimeout(triggerVictory, 600);
+                    }
+                }, 280);
+            } else {
+                setTimeout(() => {
+                    sounds.playWrongSound();
+                    c1.classList.add('wrong-shake');
+                    c2.classList.add('wrong-shake');
+                }, 300);
+
+                setTimeout(() => {
+                    c1.classList.remove('flipped', 'wrong-shake');
+                    c2.classList.remove('flipped', 'wrong-shake');
+                    flippedCards = [];
+                    isProcessing = false;
+                }, 1000);
+            }
+        }
+
+        /* ==========================================
+           8. CONFETES LENTOS E FOGOS DE ARTIFÍCIO
+           ========================================== */
+        function triggerSlowCardConfetti(cardEl) {
+            const rect = cardEl.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) / window.innerWidth;
+            const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+            confetti({
+                particleCount: 12,
+                spread: 45,
+                startVelocity: 12,
+                gravity: 0.5,
+                decay: 0.94,
+                scalar: 0.9,
+                origin: { x, y },
+                colors: paletteColors,
+                ticks: 80
+            });
+        }
+
+        function triggerFireworksOnMatch(c1, c2) {
+            const rect1 = c1.getBoundingClientRect();
+            const rect2 = c2.getBoundingClientRect();
+            
+            const x1 = (rect1.left + rect1.width / 2) / window.innerWidth;
+            const y1 = (rect1.top + rect1.height / 2) / window.innerHeight;
+            const x2 = (rect2.left + rect2.width / 2) / window.innerWidth;
+            const y2 = (rect2.top + rect2.height / 2) / window.innerHeight;
+
+            confetti({
+                particleCount: 40,
+                spread: 80,
+                startVelocity: 25,
+                gravity: 0.7,
+                origin: { x: x1, y: y1 },
+                colors: paletteColors,
+                ticks: 100
+            });
+
+            setTimeout(() => {
+                confetti({
+                    particleCount: 40,
+                    spread: 80,
+                    startVelocity: 25,
+                    gravity: 0.7,
+                    origin: { x: x2, y: y2 },
+                    colors: paletteColors,
+                    ticks: 100
+                });
+            }, 120);
+        }
+
+        function triggerVictory() {
+            sounds.playVictorySound();
+            
+            document.querySelectorAll('.card-container').forEach(card => {
+                card.classList.add('win-party');
+            });
+
+            setTimeout(() => {
+                victoryModal.classList.remove('hidden');
+            }, 600);
+
+            const duration = 4.5 * 1000;
+            const animationEnd = Date.now() + duration;
+
+            const fireworkInterval = setInterval(() => {
+                const timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) {
+                    return clearInterval(fireworkInterval);
+                }
+
+                confetti({
+                    particleCount: 50,
+                    startVelocity: 30,
+                    spread: 360,
+                    ticks: 120,
+                    gravity: 0.6,
+                    origin: {
+                        x: Math.random() * 0.8 + 0.1,
+                        y: Math.random() * 0.5 + 0.1
+                    },
+                    colors: paletteColors
+                });
+            }, 350);
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: paletteColors
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: paletteColors
+                });
+
+                if (Date.now() < animationEnd) {
+                    requestAnimationFrame(frame);
+                }
+            })();
+        }
+
+        /* ==========================================
+           9. CANVAS DE FUNDO
+           ========================================== */
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class BackgroundParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 4 + 1.5;
+                this.speedY = -(Math.random() * 0.5 + 0.2);
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.2;
+                this.color = paletteColors[Math.floor(Math.random() * paletteColors.length)];
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+
+                if (this.y < -10) {
+                    this.reset();
+                    this.y = canvas.height + 10;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        for (let i = 0; i < 30; i++) {
+            particles.push(new BackgroundParticle());
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+
+        window.onload = () => {
+            animateCanvas();
+        };
+    </script>
+</body>
+</html>

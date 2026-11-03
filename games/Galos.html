@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jogo do Galo Arcade</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#000000',
+                        cardBg: '#090a0f',
+                        cardHover: '#131620',
+                        accentX: '#38bdf8', 
+                        accentO: '#f43f5e', 
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Outfit', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #000000;
+            overflow: hidden;
+        }
+        .board-grid {
+            display: grid;
+            gap: 6px;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #191c27;
+            border-radius: 4px;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.2); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes winGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(244, 63, 94, 0.7), inset 0 0 25px rgba(244, 63, 94, 0.5); }
+        }
+        .glow-win-cell {
+            animation: winGlow 1.2s infinite;
+        }
+        .glass-panel {
+            background: rgba(12, 16, 25, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Linhas Dinâmicas de Borda a Borda com Efeitos Aleatórios */
+        .dynamic-line {
+            position: absolute;
+            z-index: 5;
+            transition: all 0.5s ease;
+        }
+        @keyframes linePulse {
+            0% { opacity: 0.7; filter: drop-shadow(0 0 8px currentColor); }
+            50% { opacity: 1; filter: drop-shadow(0 0 18px currentColor); }
+            100% { opacity: 0.7; filter: drop-shadow(0 0 8px currentColor); }
+        }
+        .animate-line-effect {
+            animation: linePulse 1.5s infinite ease-in-out;
+        }
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        .animate-float{animation:float 3.2s ease-in-out infinite}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+        .galo-card{background:#090a0f;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);animation:fadeUp .45s both}
+        .galo-card:hover{box-shadow:0 0 22px color-mix(in srgb,var(--c) 35%,transparent)}
+        @keyframes turnPulse{0%,100%{transform:translateY(0) scale(1)}35%{transform:translateY(-6px) scale(1.2)}60%{transform:translateY(0) scale(.95)}}
+        #turn-indicator{animation:turnPulse 1s ease-in-out infinite;transition:color .2s,text-shadow .2s}
+        .turn-x{color:#38bdf8;text-shadow:0 0 14px rgba(56,189,248,.8)}
+        .turn-o{color:#f43f5e;text-shadow:0 0 14px rgba(244,63,94,.8)}
+        #hint-toast{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:35;font-size:11px;padding:6px 12px;border-radius:999px;background:rgba(12,16,25,.92);border:1px solid rgba(255,255,255,.12);color:#e5e7eb;white-space:nowrap;pointer-events:none}
+        #galo-list.open{animation:listIn .28s cubic-bezier(.2,.9,.3,1.2) both}
+        @keyframes listIn{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:none}}
+        .galo-item{display:flex;flex:1 1 0;min-height:0;align-items:center;gap:14px;width:100%;padding:0 16px;border-radius:14px;font-size:20px;font-weight:600;color:#d1d5db;text-align:left;transition:background .15s,transform .15s;opacity:0;animation:itemIn .3s ease forwards}
+        .galo-item:hover{background:rgba(255,255,255,.07)}
+        .galo-item:active{transform:scale(.97)}
+        .galo-item.cur{background:rgba(255,255,255,.06);color:#fff}
+        @keyframes itemIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative text-gray-100 bg-black">
+
+    <canvas id="fx" class="fixed inset-0 w-full h-full z-[60] pointer-events-none"></canvas>
+
+    <!-- Rooster icon -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <symbol id="rooster" viewBox="0 0 64 64">
+        <path d="M22 36C6 34 4 14 12 7c0 10 7 13 11 19z"/>
+        <path d="M21 42C4 46-1 30 4 22c2 9 9 11 15 13z" opacity=".7"/>
+        <ellipse cx="32" cy="40" rx="14" ry="12"/>
+        <path d="M34 36c3-8 2-12 5-16l8 2c0 8-3 15-8 20z"/>
+        <circle cx="42" cy="22" r="8"/>
+        <circle cx="38" cy="13" r="3.2"/><circle cx="43" cy="11.5" r="3.4"/><circle cx="47.5" cy="14" r="3"/>
+        <path d="M49 20l9 4-9 4z"/>
+        <ellipse cx="48" cy="32" rx="2.4" ry="3.6"/>
+        <circle cx="44" cy="21" r="1.8" fill="#000"/>
+        <path d="M29 51v9M36 51v9M25 60h8M32 60h8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      </symbol>
+    </defs></svg>
+
+    <!-- Fullscreen discreto (canto superior direito) -->
+    <button id="fs-btn" onclick="toggleFullScreen()" class="fixed top-3 right-3 z-50 p-2 rounded-full text-white/40 hover:text-white/90 bg-transparent transition active:scale-90" title="Tela Cheia" aria-label="Tela cheia">
+        <svg id="fs-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+    </button>
+
+    <!-- ================= ABA INICIAL ================= -->
+    <div id="splash-screen" class="absolute inset-0 z-40 bg-black flex items-center justify-center">
+        <button onclick="enterApp()" aria-label="Entrar" class="text-sky-400 transition active:scale-90 hover:scale-105 animate-float" style="filter:drop-shadow(0 0 28px rgba(56,189,248,.45))">
+            <svg class="w-40 h-40" fill="currentColor"><use href="#rooster"/></svg>
+        </button>
+    </div>
+
+    <!-- ================= TELA DE JOGO (FULLSCREEN & TABULEIRO EXPANDIDO ATÉ AS BORDAS) ================= -->
+    <div id="game-screen" class="hidden flex flex-col h-full w-full bg-black relative overflow-hidden z-20">
+        <!-- Barra de Topo Ultra Limpa com Ícone de Galo e Botões -->
+        <div class="flex items-center justify-between pl-4 pr-12 py-3 glass-panel border-b border-white/5 z-30 bg-black/80">
+            <div class="flex items-center space-x-1 min-w-0 flex-1">
+                <button id="name-btn" onclick="toggleList(event)" class="flex items-center gap-1 min-w-0 px-1 py-1 rounded-lg transition active:scale-95" aria-label="Trocar galo">
+                    <span id="game-title" class="text-xs font-bold uppercase tracking-wider truncate" style="color:var(--gc,#38bdf8)">Tradicional</span>
+                    <svg id="name-chev" class="w-3.5 h-3.5 text-white/50 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <button onclick="openManual()" class="p-1.5 rounded-full text-white/50 hover:text-white transition active:scale-90" title="Manual" aria-label="Manual">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.25v13M12 6.25C10.8 5.5 9.2 5 7.5 5S4.2 5.5 3 6.25v13C4.2 18.5 5.8 18 7.5 18s3.3.5 4.5 1.25m0-13C13.2 5.5 14.8 5 16.5 5s3.3.5 4.5 1.25v13C19.8 18.5 18.2 18 16.5 18s-3.3.5-4.5 1.25"/></svg>
+                </button>
+            </div>
+            <div id="turn-indicator" class="turn-x text-2xl font-extrabold leading-none px-2">X</div>
+            <div class="flex items-center space-x-1.5 flex-1 justify-end">
+                <!-- Botão Flutuante Minúsculo: Reiniciar -->
+                <button onclick="resetCurrentGame()" class="p-2 glass-panel hover:bg-white/10 text-gray-300 hover:text-white rounded-xl text-xs transition active:scale-90 shadow" title="Reiniciar">
+                    🔄
+                </button>
+            </div>
+        </div>
+
+        <div id="list-backdrop" class="hidden absolute inset-0 z-40" onclick="toggleList()"></div>
+        <div id="galo-list" class="absolute z-[45] top-[54px] bottom-3 left-3 w-72 max-w-[85%] rounded-2xl p-2 flex-col bg-[#0b0d14]/95 backdrop-blur-xl border border-white/10 shadow-2xl" style="display:none"></div>
+        <div id="hint-toast" class="hidden"></div>
+        <div id="manual-modal" class="hidden absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-6" onclick="closeManual()">
+            <div class="relative w-full max-w-sm rounded-2xl p-5 bg-[#090a0f] border border-white/10" onclick="event.stopPropagation()">
+                <button onclick="closeManual()" class="absolute top-2.5 right-2.5 p-1.5 rounded-full text-white/40 hover:text-white transition" aria-label="Fechar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+                <h3 id="manual-title" class="text-sm font-bold uppercase tracking-wider mb-3"></h3>
+                <ul id="manual-list" class="text-[13px] text-gray-300 space-y-2 list-disc pl-4"></ul>
+            </div>
+        </div>
+
+        <!-- Container do Jogo Ocupando ABSOLUTAMENTE Toda a Tela de Borda a Borda -->
+        <div id="game-container" class="flex-1 flex flex-col items-center justify-center relative w-full h-full overflow-hidden bg-black p-0 m-0">
+            <!-- Gerado dinamicamente com linhas aleatórias estendidas até as extremidades -->
+        </div>
+
+        <!-- Banner de Vitória com Animação -->
+        <div id="game-status-banner" class="hidden absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-sky-600 to-rose-600 text-white font-bold px-6 py-3 rounded-2xl shadow-2xl z-40 text-sm animate-pop flex items-center space-x-4 border border-white/25">
+            <span id="status-text">Jogador X Venceu!</span>
+            <button onclick="resetCurrentGame()" class="bg-white text-gray-900 px-3.5 py-1.5 rounded-xl text-xs font-extrabold hover:bg-gray-100 transition shadow active:scale-95">Jogar de Novo</button>
+        </div>
+    </div>
+
+    <!-- ================= MOTOR DE ÁUDIO & LÓGICA DOS JOGOS ================= -->
+    <script>
+        // Web Audio API Synthesizer
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playClick() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(480, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(960, this.ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch(e) {}
+            },
+            playGobble() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(240, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(480, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch(e) {}
+            },
+            playBoom() {
+                try {
+                    this.init();
+                    const c = this.ctx, t = c.currentTime;
+                    // assobio de subida
+                    const o = c.createOscillator(), og = c.createGain();
+                    o.type = 'sine'; o.frequency.setValueAtTime(400 + Math.random() * 300, t);
+                    o.frequency.exponentialRampToValueAtTime(1600, t + 0.18);
+                    og.gain.setValueAtTime(0.04, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+                    o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + 0.2);
+                    // estouro + estalos
+                    const len = c.sampleRate * 0.9, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+                    for (let i = 0; i < len; i++) {
+                        const k = i / len;
+                        d[i] = (Math.random() * 2 - 1) * (Math.pow(1 - k, 3) + (Math.random() < 0.02 ? 0.6 * (1 - k) : 0));
+                    }
+                    const n = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+                    n.buffer = buf; f.type = 'lowpass';
+                    f.frequency.setValueAtTime(2500, t + 0.18); f.frequency.exponentialRampToValueAtTime(300, t + 0.9);
+                    g.gain.setValueAtTime(0.0001, t); g.gain.setValueAtTime(0.35, t + 0.18); g.gain.exponentialRampToValueAtTime(0.001, t + 1);
+                    n.connect(f); f.connect(g); g.connect(c.destination); n.start(t + 0.18);
+                } catch(e) {}
+            },
+            playDraw() {
+                try {
+                    this.init();
+                    const t = this.ctx.currentTime;
+                    [392, 330, 262].forEach((fr, i) => {
+                        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                        o.type = 'triangle'; o.frequency.value = fr;
+                        g.gain.setValueAtTime(0.14, t + i * 0.14); g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.14 + 0.25);
+                        o.connect(g); g.connect(this.ctx.destination); o.start(t + i * 0.14); o.stop(t + i * 0.14 + 0.26);
+                    });
+                } catch(e) {}
+            },
+            playWin() {
+                try {
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+                        gain.gain.setValueAtTime(0.15, now + idx * 0.09);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.3);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.09);
+                        osc.stop(now + idx * 0.09 + 0.3);
+                    });
+                } catch(e) {}
+            }
+        };
+
+        // Gerador Aleatório de Temas Visuais para as Linhas do Tabuleiro (Fogo, Gelo, Lava, Laser, Ouro, Diamante, Esmeralda, Vidro)
+        const boardThemes = [
+            { name: 'Fogo Plasma', color: '#ff4500', shadow: '0 0 15px #ff4500, 0 0 30px #ff8c00', pattern: 'linear-gradient(90deg, #ff4500, #ff8c00, #ff4500)' },
+            { name: 'Gelo Cristal', color: '#00ffff', shadow: '0 0 15px #00ffff, 0 0 30px #1e90ff', pattern: 'linear-gradient(90deg, #00ffff, #ffffff, #00ffff)' },
+            { name: 'Laser Cyber', color: '#ff007f', shadow: '0 0 15px #ff007f, 0 0 30px #9400d3', pattern: 'linear-gradient(90deg, #ff007f, #da70d6, #ff007f)' },
+            { name: 'Ouro Pura', color: '#ffd700', shadow: '0 0 15px #ffd700, 0 0 30px #ffa500', pattern: 'linear-gradient(90deg, #ffd700, #ff8c00, #ffd700)' },
+            { name: 'Diamante Luz', color: '#e0ffff', shadow: '0 0 15px #ffffff, 0 0 30px #87ceeb', pattern: 'linear-gradient(90deg, #ffffff, #87ceeb, #ffffff)' },
+            { name: 'Esmeralda Mística', color: '#00ff7f', shadow: '0 0 15px #00ff7f, 0 0 30px #00fa9a', pattern: 'linear-gradient(90deg, #00ff7f, #32cd32, #00ff7f)' },
+            { name: 'Lava Vulcânica', color: '#ff2400', shadow: '0 0 15px #ff2400, 0 0 30px #ff6347', pattern: 'linear-gradient(90deg, #ff2400, #ff4500, #ff2400)' }
+        ];
+
+        let currentTheme = boardThemes[0];
+
+        function randomizeBoardTheme() {
+            currentTheme = boardThemes[Math.floor(Math.random() * boardThemes.length)];
+        }
+
+        function getExtendedGridHTML(innerContentHtml) {
+            return `
+                <div class="relative w-full h-full flex items-center justify-center p-2 sm:p-6 bg-black overflow-hidden">
+                    <!-- Linha Vertical 1 Estendida de Borda a Borda -->
+                    <div class="dynamic-line animate-line-effect" style="top: 0; bottom: 0; left: 33.33%; width: 4px; background: ${currentTheme.pattern}; box-shadow: ${currentTheme.shadow};"></div>
+                    <!-- Linha Vertical 2 Estendida de Borda a Borda -->
+                    <div class="dynamic-line animate-line-effect" style="top: 0; bottom: 0; left: 66.66%; width: 4px; background: ${currentTheme.pattern}; box-shadow: ${currentTheme.shadow};"></div>
+                    <!-- Linha Horizontal 1 Estendida de Borda a Borda -->
+                    <div class="dynamic-line animate-line-effect" style="left: 0; right: 0; top: 33.33%; height: 4px; background: ${currentTheme.pattern}; box-shadow: ${currentTheme.shadow};"></div>
+                    <!-- Linha Horizontal 2 Estendida de Borda a Borda -->
+                    <div class="dynamic-line animate-line-effect" style="left: 0; right: 0; top: 66.66%; height: 4px; background: ${currentTheme.pattern}; box-shadow: ${currentTheme.shadow};"></div>
+
+                    <!-- Conteúdo do Tabuleiro Ocupando o Máximo Espaço Lateral -->
+                    <div class="w-full h-full max-w-[98vw] max-h-[85vh] aspect-square grid grid-cols-3 grid-rows-3 gap-2 z-10 p-2">
+                        ${innerContentHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        const GALOS = [
+            ['Tradicional','tradicional','#e2e8f0'],
+            ['Infinito','infinito','#38bdf8'],
+            ['Tamanho','tamanhos','#a855f7'],
+            ['Ultimato','ultimate','#f43f5e'],
+            ['Selvagem','wild','#f59e0b'],
+            ['Numérico','numerico','#10b981'],
+            ['Rápido/Casual','infinito','#22d3ee'],
+            ['Tático','tamanhos','#818cf8'],
+            ['Hardcore','ultimate','#fb923c']
+        ];
+        const GALO_ICON = c => `<svg class="w-8 h-8 shrink-0" style="color:${c}" fill="currentColor"><use href="#rooster"/></svg>`;
+        function buildList() {
+            document.getElementById('galo-list').innerHTML = GALOS.map(([n,g,c],i) => `
+                <button class="galo-item ${n===currentName?'cur':''}" style="animation-delay:${i*30}ms" onclick="pickGalo('${g}','${n}','${c}')">
+                    ${GALO_ICON(c)}<span class="flex-1">${n}</span>${n===currentName?`<span class="w-2.5 h-2.5 rounded-full" style="background:${c}"></span>`:''}
+                </button>`).join('');
+        }
+        function toggleList(e) {
+            if (e) e.stopPropagation();
+            const l = document.getElementById('galo-list'), open = l.style.display === 'none';
+            if (open) { buildList(); l.style.display = 'flex'; l.classList.remove('open'); void l.offsetWidth; l.classList.add('open'); AudioFX.playClick(); }
+            else l.style.display = 'none';
+            document.getElementById('list-backdrop').classList.toggle('hidden', !open);
+            document.getElementById('name-chev').style.transform = open ? 'rotate(180deg)' : '';
+        }
+        function pickGalo(g, n, c) {
+            if (n !== currentName) startGame(g, n, c);
+            toggleList();
+        }
+
+        function enterApp() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+            document.getElementById('splash-screen').classList.add('hidden');
+            startGame('tradicional', 'Tradicional', '#e2e8f0');
+        }
+
+        // Fullscreen Toggle
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        let currentGame = '';
+        let currentName = '';
+        let starter = 'X';
+        let currentPlayer = 'X'; 
+        let gameActive = true;
+        let gameState = {};
+
+        function startGame(type, name, color) {
+            closeManual();
+            currentName = name || type;
+            document.documentElement.style.setProperty('--gc', color || '#38bdf8');
+            AudioFX.playClick();
+            currentGame = type;
+            starter = 'X';
+            currentPlayer = 'X';
+            gameActive = true;
+            randomizeBoardTheme();
+            
+            stopFireworks();
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('game-status-banner').classList.add('hidden');
+
+            const titles = {
+                'infinito': 'Infinito / Desaparecimento',
+                'tamanhos': 'Tamanhos / Engoliu (Gobblet)',
+                'ultimate': 'Ultimate Tic-Tac-Toe',
+                'wild': 'Wild Tic-Tac-Toe',
+                'numerico': 'Numérico (Soma 15)'
+            };
+            document.getElementById('game-title').innerText = currentName;
+            updateTurnIndicator();
+
+            initVariant(type);
+        }
+
+        function resetCurrentGame() {
+            AudioFX.playClick();
+            stopFireworks();
+            gameActive = true;
+            starter = starter === 'X' ? 'O' : 'X';
+            currentPlayer = starter;
+            randomizeBoardTheme();
+            document.getElementById('game-status-banner').classList.add('hidden');
+            updateTurnIndicator();
+            initVariant(currentGame);
+        }
+
+        function updateTurnIndicator(text) {
+            const el = document.getElementById('turn-indicator');
+            el.innerText = currentPlayer;
+            el.className = 'text-2xl font-extrabold leading-none px-2 ' + (currentPlayer === 'X' ? 'turn-x' : 'turn-o');
+            if (text && !text.startsWith('Turno')) {
+                const t = document.getElementById('hint-toast');
+                t.innerText = text; t.classList.remove('hidden');
+                clearTimeout(window._hintT);
+                window._hintT = setTimeout(() => t.classList.add('hidden'), 1800);
+            }
+        }
+
+        const MANUAIS = {
+            'Tradicional': ['O clássico: tabuleiro 3x3, X começa e as jogadas se alternam.', 'Vence quem alinhar 3 na horizontal, vertical ou diagonal.', 'Se o tabuleiro encher sem vencedor, é empate.'],
+            'Infinito': ['Cada jogador mantém no máximo 3 peças no tabuleiro.', 'Ao jogar a 4ª peça, a mais antiga some.', 'Vence quem alinhar 3. Não há empate.'],
+            'Tamanho': ['Peças pequena (P), média (M) e grande (G), em quantidade limitada.', 'Uma peça maior engole uma menor, até a do adversário.', 'Não dá para cobrir peça igual ou maior.', 'Vence quem alinhar 3 peças visíveis.'],
+            'Ultimato': ['9 tabuleiros pequenos formam um grande.', 'A casa que você joga define em qual tabuleiro o rival joga.', 'Ganhe um tabuleiro pequeno para marcá-lo.', 'Vence quem alinhar 3 tabuleiros no grande.'],
+            'Selvagem': ['Em cada jogada, você pode marcar X ou O.', 'Vence quem completar uma linha de 3, com qualquer símbolo.'],
+            'Numérico': ['X joga os ímpares (1,3,5,7,9); O joga os pares (2,4,6,8).', 'Cada número só pode ser usado uma vez.', 'Vence quem fizer uma linha somando 15.'],
+            'Rápido/Casual': ['Baseado no Infinito: só 3 peças por jogador.', 'A peça mais antiga some na 4ª jogada, então nunca empata.', 'Partidas curtas e dinâmicas.'],
+            'Tático': ['Baseado no Tamanho: peças P, M e G.', 'Engula peças menores e planeje o estoque de cada tamanho.', 'Alinhe 3 peças visíveis para vencer.'],
+            'Hardcore': ['Baseado no Ultimato: 9 tabuleiros em um.', 'Sua jogada manda o rival para um tabuleiro específico.', 'Alinhe 3 tabuleiros ganhos para vencer.']
+        };
+        function openManual() {
+            AudioFX.playClick();
+            const t = document.getElementById('manual-title');
+            t.innerText = currentName; t.style.color = 'var(--gc)';
+            document.getElementById('manual-list').innerHTML = (MANUAIS[currentName] || []).map(l => `<li>${l}</li>`).join('');
+            document.getElementById('manual-modal').classList.remove('hidden');
+        }
+        function closeManual() { document.getElementById('manual-modal').classList.add('hidden'); }
+
+        function showWinner(text, celebrate = true) {
+            if (celebrate) startFireworks();
+            gameActive = false;
+            if (celebrate) AudioFX.playWin(); else AudioFX.playDraw();
+            document.getElementById('status-text').innerText = text;
+            document.getElementById('game-status-banner').classList.remove('hidden');
+        }
+
+        // ================= 0. TRADICIONAL =================
+        function initVariantTradicional() {
+            gameState = { board: Array(9).fill(null) };
+            renderTradicional();
+        }
+        function renderTradicional() {
+            const cells = gameState.board.map((cell, idx) => {
+                const color = cell === 'X' ? 'text-sky-400 bg-sky-500/10' : 'text-rose-400 bg-rose-500/10';
+                return `<div onclick="handleTradicionalClick(${idx})" class="flex items-center justify-center text-6xl sm:text-8xl font-extrabold cursor-pointer transition duration-200 active:scale-95 rounded-2xl ${cell ? color : 'hover:bg-white/5'}"><span class="${cell ? 'animate-pop' : ''}">${cell || ''}</span></div>`;
+            }).join('');
+            document.getElementById('game-container').innerHTML = getExtendedGridHTML(cells);
+        }
+        function handleTradicionalClick(idx) {
+            if (!gameActive || gameState.board[idx] !== null) return;
+            AudioFX.playClick();
+            gameState.board[idx] = currentPlayer;
+            renderTradicional();
+            if (checkWinInfinito()) { showWinner(`Jogador ${currentPlayer} Venceu!`); return; }
+            if (gameState.board.every(c => c)) { showWinner('Empate!', false); return; }
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateTurnIndicator();
+        }
+
+
+        // ================= FOGOS & CONFETES =================
+        const FW = { parts: [], raf: 0, t0: 0, last: 0 };
+        function fwCanvas() {
+            const cv = document.getElementById('fx');
+            cv.width = innerWidth; cv.height = innerHeight;
+            return cv;
+        }
+        function burst(x, y, hue) {
+            AudioFX.playBoom();
+            const n = 70 + Math.random() * 40 | 0;
+            for (let i = 0; i < n; i++) {
+                const a = Math.random() * 6.283, v = 1.5 + Math.random() * 6;
+                FW.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: .008 + Math.random() * .012, r: 1.5 + Math.random() * 2, c: `hsl(${hue + Math.random() * 40 - 20},100%,${55 + Math.random() * 20}%)`, g: .06, spark: true });
+            }
+        }
+        function confetti() {
+            for (let i = 0; i < 6; i++) FW.parts.push({ x: Math.random() * innerWidth, y: -10, vx: Math.random() * 2 - 1, vy: 2 + Math.random() * 3, life: 1, decay: .004, r: 4 + Math.random() * 4, c: `hsl(${Math.random() * 360},90%,60%)`, g: .01, rot: Math.random() * 6, vr: Math.random() * .3 - .15 });
+        }
+        function startFireworks() {
+            stopFireworks();
+            const cv = fwCanvas(), ctx = cv.getContext('2d');
+            FW.t0 = performance.now(); FW.last = 0;
+            for (let i = 0; i < 3; i++) setTimeout(() => burst(cv.width * (.2 + .3 * i), cv.height * (.2 + Math.random() * .25), Math.random() * 360), i * 180);
+            const loop = now => {
+                const t = now - FW.t0;
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(0, 0, cv.width, cv.height);
+                ctx.globalCompositeOperation = 'lighter';
+                if (t < 5000 && now - FW.last > 320) {
+                    FW.last = now;
+                    burst(cv.width * (.1 + Math.random() * .8), cv.height * (.12 + Math.random() * .4), Math.random() * 360);
+                    if (t < 3500) confetti();
+                }
+                FW.parts = FW.parts.filter(p => p.life > 0 && p.y < cv.height + 20);
+                for (const p of FW.parts) {
+                    p.vy += p.g; p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+                    if (p.spark) { p.vx *= .98; p.vy *= .98; }
+                    ctx.globalAlpha = Math.max(p.life, 0); ctx.fillStyle = p.c;
+                    if (p.spark) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill(); }
+                    else { p.rot += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); ctx.restore(); }
+                }
+                ctx.globalAlpha = 1;
+                if (t < 5000 || FW.parts.length) FW.raf = requestAnimationFrame(loop);
+                else ctx.clearRect(0, 0, cv.width, cv.height);
+            };
+            FW.raf = requestAnimationFrame(loop);
+        }
+        function stopFireworks() {
+            cancelAnimationFrame(FW.raf); FW.parts = [];
+            const cv = document.getElementById('fx');
+            if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+        }
+
+        // ================= 1. INFINITO / DESAPARECIMENTO =================
+        function initVariantInfinito() {
+            gameState = {
+                board: Array(9).fill(null),
+                historyX: [],
+                historyO: []
+            };
+            renderInfinito();
+        }
+
+        function renderInfinito() {
+            const container = document.getElementById('game-container');
+            let cellsHtml = gameState.board.map((cell, idx) => {
+                let isFadingX = gameState.historyX[0] === idx && gameState.historyX.length === 3;
+                let isFadingO = gameState.historyO[0] === idx && gameState.historyO.length === 3;
+                let fadeClass = (isFadingX || isFadingO) ? 'opacity-40 border-dashed border-2 animate-pulse' : '';
+                let color = cell === 'X' ? 'text-sky-400 bg-sky-500/10' : 'text-rose-400 bg-rose-500/10';
+                return `
+                    <div onclick="handleInfinitoClick(${idx})" class="flex items-center justify-center text-5xl sm:text-7xl font-extrabold cursor-pointer transition duration-200 active:scale-95 ${cell ? color : 'hover:bg-white/5'} ${fadeClass}" style="color: ${cell === 'X' ? '#38bdf8' : (cell === 'O' ? '#f43f5e' : '')}">
+                        <span class="${cell ? 'animate-pop' : ''}">${cell || ''}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = getExtendedGridHTML(cellsHtml);
+        }
+
+        function handleInfinitoClick(idx) {
+            if (!gameActive || gameState.board[idx] !== null) return;
+            AudioFX.playClick();
+
+            if (currentPlayer === 'X') {
+                gameState.historyX.push(idx);
+                gameState.board[idx] = 'X';
+                if (gameState.historyX.length > 3) {
+                    let removed = gameState.historyX.shift();
+                    gameState.board[removed] = null;
+                }
+            } else {
+                gameState.historyO.push(idx);
+                gameState.board[idx] = 'O';
+                if (gameState.historyO.length > 3) {
+                    let removed = gameState.historyO.shift();
+                    gameState.board[removed] = null;
+                }
+            }
+
+            renderInfinito();
+            if (checkWinInfinito()) {
+                showWinner(`Jogador ${currentPlayer} Venceu!`);
+                return;
+            }
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateTurnIndicator(`Turno: ${currentPlayer}`);
+        }
+
+        function checkWinInfinito() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(([a,b,c]) => {
+                return gameState.board[a] && gameState.board[a] === gameState.board[b] && gameState.board[a] === gameState.board[c];
+            });
+        }
+
+        // ================= 2. TAMANHOS / ENGOLIU (GOBBLET) =================
+        function initVariantTamanhos() {
+            gameState = {
+                board: Array(9).fill(null).map(() => []),
+                piecesX: { 3: 1, 2: 2, 1: 2 },
+                piecesO: { 3: 1, 2: 2, 1: 2 },
+                selectedSize: null
+            };
+            renderTamanhos();
+        }
+
+        function renderTamanhos() {
+            const container = document.getElementById('game-container');
+            let cellsHtml = gameState.board.map((cellStack, idx) => {
+                let topPiece = cellStack.length > 0 ? cellStack[cellStack.length - 1] : null;
+                let sizeLabel = topPiece ? (topPiece.size === 3 ? 'Grande' : topPiece.size === 2 ? 'Médio' : 'Pequeno') : '';
+                let colorClass = topPiece ? (topPiece.player === 'X' ? 'text-sky-300' : 'text-rose-300') : 'hover:bg-white/5';
+                return `
+                    <div onclick="handleTamanhosClick(${idx})" class="flex flex-col items-center justify-center cursor-pointer transition duration-200 active:scale-95 ${colorClass}">
+                        <span class="text-4xl sm:text-6xl font-extrabold ${topPiece ? 'animate-pop' : ''}">${topPiece ? topPiece.player : ''}</span>
+                        <span class="text-[9px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">${sizeLabel}</span>
+                    </div>
+                `;
+            }).join('');
+
+            let poolX = gameState.piecesX;
+            let poolO = gameState.piecesO;
+            let currentPool = currentPlayer === 'X' ? poolX : poolO;
+
+            container.innerHTML = `
+                ${getExtendedGridHTML(cellsHtml)}
+                <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-1.5 glass-panel p-2.5 rounded-2xl w-[92%] max-w-[420px] shadow-2xl z-30">
+                    <div class="text-[11px] text-gray-300 font-semibold">Tamanho (${currentPlayer}): G:${currentPool[3]} | M:${currentPool[2]} | P:${currentPool[1]}</div>
+                    <div class="flex space-x-2">
+                        <button onclick="selectPieceSize(3)" class="px-3 py-1.5 rounded-xl glass-panel text-xs font-bold transition active:scale-95 ${gameState.selectedSize === 3 ? 'border-sky-500 text-sky-400 bg-sky-500/10' : 'text-gray-300'}">Grande (3)</button>
+                        <button onclick="selectPieceSize(2)" class="px-3 py-1.5 rounded-xl glass-panel text-xs font-bold transition active:scale-95 ${gameState.selectedSize === 2 ? 'border-sky-500 text-sky-400 bg-sky-500/10' : 'text-gray-300'}">Médio (2)</button>
+                        <button onclick="selectPieceSize(1)" class="px-3 py-1.5 rounded-xl glass-panel text-xs font-bold transition active:scale-95 ${gameState.selectedSize === 1 ? 'border-sky-500 text-sky-400 bg-sky-500/10' : 'text-gray-300'}">Pequeno (1)</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectPieceSize(size) {
+            AudioFX.playClick();
+            let pool = currentPlayer === 'X' ? gameState.piecesX : gameState.piecesO;
+            if (pool[size] > 0) {
+                gameState.selectedSize = size;
+                renderTamanhos();
+            } else {
+                updateTurnIndicator(`Sem peças tamanho ${size} restantes!`);
+            }
+        }
+
+        function handleTamanhosClick(idx) {
+            if (!gameActive || !gameState.selectedSize) {
+                updateTurnIndicator('Selecione uma peça embaixo primeiro!');
+                return;
+            }
+            let cellStack = gameState.board[idx];
+            let topPiece = cellStack.length > 0 ? cellStack[cellStack.length - 1] : null;
+
+            if (topPiece && topPiece.size >= gameState.selectedSize) {
+                updateTurnIndicator('Não pode cobrir peça maior ou igual!');
+                return;
+            }
+
+            AudioFX.playGobble();
+            let pool = currentPlayer === 'X' ? gameState.piecesX : gameState.piecesO;
+            pool[gameState.selectedSize]--;
+
+            cellStack.push({ player: currentPlayer, size: gameState.selectedSize });
+            gameState.selectedSize = null;
+
+            renderTamanhos();
+
+            if (checkWinTamanhos()) {
+                showWinner(`Jogador ${currentPlayer} Venceu!`);
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateTurnIndicator(`Turno: ${currentPlayer}`);
+        }
+
+        function checkWinTamanhos() {
+            let flatBoard = gameState.board.map(stack => stack.length > 0 ? stack[stack.length - 1].player : null);
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(([a,b,c]) => {
+                return flatBoard[a] && flatBoard[a] === flatBoard[b] && flatBoard[a] === flatBoard[c];
+            });
+        }
+
+        // ================= 3. ULTIMATE TIC-TAC-TOE =================
+        function initVariantUltimate() {
+            gameState = {
+                boards: Array(9).fill(null).map(() => Array(9).fill(null)),
+                mainBoard: Array(9).fill(null),
+                activeBoard: null
+            };
+            renderUltimate();
+        }
+
+        function renderUltimate() {
+            const container = document.getElementById('game-container');
+            let mainHtml = gameState.mainBoard.map((mainVal, bIdx) => {
+                let isBoardActive = gameState.activeBoard === null || gameState.activeBoard === bIdx;
+                
+                if (mainVal !== null) {
+                    return `
+                        <div class="col-span-1 row-span-1 border border-sky-500/50 rounded flex items-center justify-center text-5xl font-extrabold ${mainVal === 'X' ? 'text-sky-400 bg-sky-500/20' : 'text-rose-400 bg-rose-500/20'} glass-panel">
+                            <span class="animate-pop">${mainVal}</span>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="border ${isBoardActive ? 'border-sky-500/80 bg-sky-500/5 glow-win-cell' : 'border-white/10 opacity-60'} rounded p-1 grid grid-cols-3 gap-0.5 glass-panel">
+                        ${gameState.boards[bIdx].map((cell, cIdx) => {
+                            let cellColor = cell === 'X' ? 'text-sky-400' : 'text-rose-400';
+                            return `
+                                <div onclick="handleUltimateClick(${bIdx}, ${cIdx})" class="bg-black/40 rounded flex items-center justify-center text-xs sm:text-sm font-bold cursor-pointer hover:bg-white/10 transition duration-150 ${cellColor}">
+                                    <span class="${cell ? 'animate-pop' : ''}">${cell || ''}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = getExtendedGridHTML(mainHtml);
+        }
+
+        function handleUltimateClick(bIdx, cIdx) {
+            if (!gameActive) return;
+            if (gameState.activeBoard !== null && gameState.activeBoard !== bIdx) {
+                updateTurnIndicator(`Jogue no tabuleiro destacado!`);
+                return;
+            }
+            if (gameState.boards[bIdx][cIdx] !== null || gameState.mainBoard[bIdx] !== null) return;
+
+            AudioFX.playClick();
+            gameState.boards[bIdx][cIdx] = currentPlayer;
+
+            if (checkMiniWin(gameState.boards[bIdx])) {
+                gameState.mainBoard[bIdx] = currentPlayer;
+            }
+
+            gameState.activeBoard = gameState.mainBoard[cIdx] !== null ? null : cIdx;
+
+            if (checkMainWin()) {
+                showWinner(`Jogador ${currentPlayer} Venceu o Ultimate!`);
+                renderUltimate();
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateTurnIndicator(`Turno: ${currentPlayer}`);
+            renderUltimate();
+        }
+
+        function checkMiniWin(board) {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(([a,b,c]) => board[a] && board[a] === board[b] && board[a] === board[c]);
+        }
+
+        function checkMainWin() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(([a,b,c]) => gameState.mainBoard[a] && gameState.mainBoard[a] === gameState.mainBoard[b] && gameState.mainBoard[a] === gameState.mainBoard[c]);
+        }
+
+        // ================= 4. WILD TIC-TAC-TOE =================
+        function initVariantWild() {
+            gameState = {
+                board: Array(9).fill(null),
+                selectedSymbol: 'X'
+            };
+            renderWild();
+        }
+
+        function renderWild() {
+            const container = document.getElementById('game-container');
+            let cellsHtml = gameState.board.map((cell, idx) => {
+                let color = cell === 'X' ? 'text-sky-400' : 'text-rose-400';
+                return `
+                    <div onclick="handleWildClick(${idx})" class="flex items-center justify-center text-6xl sm:text-8xl font-extrabold cursor-pointer transition duration-200 active:scale-95 ${cell ? color : 'hover:bg-white/5'}">
+                        <span class="${cell ? 'animate-pop' : ''}">${cell || ''}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                ${getExtendedGridHTML(cellsHtml)}
+                <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 glass-panel p-2.5 rounded-2xl w-[92%] max-w-[360px] justify-center shadow-2xl z-30">
+                    <span class="text-xs text-gray-300 font-semibold">Símbolo (${currentPlayer}):</span>
+                    <button onclick="gameState.selectedSymbol = 'X'; renderWild();" class="px-5 py-1.5 rounded-xl glass-panel text-xs font-extrabold transition active:scale-95 ${gameState.selectedSymbol === 'X' ? 'border-sky-500 text-sky-400 bg-sky-500/10' : 'text-gray-300'}">X</button>
+                    <button onclick="gameState.selectedSymbol = 'O'; renderWild();" class="px-5 py-1.5 rounded-xl glass-panel text-xs font-extrabold transition active:scale-95 ${gameState.selectedSymbol === 'O' ? 'border-rose-500 text-rose-400 bg-rose-500/10' : 'text-gray-300'}">O</button>
+                </div>
+            `;
+        }
+
+        function handleWildClick(idx) {
+            if (!gameActive || gameState.board[idx] !== null) return;
+            AudioFX.playClick();
+
+            gameState.board[idx] = gameState.selectedSymbol;
+            renderWild();
+
+            if (checkWinWild()) {
+                showWinner(`Jogador ${currentPlayer} Venceu! (Linha completa)`);
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateTurnIndicator(`Turno: ${currentPlayer}`);
+        }
+
+        function checkWinWild() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(([a,b,c]) => {
+                return gameState.board[a] && gameState.board[a] === gameState.board[b] && gameState.board[a] === gameState.board[c];
+            });
+        }
+
+        // ================= 5. NUMÉRICO (SOMA 15) =================
+        function initVariantNumerico() {
+            gameState = {
+                board: Array(9).fill(null),
+                availableOdd: [1, 3, 5, 7, 9],
+                availableEven: [2, 4, 6, 8],
+                selectedNum: null
+            };
+            renderNumerico();
+        }
+
+        function renderNumerico() {
+            const container = document.getElementById('game-container');
+            let pool = currentPlayer === 'X' ? gameState.availableOdd : gameState.availableEven;
+
+            let cellsHtml = gameState.board.map((cell, idx) => {
+                let color = cell !== null ? (cell % 2 !== 0 ? 'text-sky-400' : 'text-rose-400') : '';
+                return `
+                    <div onclick="handleNumericoClick(${idx})" class="flex items-center justify-center text-5xl sm:text-7xl font-extrabold cursor-pointer transition duration-200 active:scale-95 ${cell !== null ? color : 'hover:bg-white/5'}">
+                        <span class="${cell !== null ? 'animate-pop' : ''}">${cell !== null ? cell : ''}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                ${getExtendedGridHTML(cellsHtml)}
+                <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-1.5 glass-panel p-2.5 rounded-2xl w-[92%] max-w-[400px] shadow-2xl z-30">
+                    <div class="text-[11px] text-gray-300 font-semibold">${currentPlayer === 'X' ? 'Ímpares (1,3,5,7,9)' : 'Pares (2,4,6,8)'}:</div>
+                    <div class="flex flex-wrap gap-1.5 justify-center">
+                        ${pool.map(num => `
+                            <button onclick="gameState.selectedNum = ${num}; renderNumerico();" class="w-8 h-8 rounded-lg glass-panel text-xs font-extrabold transition active:scale-95 flex items-center justify-center ${gameState.selectedNum === num ? 'border-sky-500 text-sky-400 bg-sky-500/10' : 'text-gray-300'}">${num}</button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleNumericoClick(idx) {
+            if (!gameActive || gameState.selectedNum === null || gameState.board[idx] !== null) {
+                updateTurnIndicator('Selecione um número válido abaixo!');
+                return;
+            }
+
+            AudioFX.playClick();
+            gameState.board[idx] = gameState.selectedNum;
+
+            let pool = currentPlayer === 'X' ? gameState.availableOdd : gameState.availableEven;
+            gameState[currentPlayer === 'X' ? 'availableOdd' : 'availableEven'] = pool.filter(n => n !== gameState.selectedNum);
+            
+            gameState.selectedNum = null;
+            renderNumerico();
+
+            if (checkWinNumerico()) {
+                showWinner(`Jogador ${currentPlayer} Venceu (Soma 15)!`);
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateTurnIndicator(`Turno: ${currentPlayer}`);
+            renderNumerico();
+        }
+
+        function checkWinNumerico() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(([a,b,c]) => {
+                let v1 = gameState.board[a];
+                let v2 = gameState.board[b];
+                let v3 = gameState.board[c];
+                return v1 !== null && v2 !== null && v3 !== null && (v1 + v2 + v3 === 15);
+            });
+        }
+
+        function initVariant(type) {
+            if (type === 'tradicional') initVariantTradicional();
+            else if (type === 'infinito') initVariantInfinito();
+            else if (type === 'tamanhos') initVariantTamanhos();
+            else if (type === 'ultimate') initVariantUltimate();
+            else if (type === 'wild') initVariantWild();
+            else if (type === 'numerico') initVariantNumerico();
+        }
+    </script>
+</body>
+</html>

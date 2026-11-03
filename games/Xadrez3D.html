@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xadrez 3D</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Chess.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background-color: #87ceeb; /* Cor do céu dia claro */
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(245, 158, 11, 0.6);
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col h-screen justify-between">
+
+    <div id="canvas-container"></div>
+
+    <div class="ui-layer flex flex-col justify-between h-full p-3 md:p-4">
+        
+        <!-- Top Toolbar & Controls Header -->
+        <header class="flex items-center justify-between w-full max-w-5xl mx-auto pt-1">
+            
+            <!-- Retractable Toolbar -->
+            <div id="toolbar-container" class="interactive flex items-center bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-full shadow-2xl transition-all duration-300 overflow-hidden py-1.5 px-2">
+                <button onclick="toggleToolbar()" id="toolbar-toggle-btn" class="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800/90 hover:bg-slate-700 text-amber-400 transition text-xs shadow-inner">
+                    <i id="toolbar-toggle-icon" class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+                </button>
+
+                <div id="toolbar-tools" class="flex items-center space-x-1 overflow-hidden transition-all duration-300 max-w-0 opacity-0 pl-0">
+                    <div class="h-4 w-px shrink-0 bg-slate-700/60 mx-0.5"></div>
+
+                    <!-- Current Turn Indicator -->
+                    <div class="flex items-center px-1.5 py-1 shrink-0 bg-slate-800/60 rounded-full border border-slate-700/40" title="Vez do Jogador">
+                        <div id="turn-indicator-dot" class="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] transition-colors duration-300"></div>
+                    </div>
+
+                    <!-- Audio Toggle -->
+                    <button onclick="toggleAudio()" id="audio-btn" title="Som Ativado/Desativado" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-amber-400 transition text-xs border border-slate-700/40">
+                        <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+                    </button>
+
+                    <!-- Theme Drawer Toggle -->
+                    <button onclick="toggleThemeDrawer()" title="Seletor de Temas (14)" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-amber-400 transition text-xs border border-slate-700/40">
+                        <i class="fa-solid fa-palette"></i>
+                    </button>
+
+                    <!-- Move Undo -->
+                    <button onclick="undoMove()" title="Desfazer Jogada" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-amber-400 transition text-xs border border-slate-700/40">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+
+                    <!-- Restart Game -->
+                    <button onclick="resetGame()" title="Reiniciar Partida" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-amber-400 transition text-xs border border-slate-700/40">
+                        <i class="fa-solid fa-arrow-rotate-right"></i>
+                    </button>
+
+                    <!-- Camera (alterna: Brancas > Pretas > Isométrica) -->
+                    <button onclick="cycleCamera()" id="camera-btn" title="Alternar câmera" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-amber-400 transition text-xs border border-slate-700/40">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+
+                    <!-- Moves History -->
+                    <button onclick="toggleHistoryModal()" title="Histórico de Jogadas" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-amber-400 transition text-xs border border-slate-700/40">
+                        <i class="fa-solid fa-list-ul"></i>
+                    </button>
+
+                    <!-- Help -->
+                    <button onclick="toggleHelpModal()" title="Ajuda" class="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-amber-400 transition text-xs border border-slate-700/40">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Fullscreen Button -->
+            <button onclick="toggleFullscreen()" id="fullscreen-btn" title="Tela Cheia" class="interactive flex items-center justify-center w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md border border-slate-700/60 text-slate-200 hover:text-amber-400 shadow-xl transition active:scale-95">
+                <i id="fullscreen-icon" class="fa-solid fa-expand text-sm"></i>
+            </button>
+        </header>
+
+        <!-- Captured Pieces Counter -->
+        <div class="flex justify-between items-center pointer-events-none w-full max-w-7xl mx-auto my-auto hidden sm:flex">
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800/60 p-2.5 rounded-2xl shadow-2xl interactive flex flex-col gap-1 min-h-[70px] items-center justify-center">
+                <div id="captured-black" class="flex flex-col gap-1 text-sm items-center"></div>
+            </div>
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800/60 p-2.5 rounded-2xl shadow-2xl interactive flex flex-col gap-1 min-h-[70px] items-center justify-center">
+                <div id="captured-white" class="flex flex-col gap-1 text-sm items-center"></div>
+            </div>
+        </div>
+
+        <!-- Footer Game Status Badge -->
+        <footer class="flex justify-center pointer-events-none pb-2">
+            <div id="game-status-badge" class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 px-5 py-1.5 rounded-full text-xs font-semibold text-amber-400 shadow-2xl pointer-events-auto">
+                Clique numa peça para começar
+            </div>
+        </footer>
+
+    </div>
+
+    <div id="theme-drawer" class="fixed top-0 left-0 bottom-0 z-50 w-60 max-w-[75vw] bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/60 p-3.5 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out interactive overflow-y-auto">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <h2 class="font-bold text-amber-400 flex items-center gap-2 text-base">
+                <i class="fa-solid fa-palette"></i> Temas de Jogo (14)
+            </h2>
+            <button onclick="toggleThemeDrawer()" class="text-slate-400 hover:text-slate-100 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <div id="theme-options-list" class="space-y-1.5">
+            <!-- Dynamically populated 14 theme cards -->
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm hidden interactive p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl relative">
+            <button onclick="toggleHelpModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-100 transition"><i class="fa-solid fa-xmark text-base"></i></button>
+            <h3 class="font-bold text-base mb-3 text-amber-400 flex items-center gap-2"><i class="fa-solid fa-chess"></i> Xadrez 3D</h3>
+            <p class="text-xs text-slate-300 leading-relaxed mb-2.5">• <strong class="text-slate-100">Visual</strong>: iluminação suave com sombras discretas e peças com acabamento polido.</p>
+            <p class="text-xs text-slate-300 leading-relaxed mb-2.5">• <strong class="text-slate-100">14 temas</strong>: do clássico de madeira ao neon, incluindo 2 temas infantis com confete e estrelas.</p>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">• <strong class="text-slate-100">Controles</strong>: arraste para girar a visão e use pinça ou scroll para aproximar.</p>
+            <button onclick="toggleHelpModal()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-2 rounded-xl text-xs transition">Entendido</button>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm hidden interactive p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xs p-5 shadow-2xl relative flex flex-col max-h-[70vh]">
+            <button onclick="toggleHistoryModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="font-bold text-base mb-3 text-amber-400">Histórico de Lances</h3>
+            <div id="history-list" class="flex-1 overflow-y-auto space-y-1 text-xs font-mono text-slate-300 p-2.5 bg-slate-950/70 rounded-xl border border-slate-800">
+                <span class="text-slate-500 italic">Nenhum lance efetuado.</span>
+            </div>
+            <button onclick="toggleHistoryModal()" class="mt-3 w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs transition">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md hidden interactive p-4">
+        <div class="bg-slate-900 border border-amber-500/50 rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
+            <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 id="gameover-title" class="font-bold text-lg mb-1 text-slate-100">Fim de Jogo</h3>
+            <p id="gameover-desc" class="text-xs text-slate-400 mb-5">Xeque-mate.</p>
+            <button onclick="resetGame(); closeGameOverModal();" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition">Nova Partida</button>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        let scene, camera, renderer;
+        let chess = new Chess();
+        let boardGroup = new THREE.Group();
+        let squaresGroup = new THREE.Group();
+        let piecesGroup = new THREE.Group();
+        let highlightsGroup = new THREE.Group();
+        let particleSystems = [];
+        let shockwaves = [];
+
+        let selectedSquare = null;
+        let validMoves = [];
+        let squareMeshes = {};
+        let pieceMeshes = {};
+
+        let toolbarExpanded = false;
+        let soundEnabled = true;
+
+        // Web Audio Context Synthesis
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'select') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, now);
+                osc.frequency.exponentialRampToValueAtTime(780, now + 0.05);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'move') {
+                const isKidTheme = currentTheme.isKid;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = isKidTheme ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(isKidTheme ? 440 : 200, now);
+                osc.frequency.exponentialRampToValueAtTime(isKidTheme ? 660 : 70, now + 0.1);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'capture') {
+                const isKidTheme = currentTheme.isKid;
+                // Pop Sound / Blast
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = isKidTheme ? 'triangle' : 'sine';
+                osc.frequency.setValueAtTime(isKidTheme ? 300 : 180, now);
+                osc.frequency.exponentialRampToValueAtTime(isKidTheme ? 880 : 40, now + 0.18);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            } else if (type === 'check') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(1174, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'gameover') {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.3);
+                });
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('audio-icon');
+            btn.className = soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark text-red-400";
+        }
+
+        const THEMES = [
+            {
+                id: 'ceuenuvens', name: '1. Céu & Nuvens', desc: 'Azul de céu aberto com branco de nuvem',
+                bgCss: ['#8ecaf2', '#e8f5ff'],
+                lightSquare: { color: 0xe3effa, roughness: 0.65, metalness: 0.0 },
+                darkSquare:  { color: 0x5c9fd6, roughness: 0.65, metalness: 0.0 },
+                borderMat:   { color: 0x2f6ea8, roughness: 0.55, metalness: 0.05 },
+                whitePiece:  { color: 0xfffdf8, roughness: 0.4, metalness: 0.0 },
+                blackPiece:  { color: 0x16324f, roughness: 0.4, metalness: 0.0 },
+                accentMat:   { color: 0xffc94d, roughness: 0.35, metalness: 0.35 },
+                sparkColors: [0xffc94d, 0xffffff, 0x7cc4f5]
+            },
+            {
+                id: 'gramaflores', name: '2. Jardim de Primavera', desc: 'Verde de grama, creme e girassol',
+                bgCss: ['#9fd8ef', '#e4f4cc'],
+                lightSquare: { color: 0xeaf0b8, roughness: 0.7, metalness: 0.0 },
+                darkSquare:  { color: 0x5e9c4a, roughness: 0.7, metalness: 0.0 },
+                borderMat:   { color: 0x5a3b21, roughness: 0.6, metalness: 0.0 },
+                whitePiece:  { color: 0xfff6d2, roughness: 0.4, metalness: 0.0 },
+                blackPiece:  { color: 0x3d2a55, roughness: 0.4, metalness: 0.0 },
+                accentMat:   { color: 0xf4b73c, roughness: 0.35, metalness: 0.3 },
+                sparkColors: [0xf4b73c, 0xff8fb1, 0x9be37a]
+            },
+            {
+                id: 'rubimarfim', name: '3. Rubi & Marfim', desc: 'Carmesim profundo com marfim e ouro',
+                bgCss: ['#4a1220', '#14050a'],
+                lightSquare: { color: 0xf3e7d6, roughness: 0.55, metalness: 0.0 },
+                darkSquare:  { color: 0x9a2236, roughness: 0.55, metalness: 0.0 },
+                borderMat:   { color: 0x3f0e18, roughness: 0.5, metalness: 0.05 },
+                whitePiece:  { color: 0xfff7ea, roughness: 0.35, metalness: 0.0 },
+                blackPiece:  { color: 0x2a0d13, roughness: 0.35, metalness: 0.0 },
+                accentMat:   { color: 0xd8ab4a, roughness: 0.3, metalness: 0.45 },
+                sparkColors: [0xe0405a, 0xd8ab4a, 0xfff7ea]
+            },
+            {
+                id: 'violetareal', name: '4. Violeta & Lavanda', desc: 'Roxo suave com toques de lavanda',
+                bgCss: ['#51308a', '#1b1035'],
+                lightSquare: { color: 0xede4fb, roughness: 0.6, metalness: 0.0 },
+                darkSquare:  { color: 0x8a69c8, roughness: 0.6, metalness: 0.0 },
+                borderMat:   { color: 0x3c2768, roughness: 0.5, metalness: 0.05 },
+                whitePiece:  { color: 0xfcf9ff, roughness: 0.35, metalness: 0.0 },
+                blackPiece:  { color: 0x2c1d50, roughness: 0.35, metalness: 0.0 },
+                accentMat:   { color: 0xffd27a, roughness: 0.3, metalness: 0.4 },
+                sparkColors: [0xc9a8ff, 0xffd27a, 0xffffff]
+            },
+            {
+                id: 'kidtoys', name: '5. Infantil: Brinquedos', desc: 'Cores vivas e alegres, com confete',
+                isKid: true,
+                bgCss: ['#7ed0ff', '#dff4ff'],
+                lightSquare: { color: 0xffe48a, roughness: 0.6, metalness: 0.0 },
+                darkSquare:  { color: 0xff7b7b, roughness: 0.6, metalness: 0.0 },
+                borderMat:   { color: 0x4a90f0, roughness: 0.5, metalness: 0.0 },
+                whitePiece:  { color: 0xffffff, roughness: 0.35, metalness: 0.0 },
+                blackPiece:  { color: 0x17a98c, roughness: 0.35, metalness: 0.0 },
+                accentMat:   { color: 0xff5d8f, roughness: 0.3, metalness: 0.1 },
+                sparkColors: [0xff5d8f, 0x3ad0ff, 0xffd23f, 0x2dd4a0, 0xa78bfa]
+            },
+            {
+                id: 'kidparty', name: '6. Infantil: Festa', desc: 'Rosa, azul-bebê e estrelinhas',
+                isKid: true,
+                bgCss: ['#ff9fcb', '#ffe6f2'],
+                lightSquare: { color: 0xc4e9ff, roughness: 0.6, metalness: 0.0 },
+                darkSquare:  { color: 0xff8cc6, roughness: 0.6, metalness: 0.0 },
+                borderMat:   { color: 0xffb703, roughness: 0.5, metalness: 0.0 },
+                whitePiece:  { color: 0xfffafc, roughness: 0.35, metalness: 0.0 },
+                blackPiece:  { color: 0x4b2db8, roughness: 0.35, metalness: 0.0 },
+                accentMat:   { color: 0xffd23f, roughness: 0.3, metalness: 0.15 },
+                sparkColors: [0xff5fa8, 0x3ac0ff, 0xffd23f, 0x8b5cf6]
+            },
+            {
+                id: 'titans', name: '7. Nogueira & Marfim', desc: 'Madeira clássica de torneio',
+                bgCss: ['#3b302a', '#14100d'],
+                lightSquare: { color: 0xe9d3a6, roughness: 0.6, metalness: 0.0 },
+                darkSquare:  { color: 0x8a5a36, roughness: 0.6, metalness: 0.0 },
+                borderMat:   { color: 0x3a2312, roughness: 0.55, metalness: 0.0 },
+                whitePiece:  { color: 0xf7ecd4, roughness: 0.4, metalness: 0.0 },
+                blackPiece:  { color: 0x25170f, roughness: 0.4, metalness: 0.0 },
+                accentMat:   { color: 0xc9a24a, roughness: 0.3, metalness: 0.4 },
+                sparkColors: [0xe3b95a, 0xfff2cf]
+            },
+            {
+                id: 'marble', name: '8. Mármore & Ardósia', desc: 'Pedra clara e ardósia, acabamento polido',
+                bgCss: ['#38404d', '#0e1218'],
+                lightSquare: { color: 0xeceae5, roughness: 0.4, metalness: 0.0 },
+                darkSquare:  { color: 0x68707e, roughness: 0.4, metalness: 0.0 },
+                borderMat:   { color: 0x292d35, roughness: 0.45, metalness: 0.05 },
+                whitePiece:  { color: 0xffffff, roughness: 0.25, metalness: 0.0 },
+                blackPiece:  { color: 0x1b1e24, roughness: 0.25, metalness: 0.0 },
+                accentMat:   { color: 0xc9a65c, roughness: 0.3, metalness: 0.45 },
+                sparkColors: [0xc9a65c, 0xdfe3ea]
+            },
+            {
+                id: 'cyberpunk', name: '9. Neon Noturno', desc: 'Ciano e magenta sobre fundo escuro',
+                bgCss: ['#10183a', '#03040c'],
+                lightSquare: { color: 0x1d3a55, roughness: 0.5, metalness: 0.0 },
+                darkSquare:  { color: 0x0c1724, roughness: 0.5, metalness: 0.0 },
+                borderMat:   { color: 0x00b8d4, roughness: 0.4, metalness: 0.1, emissive: 0x00424d, emissiveIntensity: 0.8 },
+                whitePiece:  { color: 0x5df3ff, roughness: 0.3, metalness: 0.0, emissive: 0x0a5560, emissiveIntensity: 0.6 },
+                blackPiece:  { color: 0xff3d8b, roughness: 0.3, metalness: 0.0, emissive: 0x5a1030, emissiveIntensity: 0.6 },
+                accentMat:   { color: 0xb26dff, roughness: 0.3, metalness: 0.2, emissive: 0x3a1a66, emissiveIntensity: 0.7 },
+                sparkColors: [0x5df3ff, 0xff3d8b, 0xb26dff]
+            },
+            {
+                id: 'goldsilver', name: '10. Prata & Ouro', desc: 'Champanhe, aço e metal nobre',
+                bgCss: ['#33323a', '#111114'],
+                lightSquare: { color: 0xf0ebdf, roughness: 0.45, metalness: 0.0 },
+                darkSquare:  { color: 0x7b8695, roughness: 0.4, metalness: 0.1 },
+                borderMat:   { color: 0x4b3a1b, roughness: 0.4, metalness: 0.2 },
+                whitePiece:  { color: 0xeef1f6, roughness: 0.28, metalness: 0.3 },
+                blackPiece:  { color: 0xc8952b, roughness: 0.3, metalness: 0.35 },
+                accentMat:   { color: 0x2b2118, roughness: 0.35, metalness: 0.3 },
+                sparkColors: [0xe3b34a, 0xeef1f6]
+            },
+            {
+                id: 'minimalwood', name: '11. Escandinavo', desc: 'Bétula clara, cinza-azulado e terracota',
+                bgCss: ['#f4f0e9', '#d9d3c7'],
+                lightSquare: { color: 0xf6f1e8, roughness: 0.7, metalness: 0.0 },
+                darkSquare:  { color: 0xb2bec7, roughness: 0.7, metalness: 0.0 },
+                borderMat:   { color: 0xc9a77f, roughness: 0.65, metalness: 0.0 },
+                whitePiece:  { color: 0xffffff, roughness: 0.5, metalness: 0.0 },
+                blackPiece:  { color: 0x39444e, roughness: 0.5, metalness: 0.0 },
+                accentMat:   { color: 0xe07a5f, roughness: 0.45, metalness: 0.05 },
+                sparkColors: [0xe07a5f, 0x9fb1bd]
+            },
+            {
+                id: 'emerald', name: '12. Esmeralda & Pérola', desc: 'Verde-joia com branco perolado',
+                bgCss: ['#10604a', '#041f19'],
+                lightSquare: { color: 0xeef5ec, roughness: 0.5, metalness: 0.0 },
+                darkSquare:  { color: 0x2e8e6a, roughness: 0.5, metalness: 0.0 },
+                borderMat:   { color: 0x113a2c, roughness: 0.5, metalness: 0.05 },
+                whitePiece:  { color: 0xfffdf8, roughness: 0.3, metalness: 0.0 },
+                blackPiece:  { color: 0x0e3a2b, roughness: 0.3, metalness: 0.0 },
+                accentMat:   { color: 0xe5c76b, roughness: 0.3, metalness: 0.45 },
+                sparkColors: [0x4fe0a8, 0xe5c76b, 0xffffff]
+            },
+            {
+                id: 'retro80s', name: '13. Synthwave', desc: 'Pôr do sol retrô, rosa e ciano',
+                bgCss: ['#1d0745', '#8c2a9e'],
+                lightSquare: { color: 0xff9bd6, roughness: 0.5, metalness: 0.0 },
+                darkSquare:  { color: 0x4a2a8a, roughness: 0.5, metalness: 0.0 },
+                borderMat:   { color: 0x2a0f55, roughness: 0.45, metalness: 0.1 },
+                whitePiece:  { color: 0x8ff0ff, roughness: 0.3, metalness: 0.0, emissive: 0x104a55, emissiveIntensity: 0.5 },
+                blackPiece:  { color: 0x150a2e, roughness: 0.3, metalness: 0.0, emissive: 0x2a0e55, emissiveIntensity: 0.5 },
+                accentMat:   { color: 0xffd23f, roughness: 0.3, metalness: 0.3 },
+                sparkColors: [0xff9bd6, 0x8ff0ff, 0xffd23f]
+            },
+            {
+                id: 'royalvelvet', name: '14. Veludo Real', desc: 'Vinho nobre com creme dourado',
+                bgCss: ['#561522', '#16050a'],
+                lightSquare: { color: 0xf2e0b0, roughness: 0.6, metalness: 0.0 },
+                darkSquare:  { color: 0x7a1f2c, roughness: 0.6, metalness: 0.0 },
+                borderMat:   { color: 0x3a0d14, roughness: 0.5, metalness: 0.05 },
+                whitePiece:  { color: 0xfff3cf, roughness: 0.35, metalness: 0.0 },
+                blackPiece:  { color: 0x2b0a10, roughness: 0.35, metalness: 0.0 },
+                accentMat:   { color: 0xd6a31a, roughness: 0.3, metalness: 0.5 },
+                sparkColors: [0xe8b73a, 0xe0405a]
+            }
+        ];
+
+        let currentTheme = THEMES[0];
+
+        function makePieceMaterial(prop) {
+            return new THREE.MeshPhysicalMaterial(Object.assign({ clearcoat: 0.45, clearcoatRoughness: 0.35 }, prop));
+        }
+
+        // Suaviza o perfil do torno para curvas mais elegantes
+        function smoothProfile(pts, mult) {
+            const curve = new THREE.SplineCurve(pts);
+            return curve.getPoints(pts.length * (mult || 5)).map(p => new THREE.Vector2(Math.max(0, p.x), p.y));
+        }
+
+        function lathe(pts, mat, smooth) {
+            const profile = smooth ? smoothProfile(pts) : pts;
+            return new THREE.Mesh(new THREE.LatheGeometry(profile, 48), mat);
+        }
+
+        function addCollar(group, y, radius, mat) {
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.04, 12, 40), mat);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = y;
+            group.add(ring);
+        }
+
+        function createPieceMesh(type, color) {
+            const group = new THREE.Group();
+            const V = (x, y) => new THREE.Vector2(x, y);
+
+            const isWhite = (color === 'w');
+            const pieceMat = makePieceMaterial(isWhite ? currentTheme.whitePiece : currentTheme.blackPiece);
+            const accentMat = makePieceMaterial(Object.assign({}, currentTheme.accentMat, { clearcoat: 0.2 }));
+
+            if (type === 'p') {
+                group.add(lathe([V(0,0), V(0.42,0.02), V(0.41,0.1), V(0.3,0.2), V(0.22,0.4), V(0.2,0.52), V(0.3,0.58), V(0.25,0.64), V(0,0.66)], pieceMat, true));
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 32, 32), pieceMat);
+                head.position.y = 0.8;
+                group.add(head);
+                addCollar(group, 0.58, 0.27, accentMat);
+
+            } else if (type === 'r') {
+                group.add(lathe([V(0,0), V(0.45,0.02), V(0.44,0.12), V(0.33,0.24), V(0.3,0.4), V(0.3,0.75), V(0.4,0.84), V(0.42,1.05), V(0,1.05)], pieceMat, false));
+                for (let i = 0; i < 4; i++) {
+                    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.14), pieceMat);
+                    const angle = (i * Math.PI) / 2;
+                    tooth.position.set(Math.cos(angle) * 0.32, 1.12, Math.sin(angle) * 0.32);
+                    tooth.rotation.y = -angle;
+                    group.add(tooth);
+                }
+                addCollar(group, 0.8, 0.38, accentMat);
+
+            } else if (type === 'n') {
+                group.add(lathe([V(0,0), V(0.45,0.02), V(0.43,0.12), V(0.33,0.24), V(0.3,0.27), V(0,0.27)], pieceMat, false));
+                const shape = new THREE.Shape();
+                shape.moveTo(-0.25, 0.25);
+                shape.quadraticCurveTo(-0.35, 0.6, -0.2, 0.95);
+                shape.quadraticCurveTo(-0.1, 1.15, 0.15, 1.25);
+                shape.quadraticCurveTo(0.35, 1.05, 0.38, 0.85);
+                shape.quadraticCurveTo(0.2, 0.75, 0.1, 0.65);
+                shape.quadraticCurveTo(0.25, 0.35, 0.25, 0.25);
+                shape.closePath();
+                const headGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.22, bevelEnabled: true, bevelSegments: 5, steps: 1, bevelSize: 0.05, bevelThickness: 0.05, curveSegments: 20 });
+                headGeo.center();
+                const head = new THREE.Mesh(headGeo, pieceMat);
+                head.position.set(0, 0.74, 0);
+                group.add(head);
+                addCollar(group, 0.27, 0.32, accentMat);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 12), accentMat);
+                eye.position.set(0.0, 1.0, 0.17);
+                group.add(eye);
+                const eye2 = eye.clone();
+                eye2.position.z = -0.17;
+                group.add(eye2);
+
+            } else if (type === 'b') {
+                group.add(lathe([V(0,0), V(0.45,0.02), V(0.42,0.12), V(0.3,0.24), V(0.22,0.5), V(0.2,0.7), V(0.33,0.8), V(0.3,1.0), V(0.2,1.18), V(0.06,1.28), V(0,1.29)], pieceMat, true));
+                const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 20), accentMat);
+                tip.position.y = 1.35;
+                group.add(tip);
+                addCollar(group, 0.76, 0.28, accentMat);
+
+            } else if (type === 'q') {
+                group.add(lathe([V(0,0), V(0.48,0.02), V(0.44,0.12), V(0.32,0.26), V(0.23,0.6), V(0.22,0.85), V(0.36,1.1), V(0.4,1.28), V(0.3,1.36), V(0,1.36)], pieceMat, true));
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i * Math.PI * 2) / 8;
+                    const p = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), accentMat);
+                    p.position.set(Math.cos(angle) * 0.34, 1.4, Math.sin(angle) * 0.34);
+                    group.add(p);
+                }
+                const orb = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 24), accentMat);
+                orb.position.y = 1.5;
+                group.add(orb);
+                addCollar(group, 0.82, 0.26, accentMat);
+
+            } else if (type === 'k') {
+                group.add(lathe([V(0,0), V(0.5,0.02), V(0.46,0.12), V(0.34,0.28), V(0.25,0.65), V(0.24,0.95), V(0.38,1.2), V(0.4,1.38), V(0.3,1.46), V(0,1.46)], pieceMat, true));
+                const v = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.36, 0.09), accentMat);
+                v.position.y = 1.66;
+                group.add(v);
+                const h = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.09, 0.09), accentMat);
+                h.position.y = 1.7;
+                group.add(h);
+                addCollar(group, 0.88, 0.29, accentMat);
+            }
+
+            group.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+            group.scale.set(0.82, 0.82, 0.82);
+            return group;
+        }
+
+        let cameraAngleX = 0.65;
+        let cameraAngleY = 0;
+        let cameraRadius = 15;
+        let targetAngleY = 0;
+        let targetAngleX = 0.65;
+        let isCameraAnimating = false;
+        const targetLookAt = new THREE.Vector3(0, 0, 0);
+
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let initialPinchDistance = 0;
+        let initialCameraRadius = 15;
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            applyBackground();
+
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // Iluminação em 3 pontos: céu/chão suave + luz principal com sombras macias + contraluz
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            const hemi = new THREE.HemisphereLight(0xffffff, 0x9a9aaa, 0.5);
+            scene.add(hemi);
+
+            const keyLight = new THREE.DirectionalLight(0xfff4e0, 0.62);
+            keyLight.position.set(6, 16, 9);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.set(2048, 2048);
+            keyLight.shadow.camera.left = -8;
+            keyLight.shadow.camera.right = 8;
+            keyLight.shadow.camera.top = 8;
+            keyLight.shadow.camera.bottom = -8;
+            keyLight.shadow.camera.near = 1;
+            keyLight.shadow.camera.far = 40;
+            keyLight.shadow.bias = -0.0004;
+            keyLight.shadow.radius = 3;
+            scene.add(keyLight);
+
+            const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.18);
+            fillLight.position.set(-10, 8, -6);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.14);
+            rimLight.position.set(0, 6, -14);
+            scene.add(rimLight);
+
+            // Chão invisível que só recebe a sombra do tabuleiro
+            const shadowFloor = new THREE.Mesh(
+                new THREE.PlaneGeometry(40, 40),
+                new THREE.ShadowMaterial({ opacity: 0.28 })
+            );
+            shadowFloor.rotation.x = -Math.PI / 2;
+            shadowFloor.position.y = -0.575;
+            shadowFloor.receiveShadow = true;
+            scene.add(shadowFloor);
+
+            scene.add(boardGroup);
+            boardGroup.add(squaresGroup);
+            boardGroup.add(piecesGroup);
+            boardGroup.add(highlightsGroup);
+
+            buildThemeSelectorUI();
+            createChessboard3D();
+            updatePieces3D();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            const dom = renderer.domElement;
+
+            dom.addEventListener('mousedown', onMouseDown);
+            dom.addEventListener('mousemove', onMouseMove);
+            dom.addEventListener('mouseup', onMouseUp);
+            dom.addEventListener('wheel', onWheel, { passive: true });
+
+            dom.addEventListener('touchstart', onTouchStart, { passive: false });
+            dom.addEventListener('touchmove', onTouchMove, { passive: false });
+            dom.addEventListener('touchend', onTouchEnd, { passive: false });
+            dom.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+            animate();
+        }
+
+        function createChessboard3D() {
+            while(squaresGroup.children.length > 0) { squaresGroup.remove(squaresGroup.children[0]); }
+            squareMeshes = {};
+
+            const matLight = new THREE.MeshStandardMaterial(currentTheme.lightSquare);
+            const matDark = new THREE.MeshStandardMaterial(currentTheme.darkSquare);
+            const matBorder = new THREE.MeshStandardMaterial(currentTheme.borderMat);
+            const matTrim = new THREE.MeshStandardMaterial(currentTheme.accentMat);
+
+            // Moldura principal
+            const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(9.9, 0.5, 9.9), matBorder);
+            baseMesh.position.y = -0.3;
+            baseMesh.castShadow = true;
+            baseMesh.receiveShadow = true;
+            squaresGroup.add(baseMesh);
+
+            // Pé do tabuleiro (leve chanfro visual)
+            const foot = new THREE.Mesh(new THREE.BoxGeometry(10.2, 0.12, 10.2), matBorder);
+            foot.position.y = -0.5;
+            foot.castShadow = true;
+            squaresGroup.add(foot);
+
+            // Filete decorativo ao redor das casas
+            const trimLen = 8.96, trimPos = 4.46;
+            [[0, trimPos, trimLen, 0.07], [0, -trimPos, trimLen, 0.07], [trimPos, 0, 0.07, trimLen], [-trimPos, 0, 0.07, trimLen]].forEach(t => {
+                const trim = new THREE.Mesh(new THREE.BoxGeometry(t[2], 0.1, t[3]), matTrim);
+                trim.position.set(t[0], 0.0, t[1]);
+                squaresGroup.add(trim);
+            });
+
+            const squareGeo = new THREE.BoxGeometry(1.1, 0.1, 1.1);
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            for (let r = 0; r < 8; r++) {
+                for (let f = 0; f < 8; f++) {
+                    const isLight = (r + f) % 2 === 1;
+                    const squareMesh = new THREE.Mesh(squareGeo, isLight ? matLight : matDark);
+                    squareMesh.position.set((f - 3.5) * 1.1, 0.0, (3.5 - r) * 1.1);
+                    squareMesh.receiveShadow = true;
+
+                    const squareName = files[f] + (r + 1);
+                    squareMesh.userData = { type: 'square', square: squareName };
+                    squaresGroup.add(squareMesh);
+                    squareMeshes[squareName] = squareMesh;
+                }
+            }
+        }
+
+        function squareToPosition(square) {
+            const file = square.charCodeAt(0) - 97;
+            const rank = parseInt(square[1]) - 1;
+            return new THREE.Vector3((file - 3.5) * 1.1, 0.05, (3.5 - rank) * 1.1);
+        }
+
+        function updatePieces3D() {
+            while(piecesGroup.children.length > 0) { piecesGroup.remove(piecesGroup.children[0]); }
+            pieceMeshes = {};
+
+            const boardState = chess.board();
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+            for (let r = 0; r < 8; r++) {
+                for (let f = 0; f < 8; f++) {
+                    const piece = boardState[r][f];
+                    if (piece) {
+                        const squareName = files[f] + (8 - r);
+                        const mesh = createPieceMesh(piece.type, piece.color);
+                        mesh.position.copy(squareToPosition(squareName));
+                        mesh.userData = { type: 'piece', square: squareName, piece: piece };
+                        piecesGroup.add(mesh);
+                        pieceMeshes[squareName] = mesh;
+                    }
+                }
+            }
+
+            updateHUD();
+            updateCapturedPieces();
+        }
+
+        function triggerMoveVFX(position) {
+            const colors = currentTheme.sparkColors || [0xf59e0b, 0xffffff];
+            const particleCount = currentTheme.isKid ? 30 : 12;
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const velocities = [];
+
+            for (let i = 0; i < particleCount; i++) {
+                positions.push(position.x, position.y + 0.1, position.z);
+                velocities.push(
+                    (Math.random() - 0.5) * (currentTheme.isKid ? 0.15 : 0.08),
+                    Math.random() * (currentTheme.isKid ? 0.2 : 0.1) + 0.05,
+                    (Math.random() - 0.5) * (currentTheme.isKid ? 0.15 : 0.08)
+                );
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            const pMat = new THREE.PointsMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: currentTheme.isKid ? 0.22 : 0.12,
+                transparent: true,
+                opacity: 1.0
+            });
+
+            const pSystem = new THREE.Points(geometry, pMat);
+            scene.add(pSystem);
+            particleSystems.push({ system: pSystem, velocities: velocities, life: 1.0 });
+        }
+
+        function triggerCaptureVFX(position) {
+            const colors = currentTheme.sparkColors || [0xef4444, 0xf59e0b, 0xffffff];
+            const primaryColor = colors[0];
+
+            // Shockwave Ring
+            const ringGeo = new THREE.RingGeometry(0.1, 1.0, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: primaryColor,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.95
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.set(position.x, 0.09, position.z);
+            scene.add(ring);
+            shockwaves.push({ mesh: ring, scale: 1, opacity: 0.95 });
+
+            // Multicolor Explosion Particle System
+            const particleCount = currentTheme.isKid ? 50 : 25;
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const velocities = [];
+
+            for (let i = 0; i < particleCount; i++) {
+                positions.push(position.x, position.y + 0.3, position.z);
+                velocities.push(
+                    (Math.random() - 0.5) * (currentTheme.isKid ? 0.28 : 0.18),
+                    Math.random() * (currentTheme.isKid ? 0.35 : 0.22) + 0.08,
+                    (Math.random() - 0.5) * (currentTheme.isKid ? 0.28 : 0.18)
+                );
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            const pMat = new THREE.PointsMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: currentTheme.isKid ? 0.26 : 0.16,
+                transparent: true,
+                opacity: 1.0
+            });
+
+            const pSystem = new THREE.Points(geometry, pMat);
+            scene.add(pSystem);
+            particleSystems.push({ system: pSystem, velocities: velocities, life: 1.0 });
+        }
+
+        function updateVFX() {
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                const sw = shockwaves[i];
+                sw.scale += 0.09;
+                sw.opacity -= 0.045;
+                sw.mesh.scale.set(sw.scale, sw.scale, sw.scale);
+                sw.mesh.material.opacity = Math.max(0, sw.opacity);
+
+                if (sw.opacity <= 0) {
+                    scene.remove(sw.mesh);
+                    shockwaves.splice(i, 1);
+                }
+            }
+
+            for (let i = particleSystems.length - 1; i >= 0; i--) {
+                const ps = particleSystems[i];
+                ps.life -= 0.032;
+                ps.system.material.opacity = Math.max(0, ps.life);
+
+                const positions = ps.system.geometry.attributes.position.array;
+                for (let j = 0; j < ps.velocities.length / 3; j++) {
+                    positions[j * 3] += ps.velocities[j * 3];
+                    positions[j * 3 + 1] += ps.velocities[j * 3 + 1];
+                    positions[j * 3 + 2] += ps.velocities[j * 3 + 2];
+
+                    ps.velocities[j * 3 + 1] -= 0.008; // Gravidade
+                }
+                ps.system.geometry.attributes.position.needsUpdate = true;
+
+                if (ps.life <= 0) {
+                    scene.remove(ps.system);
+                    particleSystems.splice(i, 1);
+                }
+            }
+        }
+
+        function handleSquareClick(squareName) {
+            const piece = chess.get(squareName);
+
+            if (selectedSquare) {
+                const matchedMove = validMoves.find(m => m.to === squareName);
+                if (matchedMove) {
+                    const isCapture = matchedMove.captured || matchedMove.san.includes('x');
+                    const targetPos = squareToPosition(squareName);
+
+                    if (isCapture) {
+                        playSound('capture');
+                        triggerCaptureVFX(targetPos);
+                    } else {
+                        playSound('move');
+                        triggerMoveVFX(targetPos);
+                    }
+
+                    chess.move(matchedMove);
+                    selectedSquare = null;
+                    validMoves = [];
+                    clearHighlights();
+                    updatePieces3D();
+
+                    if (chess.in_check()) {
+                        playSound('check');
+                    }
+
+                    if (toolbarExpanded) toggleToolbar();
+                    return;
+                }
+            }
+
+            if (piece && piece.color === chess.turn()) {
+                playSound('select');
+                selectedSquare = squareName;
+                validMoves = chess.moves({ square: squareName, verbose: true });
+                showHighlights(validMoves, selectedSquare);
+            } else {
+                selectedSquare = null;
+                validMoves = [];
+                clearHighlights();
+            }
+        }
+
+        function clearHighlights() {
+            while(highlightsGroup.children.length > 0) { highlightsGroup.remove(highlightsGroup.children[0]); }
+        }
+
+        function showHighlights(moves, selectedSquareName) {
+            clearHighlights();
+            const primaryColor = (currentTheme.sparkColors && currentTheme.sparkColors[0]) ? currentTheme.sparkColors[0] : 0xf59e0b;
+
+            if (selectedSquareName && squareMeshes[selectedSquareName]) {
+                const pos = squareMeshes[selectedSquareName].position;
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(0.42, 0.52, 32),
+                    new THREE.MeshBasicMaterial({ color: primaryColor, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+                );
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(pos.x, 0.07, pos.z);
+                highlightsGroup.add(ring);
+            }
+
+            moves.forEach(m => {
+                if (squareMeshes[m.to]) {
+                    const pos = squareMeshes[m.to].position;
+                    const dot = new THREE.Mesh(
+                        new THREE.CircleGeometry(0.22, 32),
+                        new THREE.MeshBasicMaterial({ color: m.captured ? 0xef4444 : 0x10b981, transparent: true, opacity: 0.85 })
+                    );
+                    dot.rotation.x = -Math.PI / 2;
+                    dot.position.set(pos.x, 0.075, pos.z);
+                    highlightsGroup.add(dot);
+                }
+            });
+        }
+
+        function updateHUD() {
+            const turnDot = document.getElementById('turn-indicator-dot');
+            const statusBadge = document.getElementById('game-status-badge');
+
+            if (chess.game_over()) {
+                playSound('gameover');
+                turnDot.className = "w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]";
+                if (chess.in_checkmate()) {
+                    const winner = chess.turn() === 'w' ? 'Pretas' : 'Brancas';
+                    statusBadge.textContent = `Xeque-mate! As ${winner} venceram!`;
+                    showGameOverModal(winner);
+                } else {
+                    statusBadge.textContent = "Partida Empatada!";
+                    showGameOverModal("Empate");
+                }
+                return;
+            }
+
+            if (chess.turn() === 'w') {
+                turnDot.className = "w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]";
+            } else {
+                turnDot.className = "w-3 h-3 rounded-full bg-slate-400 shadow-[0_0_8px_rgba(148,163,184,0.8)]";
+            }
+
+            if (chess.in_check()) {
+                statusBadge.textContent = "⚠️ XEQUE!";
+            } else {
+                statusBadge.textContent = chess.turn() === 'w' ? "Vez das Brancas" : "Vez das Pretas";
+            }
+
+            updateHistoryList();
+        }
+
+        function updateCapturedPieces() {
+            const initial = { p: 8, r: 2, n: 2, b: 2, q: 1 };
+            const current = { w: { p:0, r:0, n:0, b:0, q:0 }, b: { p:0, r:0, n:0, b:0, q:0 } };
+
+            const boardState = chess.board();
+            for (let r = 0; r < 8; r++) {
+                for (let f = 0; f < 8; f++) {
+                    const piece = boardState[r][f];
+                    if (piece && piece.type !== 'k') {
+                        current[piece.color][piece.type]++;
+                    }
+                }
+            }
+
+            const icons = {
+                p: '<i class="fa-solid fa-chess-pawn text-slate-300 text-xs"></i>',
+                r: '<i class="fa-solid fa-chess-rook text-slate-300 text-xs"></i>',
+                n: '<i class="fa-solid fa-chess-knight text-slate-300 text-xs"></i>',
+                b: '<i class="fa-solid fa-chess-bishop text-slate-300 text-xs"></i>',
+                q: '<i class="fa-solid fa-chess-queen text-slate-300 text-xs"></i>'
+            };
+
+            let whiteHtml = '';
+            for (let t in initial) {
+                let lost = initial[t] - current.w[t];
+                for (let i = 0; i < lost; i++) whiteHtml += icons[t];
+            }
+            document.getElementById('captured-white').innerHTML = whiteHtml || '';
+
+            let blackHtml = '';
+            for (let t in initial) {
+                let lost = initial[t] - current.b[t];
+                for (let i = 0; i < lost; i++) blackHtml += icons[t];
+            }
+            document.getElementById('captured-black').innerHTML = blackHtml || '';
+        }
+
+        function updateHistoryList() {
+            const history = chess.history({ verbose: true });
+            const listEl = document.getElementById('history-list');
+            if (history.length === 0) {
+                listEl.innerHTML = '<span class="text-slate-500 italic">Nenhum lance efetuado.</span>';
+                return;
+            }
+            let html = '';
+            for (let i = 0; i < history.length; i += 2) {
+                html += `<div class="flex justify-between py-0.5 border-b border-slate-900"><span class="text-slate-500">${Math.floor(i/2)+1}.</span><span class="text-slate-200">${history[i].san}</span><span class="text-slate-400">${history[i+1]?history[i+1].san:''}</span></div>`;
+            }
+            listEl.innerHTML = html;
+        }
+
+        function hex(c) { return '#' + c.toString(16).padStart(6, '0'); }
+
+        function buildThemeSelectorUI() {
+            const container = document.getElementById('theme-options-list');
+            container.innerHTML = '';
+
+            THEMES.forEach(theme => {
+                const isSelected = theme.id === currentTheme.id;
+                const card = document.createElement('div');
+                card.className = `p-2 rounded-xl border transition cursor-pointer ${
+                    isSelected ? 'bg-amber-500/15 border-amber-400' : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800'
+                }`;
+                card.onclick = () => selectTheme(theme.id);
+
+                // Miniatura: tabuleiro 2x2 + peças
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <div class="relative w-10 h-10 shrink-0 rounded-lg overflow-hidden border-2" style="border-color:${hex(theme.borderMat.color)}">
+                            <div class="grid grid-cols-2 w-full h-full">
+                                <div style="background:${hex(theme.lightSquare.color)}"></div>
+                                <div style="background:${hex(theme.darkSquare.color)}"></div>
+                                <div style="background:${hex(theme.darkSquare.color)}"></div>
+                                <div style="background:${hex(theme.lightSquare.color)}"></div>
+                            </div>
+                            <span class="absolute left-0.5 bottom-0.5 w-3 h-3 rounded-full border border-black/30" style="background:${hex(theme.whitePiece.color)}"></span>
+                            <span class="absolute right-0.5 top-0.5 w-3 h-3 rounded-full border border-white/30" style="background:${hex(theme.blackPiece.color)}"></span>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-semibold text-xs truncate ${isSelected ? 'text-amber-300' : 'text-slate-100'}">${theme.name}</h4>
+                            <p class="text-[10px] text-slate-400 leading-tight">${theme.desc}</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function applyBackground() {
+            scene.background = null;
+            const g = currentTheme.bgCss;
+            document.body.style.background = `radial-gradient(ellipse at 50% 35%, ${g[1]} 0%, ${g[0]} 100%)`;
+            document.body.style.backgroundAttachment = 'fixed';
+        }
+
+        function selectTheme(themeId) {
+            const found = THEMES.find(t => t.id === themeId);
+            if (!found) return;
+            currentTheme = found;
+
+            applyBackground();
+
+            buildThemeSelectorUI();
+            createChessboard3D();
+            updatePieces3D();
+            if (selectedSquare) showHighlights(validMoves, selectedSquare);
+        }
+
+        function toggleThemeDrawer() {
+            document.getElementById('theme-drawer').classList.toggle('-translate-x-full');
+        }
+
+        function getIntersectedSquare(clientX, clientY) {
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(boardGroup.children, true);
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && obj !== boardGroup) {
+                    if (obj.userData && obj.userData.square) {
+                        return obj.userData.square;
+                    }
+                    obj = obj.parent;
+                }
+            }
+            return null;
+        }
+
+        function updateCameraPosition() {
+            const x = cameraRadius * Math.sin(cameraAngleY) * Math.cos(cameraAngleX);
+            const y = cameraRadius * Math.sin(cameraAngleX);
+            const z = cameraRadius * Math.cos(cameraAngleY) * Math.cos(cameraAngleX);
+            camera.position.set(x, Math.max(y, 1.0), z);
+            camera.lookAt(targetLookAt);
+        }
+
+        let cameraViewIdx = 0;
+        function cycleCamera() {
+            const views = ['white', 'black', 'isometric'];
+            cameraViewIdx = (cameraViewIdx + 1) % views.length;
+            setCameraView(views[cameraViewIdx]);
+        }
+
+        function setCameraView(view) {
+            if (view === 'white') {
+                targetAngleY = 0;
+                targetAngleX = 0.65;
+            } else if (view === 'black') {
+                targetAngleY = Math.PI;
+                targetAngleX = 0.65;
+            } else if (view === 'isometric') {
+                targetAngleY = Math.PI / 4;
+                targetAngleX = 0.75;
+            }
+
+            const twoPi = Math.PI * 2;
+            cameraAngleY = ((cameraAngleY % twoPi) + twoPi) % twoPi;
+            if (Math.abs(targetAngleY - cameraAngleY) > Math.PI) {
+                if (targetAngleY > cameraAngleY) cameraAngleY += twoPi;
+                else cameraAngleY -= twoPi;
+            }
+
+            isCameraAnimating = true;
+            if (toolbarExpanded) toggleToolbar();
+        }
+
+        function onMouseDown(e) {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        }
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+            cameraAngleY -= (e.clientX - previousMousePosition.x) * 0.008;
+            cameraAngleX = Math.min(Math.max(cameraAngleX + (e.clientY - previousMousePosition.y) * 0.008, 0.1), Math.PI / 2 - 0.05);
+            updateCameraPosition();
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        }
+
+        function onMouseUp(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            if (Math.abs(e.clientX - previousMousePosition.x) + Math.abs(e.clientY - previousMousePosition.y) < 5) {
+                const sq = getIntersectedSquare(e.clientX, e.clientY);
+                if (sq) handleSquareClick(sq);
+            }
+        }
+
+        function onWheel(e) {
+            cameraRadius = Math.min(Math.max(cameraRadius + e.deltaY * 0.01, 5), 25);
+            updateCameraPosition();
+        }
+
+        let touchStartTime = 0;
+        let touchStartPos = { x: 0, y: 0 };
+
+        function onTouchStart(e) {
+            e.preventDefault();
+            if (e.targetTouches.length === 1) {
+                isDragging = true;
+                touchStartTime = Date.now();
+                touchStartPos = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
+                previousMousePosition = touchStartPos;
+            } else if (e.targetTouches.length === 2) {
+                isDragging = false;
+                const t1 = e.targetTouches[0];
+                const t2 = e.targetTouches[1];
+                initialPinchDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                initialCameraRadius = cameraRadius;
+            }
+        }
+
+        function onTouchMove(e) {
+            e.preventDefault();
+            if (e.targetTouches.length === 1 && isDragging) {
+                const t = e.targetTouches[0];
+                cameraAngleY -= (t.clientX - previousMousePosition.x) * 0.008;
+                cameraAngleX = Math.min(Math.max(cameraAngleX + (t.clientY - previousMousePosition.y) * 0.008, 0.1), Math.PI / 2 - 0.05);
+                updateCameraPosition();
+                previousMousePosition = { x: t.clientX, y: t.clientY };
+            } else if (e.targetTouches.length === 2) {
+                const t1 = e.targetTouches[0];
+                const t2 = e.targetTouches[1];
+                const currentPinchDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                if (initialPinchDistance > 0) {
+                    const factor = initialPinchDistance / currentPinchDistance;
+                    cameraRadius = Math.min(Math.max(initialCameraRadius * factor, 5), 25);
+                    updateCameraPosition();
+                }
+            }
+        }
+
+        function onTouchEnd(e) {
+            e.preventDefault();
+            if (e.targetTouches.length === 0 && isDragging) {
+                isDragging = false;
+                const duration = Date.now() - touchStartTime;
+                const lastTouch = e.changedTouches[0];
+                if (duration < 300 && Math.hypot(lastTouch.clientX - touchStartPos.x, lastTouch.clientY - touchStartPos.y) < 15) {
+                    const sq = getIntersectedSquare(lastTouch.clientX, lastTouch.clientY);
+                    if (sq) handleSquareClick(sq);
+                }
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function toggleToolbar() {
+            toolbarExpanded = !toolbarExpanded;
+            const tools = document.getElementById('toolbar-tools');
+            const icon = document.getElementById('toolbar-toggle-icon');
+            if (toolbarExpanded) {
+                tools.style.maxWidth = tools.scrollWidth + 'px';
+                tools.style.opacity = '1';
+                tools.style.paddingLeft = '6px';
+                icon.className = "fa-solid fa-chevron-up transition-transform duration-300";
+            } else {
+                tools.style.maxWidth = '0px';
+                tools.style.opacity = '0';
+                tools.style.paddingLeft = '0px';
+                icon.className = "fa-solid fa-chevron-down transition-transform duration-300";
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+                document.getElementById('fullscreen-icon').className = "fa-solid fa-compress text-sm";
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                document.getElementById('fullscreen-icon').className = "fa-solid fa-expand text-sm";
+            }
+        }
+
+        function undoMove() {
+            chess.undo();
+            selectedSquare = null;
+            validMoves = [];
+            clearHighlights();
+            updatePieces3D();
+        }
+
+        function resetGame() {
+            chess.reset();
+            selectedSquare = null;
+            validMoves = [];
+            clearHighlights();
+            updatePieces3D();
+            setCameraView('white');
+        }
+
+        function toggleHelpModal() { document.getElementById('help-modal').classList.toggle('hidden'); }
+        function toggleHistoryModal() { document.getElementById('history-modal').classList.toggle('hidden'); }
+        function showGameOverModal(w) { document.getElementById('gameover-modal').classList.remove('hidden'); }
+        function closeGameOverModal() { document.getElementById('gameover-modal').classList.add('hidden'); }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isCameraAnimating) {
+                cameraAngleY += (targetAngleY - cameraAngleY) * 0.1;
+                cameraAngleX += (targetAngleX - cameraAngleX) * 0.1;
+                if (Math.abs(targetAngleY - cameraAngleY) < 0.001 && Math.abs(targetAngleX - cameraAngleX) < 0.001) {
+                    cameraAngleY = targetAngleY;
+                    cameraAngleX = targetAngleX;
+                    isCameraAnimating = false;
+                }
+                updateCameraPosition();
+            }
+
+            updateVFX();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() { init(); };
+    </script>
+</body>
+</html>

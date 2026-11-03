@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Resta 1 - Variantes Inovadoras</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#040711',
+                        panelBg: '#0b1120',
+                        neonCyan: '#06b6d4',
+                        neonPurple: '#a855f7',
+                        neonPink: '#ec4899',
+                        neonGold: '#eab308',
+                        neonGreen: '#22c55e'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #040711;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        .glow-cyan { box-shadow: 0 0 30px rgba(6, 182, 212, 0.4); }
+        .glow-purple { box-shadow: 0 0 30px rgba(168, 85, 247, 0.4); }
+        .glow-gold { box-shadow: 0 0 30px rgba(234, 179, 8, 0.4); }
+        .glow-pink { box-shadow: 0 0 30px rgba(236, 72, 153, 0.4); }
+        
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 flex flex-col h-screen w-screen relative overflow-hidden select-none">
+
+    <!-- BACKGROUND GRAPHICS EFFECT -->
+    <div class="absolute inset-0 z-0 pointer-events-none opacity-20">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/30 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- SCREEN 1: INTRO SCREEN (MINIMAL TEXT, IMAGE & ICON HEAVY) -->
+    <section id="intro-screen" class="absolute inset-0 z-40 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 transition-all duration-500">
+        <button onclick="toggleFullScreen()" aria-label="Tela cheia" class="absolute top-3 left-1/2 -translate-x-1/2 z-10 p-2 rounded-xl glass-card text-cyan-300 opacity-40 hover:opacity-90 active:opacity-100 transition">
+            <svg id="fs-icon-enter" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            <svg id="fs-icon-exit" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+        </button>
+        <div class="w-full flex justify-end">
+            <button onclick="toggleAudio()" id="intro-audio-btn" class="p-3 rounded-2xl glass-card text-cyan-400 hover:text-white transition">
+                <svg id="audio-icon-on" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 6l-4 4H4v4h4l4 4V6z"/></svg>
+                <svg id="audio-icon-off" class="w-6 h-6 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke-dasharray="2 2"/></svg>
+            </button>
+        </div>
+
+        <div class="flex flex-col items-center text-center my-auto">
+            <button onclick="handleStartAndFullscreen()" aria-label="Resta 1" class="relative group w-44 h-44 sm:w-56 sm:h-56 rounded-[2.25rem] bg-gradient-to-br from-cyan-500 via-purple-600 to-pink-500 glow-cyan shadow-2xl transition transform hover:scale-105 active:scale-95 flex items-center justify-center">
+                <svg class="w-24 h-24 sm:w-28 sm:h-28 text-white drop-shadow-lg -mt-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="4" fill="currentColor"/>
+                    <circle cx="6" cy="6" r="2.5" fill="currentColor"/>
+                    <circle cx="18" cy="6" r="2.5" fill="currentColor"/>
+                    <circle cx="6" cy="18" r="2.5" fill="currentColor"/>
+                    <circle cx="18" cy="18" r="2.5" fill="currentColor"/>
+                </svg>
+                <span class="absolute bottom-4 left-0 right-0 text-[11px] sm:text-xs font-extrabold tracking-[0.35em] text-white/80 pl-[0.35em]">RESTA 1</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- SCREEN 2: HUB SCREEN (VISUAL BOARDS SELECTION) -->
+    <section id="hub-screen" class="absolute inset-0 z-30 hidden flex-col bg-slate-950 p-4 sm:p-6 overflow-y-auto transition-opacity duration-500">
+        <header class="max-w-4xl mx-auto w-full flex items-center justify-between pb-4 border-b border-slate-800">
+            <h2 class="text-xl sm:text-2xl font-black bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent uppercase tracking-wider">
+                SELEÇÃO DE TABULEIRO
+            </h2>
+            <button onclick="navigateTo('intro-screen')" class="p-2 rounded-xl glass-card text-slate-400 hover:text-white transition">
+                ✕
+            </button>
+        </header>
+
+        <main class="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6 my-auto py-8">
+            <!-- VARIANT 1: TRIANGULAR -->
+            <div onclick="launchGame('triangular')" class="glass-card rounded-3xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer flex flex-col items-center text-center justify-between group">
+                <div class="w-20 h-20 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <polygon points="12,3 2,21 22,21" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="9" r="1.5" fill="currentColor"/>
+                        <circle cx="8" cy="15" r="1.5" fill="currentColor"/>
+                        <circle cx="16" cy="15" r="1.5" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-white group-hover:text-purple-300 transition">TRIANGULAR</h3>
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full mt-2 inline-block">
+                        15 Posições
+                    </span>
+                </div>
+            </div>
+
+            <!-- VARIANT 2: PORTALS -->
+            <div onclick="launchGame('portals')" class="glass-card rounded-3xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-pink-500/20 cursor-pointer flex flex-col items-center text-center justify-between group">
+                <div class="w-20 h-20 rounded-2xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 mb-4 group-hover:scale-110 transition">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                        <circle cx="4" cy="12" r="2" fill="currentColor"/>
+                        <circle cx="20" cy="12" r="2" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-white group-hover:text-pink-300 transition">PORTAIS QUÂNTICOS</h3>
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-pink-400 bg-pink-500/20 px-3 py-1 rounded-full mt-2 inline-block">
+                        33 Posições (Cruz)
+                    </span>
+                </div>
+            </div>
+
+            <!-- VARIANT 3: BRASIL -->
+            <div onclick="launchGame('brazil')" class="glass-card rounded-3xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-500/20 cursor-pointer flex flex-col items-center text-center justify-between group">
+                <div class="w-20 h-20 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400 mb-4 group-hover:scale-110 transition">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="3" y="5" width="18" height="14" rx="2" stroke-width="2"/>
+                        <polygon points="12,7 20,12 12,17 4,12" stroke-width="1.5"/>
+                        <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-white group-hover:text-yellow-300 transition">BANDEIRA DO BRASIL</h3>
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-yellow-400 bg-yellow-500/20 px-3 py-1 rounded-full mt-2 inline-block">
+                        13 Posições
+                    </span>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <!-- SCREEN 3: GAMEPLAY SCREEN (CANVAS MAXIMUM IMMERSION) -->
+    <section id="game-screen" class="absolute inset-0 z-20 hidden flex-col bg-slate-950 overflow-hidden">
+        <!-- Minimal HUD Overlay -->
+        <header class="absolute top-0 left-0 right-0 z-30 p-4 flex items-center justify-between pointer-events-none">
+            <button onclick="closeGameScreen()" class="pointer-events-auto p-3 rounded-2xl glass-card text-slate-300 hover:text-white transition active:scale-95 shadow-xl">
+                ✕
+            </button>
+
+            <!-- Counter Badge -->
+            <div class="pointer-events-auto bg-slate-900/90 border border-slate-800 px-5 py-2 rounded-2xl backdrop-blur-md flex items-center gap-4 text-xs shadow-2xl">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-cyan-400 inline-block animate-pulse"></span>
+                    <span id="pieces-count" class="font-extrabold text-white text-base">14</span>
+                </div>
+            </div>
+
+            <button onclick="restartCurrentGame()" class="pointer-events-auto p-3 rounded-2xl glass-card text-slate-300 hover:text-cyan-400 transition active:scale-95 shadow-xl">
+                ↻
+            </button>
+        </header>
+
+        <!-- Undo (flutuante, até 2 usos) -->
+        <button id="undo-btn" onclick="undoMove()" aria-label="Desfazer" class="absolute top-20 right-4 z-30 w-12 h-12 rounded-2xl glass-card text-amber-300 flex items-center justify-center shadow-xl transition active:scale-90">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></svg>
+            <span id="undo-badge" class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-slate-900 text-[11px] font-black flex items-center justify-center">2</span>
+        </button>
+
+        <!-- Canvas Container -->
+        <div class="relative w-full h-full flex items-center justify-center bg-slate-950">
+            <canvas id="game-canvas" class="w-full h-full block cursor-pointer"></canvas>
+        </div>
+    </section>
+
+    <!-- END GAME MODAL -->
+    <div id="end-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-card rounded-3xl max-w-xs w-full p-6 text-center shadow-2xl border border-slate-800">
+            <div id="modal-icon" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center mx-auto mb-4 text-3xl text-white shadow-lg">
+                🏆
+            </div>
+            <h3 id="modal-title" class="text-xl font-black text-white mb-1">FIM DE JOGO</h3>
+            <p id="modal-remaining" class="text-3xl font-black text-cyan-400 my-2">1</p>
+            <p class="text-xs text-slate-400 mb-6">Peças Restantes</p>
+
+            <div class="space-y-2">
+                <button id="modal-undo-btn" onclick="undoMove()" class="hidden w-full py-2.5 rounded-xl bg-amber-400/15 border border-amber-400/40 text-amber-300 font-extrabold text-xs items-center justify-center gap-2 active:scale-95 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></svg>
+                    <span id="modal-undo-count">2</span>
+                </button>
+                <button onclick="restartCurrentGame(); closeModal('end-modal');" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-extrabold text-xs shadow-lg active:scale-95 transition">
+                    JOGAR NOVAMENTE
+                </button>
+                <button onclick="closeModal('end-modal'); closeGameScreen();" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                    VOLTAR AO HUB
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EFFECTS OVERLAY (confetes + fogos) -->
+    <canvas id="fx-canvas" style="position:fixed;inset:0;width:100%;height:100%;z-index:60;pointer-events:none"></canvas>
+
+    <!-- JAVASCRIPT GAME ENGINE -->
+    <script>
+        // FULLSCREEN REQUEST FUNCTION
+        function requestFullScreen() {
+            try {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen();
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                }
+            } catch (err) {
+                console.log("Fullscreen restriction:", err);
+            }
+        }
+
+        // VIBRAÇÃO A CADA TOQUE
+        function vibrate(p) {
+            try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {}
+        }
+        document.addEventListener('pointerdown', () => vibrate(12), { passive: true });
+
+        function toggleFullScreen() {
+            try {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                } else {
+                    requestFullScreen();
+                }
+            } catch (err) { console.log(err); }
+        }
+        function syncFsIcon() {
+            const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            document.getElementById('fs-icon-enter').classList.toggle('hidden', on);
+            document.getElementById('fs-icon-exit').classList.toggle('hidden', !on);
+        }
+        document.addEventListener('fullscreenchange', syncFsIcon);
+        document.addEventListener('webkitfullscreenchange', syncFsIcon);
+
+        function handleStartAndFullscreen() {
+            requestFullScreen();
+            initAudio();
+            navigateTo('hub-screen');
+        }
+
+        // --- AUDIO ENGINE ---
+        let audioMuted = false;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (audioMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'select') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'jump') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now); osc.stop(now + 0.12);
+            } else if (type === 'portal') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now); osc.stop(now + 0.25);
+            } else if (type === 'boom') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'victory') {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(freq, now + idx * 0.1);
+                    g.gain.setValueAtTime(0.12, now + idx * 0.1);
+                    g.gain.linearRampToValueAtTime(0.01, now + idx * 0.1 + 0.2);
+                    o.start(now + idx * 0.1); o.stop(now + idx * 0.1 + 0.2);
+                });
+            }
+        }
+
+        function toggleAudio() {
+            audioMuted = !audioMuted;
+            document.getElementById('audio-icon-on').classList.toggle('hidden', audioMuted);
+            document.getElementById('audio-icon-off').classList.toggle('hidden', !audioMuted);
+        }
+
+        // --- NAVIGATION ENGINE ---
+        function navigateTo(screenId) {
+            ['intro-screen', 'hub-screen', 'game-screen'].forEach(id => {
+                const el = document.getElementById(id);
+                if (id === screenId) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
+        }
+
+        function launchGame(variantKey) {
+            requestFullScreen();
+            initAudio();
+            navigateTo('game-screen');
+            initGameEngine(variantKey);
+        }
+
+        function closeGameScreen() {
+            stopGameLoop();
+            stopFx();
+            navigateTo('hub-screen');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // --- GAME ENGINE & PERFECT GEOMETRIES ---
+        let currentVariant = 'triangular';
+        let nodes = [];
+        let selectedNode = null;
+        let particles = [];
+        let animations = [];
+        let animationFrameId = null;
+
+        const VARIANTS_CONFIG = {
+            triangular: {
+                color: '#a855f7',
+                build: () => {
+                    let nodesList = [];
+                    let grid = {};
+                    let id = 0;
+                    // 15 positions in pyramid
+                    for (let r = 0; r < 5; r++) {
+                        for (let c = 0; c <= r; c++) {
+                            let node = { id: id++, r, c, x: 0, y: 0, hasPeg: true, portalId: null };
+                            if (r === 0 && c === 0) node.hasPeg = false; // Empty apex
+                            nodesList.push(node);
+                            grid[`${r},${c}`] = node;
+                        }
+                    }
+                    const dirs = [
+                        { dr: 0, dc: -1, jdr: 0, jdc: -2 },
+                        { dr: 0, dc: 1, jdr: 0, jdc: 2 },
+                        { dr: -1, dc: -1, jdr: -2, jdc: -2 },
+                        { dr: -1, dc: 0, jdr: -2, jdc: 0 },
+                        { dr: 1, dc: 0, jdr: 2, jdc: 0 },
+                        { dr: 1, dc: 1, jdr: 2, jdc: 2 }
+                    ];
+                    nodesList.forEach(n => {
+                        n.neighbors = [];
+                        dirs.forEach(d => {
+                            let mid = grid[`${n.r + d.dr},${n.c + d.dc}`];
+                            let target = grid[`${n.r + d.jdr},${n.c + d.jdc}`];
+                            if (mid && target) n.neighbors.push({ jumped: mid, target: target });
+                        });
+                    });
+                    return nodesList;
+                }
+            },
+            portals: {
+                color: '#ec4899',
+                build: () => {
+                    let nodesList = [];
+                    let grid = {};
+                    let id = 0;
+                    // English 33-Node Cross Layout
+                    let layout = [
+                        [0,0,1,1,1,0,0],
+                        [0,0,1,1,1,0,0],
+                        [1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1],
+                        [0,0,1,1,1,0,0],
+                        [0,0,1,1,1,0,0]
+                    ];
+                    for (let r = 0; r < 7; r++) {
+                        for (let c = 0; c < 7; c++) {
+                            if (layout[r][c] === 1) {
+                                let node = { id: id++, r, c, x: 0, y: 0, hasPeg: true, portalId: null };
+                                if (r === 3 && c === 3) node.hasPeg = false;
+                                nodesList.push(node);
+                                grid[`${r},${c}`] = node;
+                            }
+                        }
+                    }
+                    // Portals at corner points of cross
+                    if (grid['2,0']) grid['2,0'].portalId = 1;
+                    if (grid['4,6']) grid['4,6'].portalId = 1;
+                    if (grid['0,2']) grid['0,2'].portalId = 2;
+                    if (grid['6,4']) grid['6,4'].portalId = 2;
+
+                    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                    nodesList.forEach(n => {
+                        n.neighbors = [];
+                        dirs.forEach(d => {
+                            let mid = grid[`${n.r + d[0]},${n.c + d[1]}`];
+                            let target = grid[`${n.r + 2*d[0]},${n.c + 2*d[1]}`];
+                            if (mid && target) n.neighbors.push({ jumped: mid, target: target });
+                        });
+                    });
+                    return nodesList;
+                }
+            },
+            brazil: {
+                color: '#eab308',
+                build: () => {
+                    let nodesList = [];
+                    let grid = {};
+                    let id = 0;
+                    // 13 Positions Diamond Layout (Exact Flag Geometry)
+                    let layout = [
+                        [0,0,1,0,0],
+                        [0,1,1,1,0],
+                        [1,1,1,1,1], // centro = círculo azul (vazio)
+                        [0,1,1,1,0],
+                        [0,0,1,0,0]
+                    ];
+                    for (let r = 0; r < 5; r++) {
+                        for (let c = 0; c < 5; c++) {
+                            if (layout[r][c] === 1) {
+                                let node = { id: id++, r, c, x: 0, y: 0, hasPeg: true, portalId: null };
+                                if (r === 2 && c === 2) node.hasPeg = false;
+                                nodesList.push(node);
+                                grid[`${r},${c}`] = node;
+                            }
+                        }
+                    }
+                    const dirs = [
+                        [-1,0],[1,0],[0,-1],[0,1],
+                        [-1,-1],[-1,1],[1,-1],[1,1]
+                    ];
+                    nodesList.forEach(n => {
+                        n.neighbors = [];
+                        dirs.forEach(d => {
+                            let mid = grid[`${n.r + d[0]},${n.c + d[1]}`];
+                            let target = grid[`${n.r + 2*d[0]},${n.c + 2*d[1]}`];
+                            if (mid && target) n.neighbors.push({ jumped: mid, target: target });
+                        });
+                    });
+                    return nodesList;
+                }
+            }
+        };
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function initGameEngine(variantKey) {
+            currentVariant = variantKey;
+            const config = VARIANTS_CONFIG[variantKey];
+
+            nodes = config.build();
+            selectedNode = null;
+            particles = [];
+            animations = [];
+            busy = false;
+            S = 1;
+            history = [];
+            undosLeft = 2;
+            ripples = [];
+            updateUndoUI();
+            stopFx();
+
+            updateStatsUI();
+            fitCanvas();
+            stopGameLoop();
+            startGameLoop();
+        }
+
+        function restartCurrentGame() {
+            initGameEngine(currentVariant);
+        }
+
+        let S = 1;                 // escala dos elementos (peças/buracos)
+        let busy = false;          // trava durante a animação do pulo
+        let history = [];          // jogadas feitas (para desfazer)
+        let undosLeft = 2;         // desfazer disponíveis
+        let ripples = [];          // ondas de fundo
+
+        function updateUndoUI() {
+            const btn = document.getElementById('undo-btn');
+            btn.classList.toggle('hidden', undosLeft <= 0);
+            btn.style.opacity = history.length ? '1' : '0.4';
+            document.getElementById('undo-badge').innerText = undosLeft;
+            const mb = document.getElementById('modal-undo-btn');
+            if (mb) document.getElementById('modal-undo-count').innerText = undosLeft;
+        }
+
+        function undoMove() {
+            if (busy || undosLeft <= 0 || !history.length) return;
+            const h = history.pop();
+            h.to.hasPeg = false;
+            h.jumped.hasPeg = true;
+            h.from.hasPeg = true;
+            undosLeft--;
+            selectedNode = null;
+            closeModal('end-modal');
+            playSound('select');
+            addRipple(h.from.x, h.from.y, '#f59e0b', 1);
+            addRipple(h.to.x, h.to.y, '#f59e0b', 0.6);
+            updateStatsUI();
+            updateUndoUI();
+        }
+
+        // --- ONDAS DE FUNDO A CADA MOVIMENTO ---
+        function addRipple(x, y, color, power) {
+            ripples.push({ x, y, color, power, age: 0, dur: 70 });
+        }
+
+        function drawRipples() {
+            if (!ripples.length) return;
+            const dpr = window.devicePixelRatio || 1;
+            const W = canvas.width / dpr, H = canvas.height / dpr;
+            const maxR = Math.max(W, H) * 0.6;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                const r = ripples[i];
+                r.age++;
+                const t = r.age / r.dur;
+                if (t >= 1) { ripples.splice(i, 1); continue; }
+                // clarão suave
+                const gr = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, maxR * 0.7 * r.power * Math.min(1, t * 2 + 0.2));
+                gr.addColorStop(0, r.color);
+                gr.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.globalAlpha = (1 - t) * (1 - t) * 0.22 * r.power;
+                ctx.fillStyle = gr;
+                ctx.fillRect(0, 0, W, H);
+                // anéis concêntricos
+                for (let k = 0; k < 3; k++) {
+                    const tt = t - k * 0.12;
+                    if (tt <= 0) continue;
+                    ctx.globalAlpha = (1 - tt) * 0.45 * r.power;
+                    ctx.strokeStyle = r.color;
+                    ctx.lineWidth = 1.5 + (1 - tt) * 5;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, tt * maxR * r.power, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
+
+        function fitCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            if (rect.width < 2 || rect.height < 2) return;
+            const dpr = window.devicePixelRatio || 1;
+
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            calculateNodePositions(rect.width, rect.height);
+
+        }
+
+        window.addEventListener('resize', fitCanvas);
+
+        function calculateNodePositions(width, height) {
+            if (!nodes.length) return;
+
+            let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+            nodes.forEach(n => {
+                if (n.r < minR) minR = n.r;
+                if (n.r > maxR) maxR = n.r;
+                if (n.c < minC) minC = n.c;
+                if (n.c > maxC) maxC = n.c;
+            });
+            const spanR = maxR - minR || 1;
+            const spanC = maxC - minC || 1;
+
+            // posição normalizada (0..1) de cada casa
+            nodes.forEach(n => {
+                if (currentVariant === 'triangular') {
+                    n.u = (n.c + (4 - n.r) / 2) / 4;
+                    n.v = n.r / 4;
+                } else {
+                    n.u = (n.c - minC) / spanC;
+                    n.v = (n.r - minR) / spanR;
+                }
+            });
+
+            // margens: topo reserva espaço para os botões
+            let left = 36 + width * 0.03, right = left;
+            let top = 78, bottom = 36 + height * 0.03;
+
+            const minStep = () => Math.min((width - left - right) / spanC, (height - top - bottom) / spanR);
+            S = Math.max(1, Math.min(minStep() / 46, 2.4));
+
+            // garante que as peças maiores não saiam da tela
+            const pad = 26 * S + 6;
+            left = Math.max(left, pad); right = left;
+            top = Math.max(top, pad + 56 / 2 + 20); bottom = Math.max(bottom, pad);
+
+            nodes.forEach(n => {
+                n.x = left + n.u * (width - left - right);
+                n.y = top + n.v * (height - top - bottom);
+            });
+        }
+
+        // --- ANIMATION CLASSES ---
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 4;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.alpha = 1.0;
+                this.size = 3 + Math.random() * 3;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy; this.alpha -= 0.03;
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class JumpAnimation {
+            constructor(from, to, color, onComplete) {
+                this.startX = from.x; this.startY = from.y;
+                this.targetX = to.x; this.targetY = to.y;
+                this.color = color;
+                this.progress = 0;
+                this.duration = 15;
+                this.onComplete = onComplete;
+            }
+            update() {
+                this.progress++;
+                if (this.progress >= this.duration) {
+                    if (this.onComplete) this.onComplete();
+                    return true;
+                }
+                return false;
+            }
+            draw(ctx) {
+                let t = this.progress / this.duration;
+                let curX = this.startX + (this.targetX - this.startX) * t;
+                let curY = this.startY + (this.targetY - this.startY) * t;
+                let arcHeight = Math.sin(t * Math.PI) * 35;
+
+                ctx.save();
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(curX, curY - arcHeight * S, 16 * S, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // --- RENDER LOOP ---
+        function startGameLoop() {
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                let themeColor = VARIANTS_CONFIG[currentVariant].color;
+
+                drawRipples();
+
+                // 1. Lines
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+                nodes.forEach(n => {
+                    n.neighbors.forEach(nb => {
+                        if (n.id < nb.target.id) {
+                            ctx.beginPath();
+                            ctx.moveTo(n.x, n.y);
+                            ctx.lineTo(nb.target.x, nb.target.y);
+                            ctx.stroke();
+                        }
+                    });
+                });
+
+                // 2. Holes & Portals
+                nodes.forEach(n => {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, 18 * S, 0, Math.PI * 2);
+                    ctx.fillStyle = '#090d16';
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = n.portalId ? (n.portalId === 1 ? '#06b6d4' : '#ec4899') : '#1e293b';
+                    ctx.stroke();
+
+                    if (n.portalId) {
+                        ctx.shadowColor = n.portalId === 1 ? '#06b6d4' : '#ec4899';
+                        ctx.shadowBlur = 10;
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+
+                    // Active Target Highlights
+                    if (selectedNode === n) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(n.x, n.y, 23 * S, 0, Math.PI * 2);
+                        ctx.strokeStyle = themeColor;
+                        ctx.lineWidth = 3;
+                        ctx.shadowColor = themeColor;
+                        ctx.shadowBlur = 12;
+                        ctx.stroke();
+                        ctx.restore();
+
+                        let validMoves = getValidMoves(n);
+                        validMoves.forEach(m => {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(m.finalTarget.x, m.finalTarget.y, 9 * S, 0, Math.PI * 2);
+                            ctx.fillStyle = '#22c55e';
+                            ctx.shadowColor = '#22c55e';
+                            ctx.shadowBlur = 10;
+                            ctx.fill();
+                            ctx.restore();
+                        });
+                    }
+
+                    // Pegs
+                    if (n.hasPeg) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(n.x, n.y, 14 * S, 0, Math.PI * 2);
+                        let gradient = ctx.createRadialGradient(n.x - 3 * S, n.y - 3 * S, 2 * S, n.x, n.y, 14 * S);
+                        gradient.addColorStop(0, '#38bdf8');
+                        gradient.addColorStop(1, '#0284c7');
+                        ctx.fillStyle = gradient;
+                        ctx.shadowColor = themeColor;
+                        ctx.shadowBlur = 8;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                });
+
+                // 3. Animations & Particles
+                for (let i = animations.length - 1; i >= 0; i--) {
+                    let done = animations[i].update();
+                    animations[i].draw(ctx);
+                    if (done) animations.splice(i, 1);
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw(ctx);
+                    if (particles[i].alpha <= 0) particles.splice(i, 1);
+                }
+
+                animationFrameId = requestAnimationFrame(render);
+            }
+            render();
+        }
+
+        function stopGameLoop() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        // --- INTERACTION LOGIC ---
+        canvas.addEventListener('click', (e) => {
+            if (busy) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            let clicked = null;
+            for (let n of nodes) {
+                if (Math.hypot(n.x - mouseX, n.y - mouseY) <= 24 * S) {
+                    clicked = n;
+                    break;
+                }
+            }
+
+            if (!clicked) return;
+
+            if (selectedNode === null) {
+                if (clicked.hasPeg) {
+                    let moves = getValidMoves(clicked);
+                    if (moves.length > 0) {
+                        selectedNode = clicked;
+                        playSound('select');
+                    }
+                }
+            } else {
+                if (clicked === selectedNode) {
+                    selectedNode = null;
+                } else if (clicked.hasPeg) {
+                    let moves = getValidMoves(clicked);
+                    if (moves.length > 0) {
+                        selectedNode = clicked;
+                        playSound('select');
+                    } else {
+                        selectedNode = null;
+                    }
+                } else {
+                    let moves = getValidMoves(selectedNode);
+                    let validMove = moves.find(m => m.finalTarget === clicked || m.landing === clicked);
+                    if (validMove) {
+                        executeJump(selectedNode, validMove);
+                        selectedNode = null;
+                    } else {
+                        selectedNode = null;
+                    }
+                }
+            }
+        });
+
+        function getValidMoves(node) {
+            let moves = [];
+            if (!node.hasPeg) return moves;
+
+            node.neighbors.forEach(nb => {
+                if (nb.jumped.hasPeg && !nb.target.hasPeg) {
+                    let finalPos = nb.target;
+                    let isPortalJump = false;
+
+                    if (currentVariant === 'portals' && nb.target.portalId !== null) {
+                        let twinPortal = nodes.find(other => other !== nb.target && other.portalId === nb.target.portalId);
+                        if (twinPortal && !twinPortal.hasPeg) {
+                            finalPos = twinPortal;
+                            isPortalJump = true;
+                        }
+                    }
+
+                    moves.push({
+                        jumped: nb.jumped,
+                        landing: nb.target,
+                        finalTarget: finalPos,
+                        isPortalJump: isPortalJump
+                    });
+                }
+            });
+
+            return moves;
+        }
+
+        function executeJump(fromNode, move) {
+            busy = true;
+            playSound('jump');
+            let color = VARIANTS_CONFIG[currentVariant].color;
+
+            fromNode.hasPeg = false;
+            history.push({ from: fromNode, jumped: move.jumped, to: move.finalTarget });
+            addRipple(fromNode.x, fromNode.y, color, 0.55);
+            updateUndoUI();
+
+            animations.push(new JumpAnimation(fromNode, move.finalTarget, color, () => {
+                if (move.isPortalJump) playSound('portal');
+
+                for (let i = 0; i < 15; i++) {
+                    particles.push(new Particle(move.jumped.x, move.jumped.y, color));
+                }
+
+                move.jumped.hasPeg = false;
+                move.finalTarget.hasPeg = true;
+                addRipple(move.finalTarget.x, move.finalTarget.y, color, 1);
+                if (move.isPortalJump) addRipple(move.landing.x, move.landing.y, '#06b6d4', 0.8);
+
+                busy = false;
+                updateStatsUI();
+                checkGameOver();
+            }));
+        }
+
+        function updateStatsUI() {
+            let remaining = nodes.filter(n => n.hasPeg).length;
+            document.getElementById('pieces-count').innerText = remaining;
+        }
+
+        function checkGameOver() {
+            let remaining = nodes.filter(n => n.hasPeg).length;
+            let hasMoves = false;
+
+            for (let n of nodes) {
+                if (n.hasPeg && getValidMoves(n).length > 0) {
+                    hasMoves = true;
+                    break;
+                }
+            }
+
+            if (remaining === 1) {
+                playSound('victory');
+                vibrate([80, 40, 80, 40, 200]);
+                celebrate();
+                modalTimer = setTimeout(() => showEndModal(true, remaining), 1600);
+            } else if (!hasMoves) {
+                showEndModal(false, remaining);
+            }
+        }
+
+        // --- CONFETES + FOGOS ---
+        const fxCanvas = document.getElementById('fx-canvas');
+        const fctx = fxCanvas.getContext('2d');
+        const fx = { rockets: [], sparks: [], confetti: [], raf: null, until: 0, nextRocket: 0, nextConf: 0, w: 0, h: 0 };
+        let modalTimer = null;
+        const FX_COLORS = ['#f43f5e', '#f59e0b', '#facc15', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899', '#ffffff'];
+        const rand = (a, b) => a + Math.random() * (b - a);
+        const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+        function resizeFx() {
+            const dpr = window.devicePixelRatio || 1;
+            fx.w = window.innerWidth; fx.h = window.innerHeight;
+            fxCanvas.width = Math.round(fx.w * dpr);
+            fxCanvas.height = Math.round(fx.h * dpr);
+            fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', () => { if (fx.raf) resizeFx(); });
+
+        function spawnConfetti(x, y, vx, vy) {
+            fx.confetti.push({
+                x, y, vx, vy,
+                w: rand(6, 11), h: rand(4, 7),
+                rot: rand(0, 6.28), vr: rand(-0.3, 0.3),
+                wob: rand(0, 6.28), color: pick(FX_COLORS)
+            });
+        }
+
+        function explode(x, y) {
+            playSound('boom');
+            const base = pick(FX_COLORS.slice(0, 8));
+            const alt = pick(FX_COLORS.slice(0, 8));
+            const n = 70;
+            for (let i = 0; i < n; i++) {
+                const a = (i / n) * Math.PI * 2 + rand(-0.05, 0.05);
+                const s = (i % 2 ? 1 : 0.62) * rand(3.6, 5.2);
+                fx.sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, decay: rand(0.011, 0.018), color: i % 2 ? base : alt });
+            }
+            for (let i = 0; i < 20; i++) {
+                const a = rand(0, 6.28), s = rand(0.5, 2.2);
+                fx.sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, decay: rand(0.02, 0.03), color: '#ffffff' });
+            }
+        }
+
+        function celebrate() {
+            stopFx();
+            resizeFx();
+            fx.until = performance.now() + 5000;
+            fx.nextRocket = 0; fx.nextConf = 0;
+            for (let i = 0; i < 70; i++) {
+                spawnConfetti(0, fx.h, rand(3, 11), -rand(10, 22));
+                spawnConfetti(fx.w, fx.h, -rand(3, 11), -rand(10, 22));
+            }
+            fx.raf = requestAnimationFrame(fxLoop);
+        }
+
+        function stopFx() {
+            if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
+            if (fx.raf) cancelAnimationFrame(fx.raf);
+            fx.raf = null;
+            fx.rockets = []; fx.sparks = []; fx.confetti = [];
+            fctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+        }
+
+        function fxLoop(t) {
+            fctx.clearRect(0, 0, fx.w, fx.h);
+
+            if (t < fx.until) {
+                if (t >= fx.nextRocket) {
+                    fx.rockets.push({ x: rand(fx.w * 0.12, fx.w * 0.88), y: fx.h, vx: rand(-0.6, 0.6), vy: -rand(9, 13), ty: rand(fx.h * 0.12, fx.h * 0.45), color: pick(FX_COLORS) });
+                    fx.nextRocket = t + rand(250, 600);
+                }
+                if (t >= fx.nextConf) {
+                    for (let i = 0; i < 4; i++) spawnConfetti(rand(0, fx.w), -10, rand(-1.5, 1.5), rand(1, 3));
+                    fx.nextConf = t + 90;
+                }
+            }
+
+            // foguetes
+            for (let i = fx.rockets.length - 1; i >= 0; i--) {
+                const r = fx.rockets[i];
+                r.x += r.vx; r.y += r.vy; r.vy *= 0.985;
+                fctx.fillStyle = r.color;
+                fctx.globalAlpha = 0.9;
+                fctx.beginPath(); fctx.arc(r.x, r.y, 2.5, 0, 6.28); fctx.fill();
+                fctx.globalAlpha = 0.35;
+                fctx.beginPath(); fctx.arc(r.x - r.vx * 2, r.y - r.vy * 2, 2, 0, 6.28); fctx.fill();
+                if (r.y <= r.ty || r.vy > -2) { explode(r.x, r.y); fx.rockets.splice(i, 1); }
+            }
+
+            // faíscas (brilho aditivo)
+            fctx.globalCompositeOperation = 'lighter';
+            for (let i = fx.sparks.length - 1; i >= 0; i--) {
+                const s = fx.sparks[i];
+                s.x += s.vx; s.y += s.vy; s.vy += 0.07; s.vx *= 0.985; s.vy *= 0.985;
+                s.life -= s.decay;
+                if (s.life <= 0) { fx.sparks.splice(i, 1); continue; }
+                fctx.globalAlpha = s.life;
+                fctx.fillStyle = s.color;
+                fctx.beginPath(); fctx.arc(s.x, s.y, 2.4 * s.life + 0.6, 0, 6.28); fctx.fill();
+            }
+            fctx.globalCompositeOperation = 'source-over';
+
+            // confetes
+            for (let i = fx.confetti.length - 1; i >= 0; i--) {
+                const c = fx.confetti[i];
+                c.wob += 0.12;
+                c.x += c.vx + Math.sin(c.wob) * 0.8;
+                c.y += c.vy;
+                c.vy += 0.22; c.vy = Math.min(c.vy, 3.2);
+                c.vx *= 0.97;
+                c.rot += c.vr;
+                if (c.y > fx.h + 20) { fx.confetti.splice(i, 1); continue; }
+                fctx.save();
+                fctx.globalAlpha = 1;
+                fctx.translate(c.x, c.y);
+                fctx.rotate(c.rot);
+                fctx.scale(1, Math.abs(Math.cos(c.wob)) * 0.8 + 0.2);
+                fctx.fillStyle = c.color;
+                fctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+                fctx.restore();
+            }
+            fctx.globalAlpha = 1;
+
+            if (t < fx.until || fx.rockets.length || fx.sparks.length || fx.confetti.length) {
+                fx.raf = requestAnimationFrame(fxLoop);
+            } else {
+                fx.raf = null;
+            }
+        }
+
+        function showEndModal(victory, remaining) {
+            document.getElementById('modal-remaining').innerText = remaining;
+            const mu = document.getElementById('modal-undo-btn');
+            const canUndo = !victory && undosLeft > 0 && history.length > 0;
+            mu.classList.toggle('hidden', !canUndo);
+            mu.classList.toggle('flex', canUndo);
+            document.getElementById('modal-undo-count').innerText = undosLeft;
+            document.getElementById('modal-title').innerText = victory ? "VITÓRIA PERFEITA!" : "FIM DE JOGO";
+            document.getElementById('end-modal').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="w-full h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quebra-Cabeça Mágico Infantil</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Fredoka', cursive, sans-serif;
+            touch-action: manipulation;
+            background-color: #0f172a;
+        }
+
+        /* Animação flutuante para elementos da interface */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Animação pulsante para a peça selecionada */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.9); z-index: 30; }
+            50% { box-shadow: inset 0 0 25px rgba(255, 230, 100, 1), 0 0 25px rgba(255, 230, 100, 1); z-index: 30; }
+        }
+
+        .selected-piece {
+            animation: pulse-glow 1.2s infinite ease-in-out;
+            outline: 4px solid #fbbf24 !important;
+            outline-offset: -4px;
+        }
+
+        /* Efeito de flash verde ao encaixar uma peça corretamente */
+        @keyframes green-flash-anim {
+            0% { opacity: 0.95; background-color: #22c55e; }
+            100% { opacity: 0; background-color: transparent; }
+        }
+
+        .flash-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            animation: green-flash-anim 0.6s ease-out forwards;
+        }
+
+        /* Ícone de trava na peça fixa */
+        .lock-indicator {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            font-size: 14px;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* REGRAS DE ORIENTAÇÃO */
+
+        /* MODO PORTRAIT: Exibe a barra superior e a foto de referência */
+        @media (orientation: portrait) {
+            #toolbar {
+                display: flex !important;
+            }
+            #portrait-reference-view {
+                display: flex !important;
+            }
+            #landscape-game-root {
+                display: none !important;
+            }
+        }
+
+        /* MODO LANDSCAPE: Oculta a barra de ferramentas e preenche 100% da tela sem bordas */
+        @media (orientation: landscape) {
+            #toolbar, #portrait-reference-view, #screen-start {
+                display: none !important;
+            }
+            #landscape-game-root {
+                display: flex !important;
+                position: fixed !important;
+                inset: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: #000000 !important;
+                z-index: 100 !important;
+            }
+            #puzzle-grid-landscape {
+                width: 100vw !important;
+                height: 100vh !important;
+                display: grid !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                gap: 0 !important;
+                border: none !important;
+                background-color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body class="w-full h-full bg-slate-900 text-slate-800 flex flex-col">
+
+    <!-- CANVAS PARA EFEITOS DE FOGOS/PARTÍCULAS -->
+    <canvas id="effects-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+    <!-- BARRA DE FERRAMENTAS SUPERIOR (APENAS EM MODO PORTRAIT) -->
+    <header id="toolbar" class="hidden bg-white/90 backdrop-blur-md px-4 py-2 flex items-center justify-between z-30 border-b border-slate-200 shadow-sm shrink-0">
+        <div class="flex items-center space-x-2">
+            <button onclick="returnToMenu()" class="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-2xl transition active:scale-95 flex items-center justify-center w-10 h-10 shadow-sm font-bold" title="Menu Principal">
+                🏠
+            </button>
+            <button onclick="restartGame()" class="p-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-2xl transition active:scale-95 flex items-center justify-center w-10 h-10 shadow-sm font-bold" title="Reiniciar">
+                🔄
+            </button>
+        </div>
+        <div>
+            <span id="score-display" class="font-bold text-purple-900 bg-purple-100 px-4 py-1.5 rounded-full text-sm shadow-inner">
+                Movimentos: 0
+            </span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="sound-btn" onclick="toggleSound()" class="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-2xl transition active:scale-95 flex items-center justify-center w-10 h-10 shadow-sm font-bold" title="Som On/Off">
+                🔊
+            </button>
+            <button onclick="toggleFullScreen()" class="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-2xl transition active:scale-95 flex items-center justify-center w-10 h-10 shadow-sm font-bold" title="Tela Cheia">
+                📺
+            </button>
+        </div>
+    </header>
+
+    <!-- ÁREA PRINCIPAL PORTRAIT -->
+    <main id="portrait-main-area" class="flex-1 relative w-full h-full overflow-hidden flex flex-col items-center justify-center">
+
+        <!-- 1. TELA INICIAL (MENU DE CONFIGURAÇÕES) -->
+        <div id="screen-start" class="absolute inset-0 flex flex-col items-center justify-center p-4 z-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 overflow-y-auto">
+            <div class="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-5 shadow-2xl border-4 border-white/60 text-center flex flex-col items-center my-auto">
+                
+                <div class="text-4xl mb-1 animate-float">🧩✨</div>
+                <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-1">
+                    Quebra-Cabeça Mágico
+                </h1>
+                <p class="text-slate-500 text-xs mb-4 font-medium">Escolha uma categoria ou envie sua foto e deite o celular para jogar!</p>
+
+                <!-- SELETOR DE GALERIA ONLINE & UPLOAD -->
+                <div class="w-full mb-4">
+                    <label class="block text-left text-xs font-bold text-purple-800 uppercase tracking-wider mb-2">
+                        1. Escolher Imagem da Galeria Online:
+                    </label>
+
+                    <!-- BOTOES DE CATEGORIA DA GALERIA ONLINE -->
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button onclick="selectCategory('animais')" id="cat-animais" class="cat-btn p-2 rounded-xl border-2 border-purple-500 bg-purple-50 text-xs font-bold text-purple-900 transition flex items-center space-x-2">
+                            <span class="text-xl">🦁</span>
+                            <div class="text-left">
+                                <div>Animais</div>
+                                <div class="text-[9px] text-purple-600 font-normal">Foto Aleatória</div>
+                            </div>
+                        </button>
+                        <button onclick="selectCategory('espaco')" id="cat-espaco" class="cat-btn p-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 transition flex items-center space-x-2">
+                            <span class="text-xl">🚀</span>
+                            <div class="text-left">
+                                <div>Espaço</div>
+                                <div class="text-[9px] text-slate-400 font-normal">Galáxias / Planetas</div>
+                            </div>
+                        </button>
+                        <button onclick="selectCategory('natureza')" id="cat-natureza" class="cat-btn p-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 transition flex items-center space-x-2">
+                            <span class="text-xl">🌲</span>
+                            <div class="text-left">
+                                <div>Natureza</div>
+                                <div class="text-[9px] text-slate-400 font-normal">Florestas / Paisagens</div>
+                            </div>
+                        </button>
+                        <button onclick="selectCategory('magia')" id="cat-magia" class="cat-btn p-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 transition flex items-center space-x-2">
+                            <span class="text-xl">🏰</span>
+                            <div class="text-left">
+                                <div>Magia</div>
+                                <div class="text-[9px] text-slate-400 font-normal">Castelos / Fantasia</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- BOTAO DE UPLOAD DE IMAGEM LOCAL -->
+                    <label for="image-upload" id="upload-label" class="flex items-center justify-center space-x-2 w-full py-2.5 px-3 border-2 border-dashed border-purple-300 rounded-xl cursor-pointer bg-purple-50 hover:bg-purple-100 transition active:scale-98">
+                        <span class="text-lg">📷</span>
+                        <span id="upload-text" class="text-xs text-purple-700 font-bold">Usar minha Foto do Celular</span>
+                    </label>
+                    <input id="image-upload" type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)" />
+                </div>
+
+                <!-- SELETOR DE DIFICULDADE (PROPORCOES WIDESCREEN) -->
+                <div class="w-full mb-5">
+                    <label class="block text-left text-xs font-bold text-purple-800 uppercase tracking-wider mb-2">
+                        2. Nível de Dificuldade:
+                    </label>
+                    <div id="diff-selector" class="grid grid-cols-3 gap-2">
+                        <button onclick="selectDifficulty('facil')" class="diff-btn p-2.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-center transition active:scale-95" data-diff="facil">
+                            <div class="text-base">😊</div>
+                            <div class="text-xs">Fácil</div>
+                            <div class="text-[10px] text-emerald-600 font-normal">4 x 2 (8 pçs)</div>
+                        </button>
+                        <button onclick="selectDifficulty('medio')" class="diff-btn p-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-center transition active:scale-95" data-diff="medio">
+                            <div class="text-base">🤩</div>
+                            <div class="text-xs">Médio</div>
+                            <div class="text-[10px] text-slate-500 font-normal">6 x 3 (18 pçs)</div>
+                        </button>
+                        <button onclick="selectDifficulty('dificil')" class="diff-btn p-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-center transition active:scale-95" data-diff="dificil">
+                            <div class="text-base">🔥</div>
+                            <div class="text-xs">Difícil</div>
+                            <div class="text-[10px] text-slate-500 font-normal">8 x 4 (32 pçs)</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BOTAO INICIAR JOGO -->
+                <button onclick="onStartClick()" class="w-full py-3.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-extrabold text-base rounded-2xl shadow-lg transform active:scale-95 transition flex items-center justify-center space-x-2 border-b-4 border-orange-700">
+                    <span>🚀 INICIAR AVENTURA</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. TELA DE CONSULTA EM MODO PORTRAIT -->
+        <div id="portrait-reference-view" class="hidden absolute inset-0 flex flex-col items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md text-white text-center">
+            <div class="bg-white/10 backdrop-blur-lg border border-white/20 p-4 rounded-3xl max-w-sm w-full flex flex-col items-center shadow-2xl">
+                <div class="text-3xl mb-1 animate-bounce">📱🔄</div>
+                <h2 class="text-lg font-bold text-amber-300 mb-1">Vire o celular deitado para jogar!</h2>
+                <p class="text-slate-300 text-xs mb-3 font-medium">Esta é a foto original para sua consulta:</p>
+                
+                <!-- CONTAINER DA IMAGEM ORIGINAL PARA CONSULTA -->
+                <div class="w-full max-h-[55vh] rounded-2xl overflow-hidden border-2 border-purple-400/50 shadow-lg bg-black flex items-center justify-center">
+                    <img id="portrait-consultation-img" class="w-full h-auto object-contain max-h-[50vh]" alt="Foto para Consulta" />
+                </div>
+
+                <p class="text-[11px] text-purple-200/80 mt-3 italic">
+                    Ao virar para o modo horizontal (landscape), o tabuleiro ocupará a tela inteira sem bordas!
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 3. INTERFACE DE JOGO EM MODO LANDSCAPE (100% DA TELA, ZERO BORDAS) -->
+    <div id="landscape-game-root" class="hidden">
+        <div id="puzzle-grid-landscape">
+            <!-- As peças são geradas dinamicamente aqui via JS -->
+        </div>
+    </div>
+
+    <!-- 4. TELA DE VITORIA -->
+    <div id="screen-victory" class="hidden fixed inset-0 flex flex-col items-center justify-center p-4 z-50 bg-black/85 backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-6 shadow-2xl max-w-sm w-full border-4 border-amber-300 text-center animate-float">
+            <div class="text-5xl mb-2">🎉🏆🎈</div>
+            <h2 class="text-3xl font-extrabold text-amber-500 mb-1">Parabéns!</h2>
+            <p id="victory-stats" class="text-slate-600 text-sm mb-6 font-medium">Você montou o quebra-cabeça perfeitamente!</p>
+            
+            <div class="flex flex-col space-y-3">
+                <button onclick="restartGame()" class="w-full py-3.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-base rounded-2xl shadow-lg active:scale-95 transition border-b-4 border-indigo-800">
+                    🔄 Jogar Novamente
+                </button>
+                <button onclick="returnToMenu()" class="w-full py-3.5 bg-slate-100 text-slate-700 font-bold text-base rounded-2xl shadow active:scale-95 transition border-b-4 border-slate-300">
+                    🏠 Menu Principal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- BANCO DE IMAGENS DAS CATEGORIAS DA GALERIA ONLINE ---
+        // Fotos de alta resolução em proporção landscape (1600x900)
+        const ONLINE_GALLERY = {
+            animais: [
+                "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1564349683136-77e08dba1ef9?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=1600&auto=format&fit=crop&q=80"
+            ],
+            espaco: [
+                "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1600&auto=format&fit=crop&q=80"
+            ],
+            natureza: [
+                "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&auto=format&fit=crop&q=80"
+            ],
+            magia: [
+                "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1514539079130-25950c84af65?w=1600&auto=format&fit=crop&q=80"
+            ]
+        };
+
+        // --- ESTADO DO JOGO ---
+        let currentCategory = 'animais';
+        let activeImageSrc = getRandomGalleryImage('animais');
+        let selectedDifficulty = 'facil'; // 'facil' (4x2), 'medio' (6x3), 'dificil' (8x4)
+        let soundEnabled = true;
+        let movesCount = 0;
+        let selectedPieceIndex = null;
+        let isGameActive = false;
+
+        const gridConfig = {
+            facil: { cols: 4, rows: 2 },
+            medio: { cols: 6, rows: 3 },
+            dificil: { cols: 8, rows: 4 }
+        };
+
+        let currentCols = 4;
+        let currentRows = 2;
+        let pieces = [];
+        let correctPositions = [];
+
+        function getRandomGalleryImage(categoryKey) {
+            const list = ONLINE_GALLERY[categoryKey] || ONLINE_GALLERY.animais;
+            const randomIndex = Math.floor(Math.random() * list.length);
+            return list[randomIndex];
+        }
+
+        // --- SELECAO DE CATEGORIA DA GALERIA ---
+        function selectCategory(catKey) {
+            currentCategory = catKey;
+            activeImageSrc = getRandomGalleryImage(catKey);
+
+            // Atualiza botões visuais
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn p-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 transition flex items-center space-x-2";
+            });
+            const activeBtn = document.getElementById(`cat-${catKey}`);
+            if (activeBtn) {
+                activeBtn.className = "cat-btn p-2 rounded-xl border-2 border-purple-500 bg-purple-50 text-xs font-bold text-purple-900 transition flex items-center space-x-2";
+            }
+
+            // Reseta estilo do botão de upload
+            const uploadLabel = document.getElementById('upload-label');
+            const uploadText = document.getElementById('upload-text');
+            uploadLabel.className = "flex items-center justify-center space-x-2 w-full py-2.5 px-3 border-2 border-dashed border-purple-300 rounded-xl cursor-pointer bg-purple-50 hover:bg-purple-100 transition active:scale-98";
+            uploadText.innerText = "Usar minha Foto do Celular";
+
+            playSoundEffect('click');
+        }
+
+        // --- SELECAO DE IMAGEM LOCAL ---
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    activeImageSrc = e.target.result;
+                    
+                    // Desmarca categorias
+                    document.querySelectorAll('.cat-btn').forEach(btn => {
+                        btn.className = "cat-btn p-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 transition flex items-center space-x-2";
+                    });
+
+                    // Destaca botão de upload
+                    const uploadLabel = document.getElementById('upload-label');
+                    const uploadText = document.getElementById('upload-text');
+                    uploadLabel.className = "flex items-center justify-center space-x-2 w-full py-2.5 px-3 border-2 border-purple-600 rounded-xl cursor-pointer bg-purple-100 transition active:scale-98";
+                    uploadText.innerText = "✓ Foto do Celular Carregada!";
+
+                    playSoundEffect('click');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function selectDifficulty(diff) {
+            selectedDifficulty = diff;
+            document.querySelectorAll('#diff-selector button').forEach(btn => {
+                if(btn.dataset.diff === diff) {
+                    btn.className = "diff-btn p-2.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-center transition active:scale-95";
+                } else {
+                    btn.className = "diff-btn p-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-center transition active:scale-95";
+                }
+            });
+            playSoundEffect('click');
+        }
+
+        // --- SINTETIZADOR DE AUDIOS (WEB AUDIO API) ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-btn').innerText = soundEnabled ? '🔊' : '🔇';
+            playSoundEffect('click');
+        }
+
+        function playSoundEffect(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if(!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, now);
+                osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'swap') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(580, now + 0.12);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'lock') {
+                const notes = [523.25, 659.25, 783.99]; // Notas C5, E5, G5
+                notes.forEach((freq, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.07);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.07);
+                    gain.gain.linearRampToValueAtTime(0.01, now + i * 0.07 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.07);
+                    osc.stop(now + i * 0.07 + 0.2);
+                });
+            } else if (type === 'victory') {
+                const melody = [
+                    {f: 523.25, t: 0.0, d: 0.15},
+                    {f: 523.25, t: 0.15, d: 0.15},
+                    {f: 523.25, t: 0.30, d: 0.15},
+                    {f: 659.25, t: 0.45, d: 0.3},
+                    {f: 783.99, t: 0.75, d: 0.3},
+                    {f: 1046.50, t: 1.05, d: 0.6}
+                ];
+                melody.forEach(note => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(note.f, now + note.t);
+                    gain.gain.setValueAtTime(0.25, now + note.t);
+                    gain.gain.linearRampToValueAtTime(0.01, now + note.t + note.d);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + note.t);
+                    osc.stop(now + note.t + note.d);
+                });
+            }
+        }
+
+        // --- MODO TELA CHEIA (FULLSCREEN) ---
+        function requestFullScreenMode() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                requestFullScreenMode();
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+
+        function onStartClick() {
+            initAudio();
+            requestFullScreenMode();
+            launchPuzzleGame();
+        }
+
+        function returnToMenu() {
+            document.getElementById('screen-victory').classList.add('hidden');
+            document.getElementById('portrait-reference-view').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+            isGameActive = false;
+            playSoundEffect('click');
+        }
+
+        function restartGame() {
+            document.getElementById('screen-victory').classList.add('hidden');
+            // Ao reiniciar, sorteia uma nova imagem da mesma categoria se estiver usando galeria online
+            if (!activeImageSrc.startsWith('data:image')) {
+                activeImageSrc = getRandomGalleryImage(currentCategory);
+            }
+            launchPuzzleGame();
+        }
+
+        // --- MOTOR DO QUEBRA-CABEÇA ---
+        function launchPuzzleGame() {
+            document.getElementById('screen-start').classList.add('hidden');
+
+            // Carrega imagem na tela de consulta Portrait
+            document.getElementById('portrait-consultation-img').src = activeImageSrc;
+            document.getElementById('portrait-reference-view').classList.remove('hidden');
+
+            const cfg = gridConfig[selectedDifficulty];
+            currentCols = cfg.cols;
+            currentRows = cfg.rows;
+
+            movesCount = 0;
+            selectedPieceIndex = null;
+            updateScoreDisplay();
+
+            const totalPieces = currentCols * currentRows;
+            correctPositions = Array.from({length: totalPieces}, (_, i) => i);
+
+            // Embaralhamento
+            do {
+                pieces = [...correctPositions];
+                for (let i = pieces.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+                }
+            } while (isAlreadySolved());
+
+            renderLandscapePuzzleGrid();
+            isGameActive = true;
+            playSoundEffect('click');
+        }
+
+        function isAlreadySolved() {
+            for (let i = 0; i < pieces.length; i++) {
+                if (pieces[i] !== correctPositions[i]) return false;
+            }
+            return true;
+        }
+
+        function updateScoreDisplay() {
+            const scoreEl = document.getElementById('score-display');
+            if (scoreEl) scoreEl.innerText = `Movimentos: ${movesCount}`;
+        }
+
+        function renderLandscapePuzzleGrid() {
+            const grid = document.getElementById('puzzle-grid-landscape');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(${currentCols}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${currentRows}, 1fr)`;
+
+            for (let i = 0; i < pieces.length; i++) {
+                const correctIdx = pieces[i];
+                const isLocked = (correctIdx === i);
+
+                const cell = document.createElement('div');
+                cell.className = `relative overflow-hidden cursor-pointer bg-black ${isLocked ? 'pointer-events-none' : ''}`;
+                cell.dataset.index = i;
+
+                if (i === selectedPieceIndex) {
+                    cell.classList.add('selected-piece');
+                }
+
+                // Linha/Coluna correspondente na foto original
+                const row = Math.floor(correctIdx / currentCols);
+                const col = correctIdx % currentCols;
+
+                // Cálculo de preenchimento sem bordas
+                const tileInner = document.createElement('div');
+                tileInner.className = 'w-full h-full';
+                tileInner.style.backgroundImage = `url('${activeImageSrc}')`;
+                tileInner.style.backgroundSize = `${currentCols * 100}% ${currentRows * 100}%`;
+                
+                const posX = (col * 100) / (currentCols - 1 || 1);
+                const posY = (row * 100) / (currentRows - 1 || 1);
+                tileInner.style.backgroundPosition = `${posX}% ${posY}%`;
+
+                cell.appendChild(tileInner);
+
+                if (isLocked) {
+                    const lockBadge = document.createElement('div');
+                    lockBadge.className = 'lock-indicator';
+                    lockBadge.innerText = '🔒';
+                    cell.appendChild(lockBadge);
+                }
+
+                const handleInteraction = (e) => {
+                    e.preventDefault();
+                    handleCellClick(i);
+                };
+
+                cell.addEventListener('click', handleInteraction);
+                cell.addEventListener('touchstart', handleInteraction, {passive: false});
+
+                grid.appendChild(cell);
+            }
+        }
+
+        function handleCellClick(index) {
+            if (!isGameActive) return;
+            if (pieces[index] === index) return; // Peça travada
+
+            if (selectedPieceIndex === null) {
+                // Seleciona a primeira peça
+                selectedPieceIndex = index;
+                playSoundEffect('click');
+                if (navigator.vibrate) navigator.vibrate(30);
+                renderLandscapePuzzleGrid();
+            } else if (selectedPieceIndex === index) {
+                // Deseleciona se clicar nela mesma
+                selectedPieceIndex = null;
+                playSoundEffect('click');
+                renderLandscapePuzzleGrid();
+            } else {
+                // Troca de posição
+                const firstIdx = selectedPieceIndex;
+                const secondIdx = index;
+
+                [pieces[firstIdx], pieces[secondIdx]] = [pieces[secondIdx], pieces[firstIdx]];
+                movesCount++;
+                updateScoreDisplay();
+                playSoundEffect('swap');
+                if (navigator.vibrate) navigator.vibrate(45);
+
+                let lockedPiece = false;
+
+                if (pieces[secondIdx] === secondIdx) {
+                    lockedPiece = true;
+                    triggerLockEffects(secondIdx);
+                }
+                if (pieces[firstIdx] === firstIdx) {
+                    lockedPiece = true;
+                    triggerLockEffects(firstIdx);
+                }
+
+                if (lockedPiece) {
+                    playSoundEffect('lock');
+                    if (navigator.vibrate) navigator.vibrate(80);
+                }
+
+                selectedPieceIndex = null;
+                renderLandscapePuzzleGrid();
+
+                if (isAlreadySolved()) {
+                    triggerVictory();
+                }
+            }
+        }
+
+        function triggerLockEffects(gridIdx) {
+            const grid = document.getElementById('puzzle-grid-landscape');
+            if (!grid) return;
+            const targetCell = grid.children[gridIdx];
+            if (!targetCell) return;
+
+            const flash = document.createElement('div');
+            flash.className = 'flash-overlay';
+            targetCell.appendChild(flash);
+
+            const rect = targetCell.getBoundingClientRect();
+            spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 18);
+        }
+
+        function triggerVictory() {
+            isGameActive = false;
+            playSoundEffect('victory');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    spawnParticles(Math.random() * width, Math.random() * height, 40);
+                }, i * 200);
+            }
+
+            setTimeout(() => {
+                document.getElementById('victory-stats').innerText = `Você montou o quebra-cabeça em ${movesCount} movimentos!`;
+                document.getElementById('screen-victory').classList.remove('hidden');
+            }, 600);
+        }
+
+        // --- MONITOR DE REDIMENSIONAMENTO / REORIENTAÇÃO ---
+        window.addEventListener('resize', () => {
+            if (isGameActive && window.innerWidth > window.innerHeight) {
+                renderLandscapePuzzleGrid();
+            }
+        });
+
+        // --- EFEITOS DE PARTÍCULAS EM CANVAS ---
+        const canvas = document.getElementById('effects-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function spawnParticles(x, y, count = 20) {
+            const colors = ['#22c55e', '#eab308', '#ec4899', '#3b82f6', '#a855f7'];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 5 + 3,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.015
+                });
+            }
+        }
+
+        function renderParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.restore();
+            }
+            requestAnimationFrame(renderParticles);
+        }
+        requestAnimationFrame(renderParticles);
+    </script>
+</body>
+</html>

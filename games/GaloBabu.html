@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>GaloBabu</title>
+<style>
+:root{--top:calc(max(8px,env(safe-area-inset-top,0px)) + 42px);--turn:#ffffff;--ink:#252525;--grid:rgba(30,30,30,.13);--glass:rgba(255,255,255,.85)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#ffffff;color:var(--ink);-webkit-tap-highlight-color:transparent}
+body{transition:background-color .65s ease}
+button,input,select{font:inherit}
+button{border:0;color:inherit;background:transparent;cursor:pointer;touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+
+/* Tela inicial */
+#landing{position:fixed;inset:0;display:grid;place-items:center;background:#ffffff;z-index:100;transition:opacity .25s ease}
+#start{font-size:clamp(3rem,10vw,5.5rem);width:1.4em;height:1.4em;display:grid;place-items:center;border-radius:50%;transition:transform .2s;background:#ffffff;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+#start:active{transform:scale(.92)}
+
+/* Área do Jogo */
+#game{position:fixed;inset:0;display:none;overflow:hidden;--vh:100vh;
+  /* Retrato: 10 colunas x 20 linhas. --bw = largura do tabuleiro, --bh = altura */
+  --bw:min(100vw,calc((var(--vh) - var(--top)) / 2));
+  --bh:calc(var(--bw) * 2)}
+@supports (height:1dvh){#game{--vh:100dvh}}
+#board,#linesSvg{position:absolute;left:50%;transform:translateX(-50%);width:var(--bw);height:var(--bh);
+  top:calc(var(--top) + (var(--vh) - var(--top) - var(--bh)) / 2)}
+#board{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(20,minmax(0,1fr));isolation:isolate}
+#board::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,var(--grid) 1px,transparent 1px),linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:10% 5%;z-index:-1}
+.cell{grid-row:calc(var(--r) + 1);grid-column:calc(var(--c) + 1)}
+
+/* Paisagem: o tabuleiro gira a exibição para 20 colunas x 10 linhas e ocupa a tela larga */
+@media (orientation:landscape){
+  #game{--bw:min(100vw,calc((var(--vh) - var(--top)) * 2));--bh:calc(var(--bw) / 2)}
+  #board{grid-template-columns:repeat(20,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr))}
+  #board::before{background-size:5% 10%}
+  .cell{grid-row:calc(var(--c) + 1);grid-column:calc(var(--r) + 1)}
+}
+
+/* Linhas dos Galos */
+#linesSvg{pointer-events:none;z-index:3}
+
+/* Casas e Peças 3D */
+.cell{position:relative;display:grid;place-items:center;min-width:0;min-height:0;padding:0;border-radius:0}
+.cell:active{background:rgba(0,0,0,.03)}
+
+.dot{
+  display:block;
+  width:82%;
+  height:82%;
+  border-radius:50%;
+  pointer-events:none;
+  position:relative;
+  transition:transform 0.2s ease;
+  box-shadow: 
+    inset 0 3px 6px rgba(255,255,255,0.6),
+    inset 0 -4px 6px rgba(0,0,0,0.4),
+    0 4px 8px rgba(0,0,0,0.3);
+}
+.dot::after{
+  content:"";
+  position:absolute;
+  inset:15%;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.25);
+}
+
+/* Só a peça recém-jogada anima */
+.dot.undo{animation:undoPulse .7s infinite alternate}
+@keyframes undoPulse{0%{box-shadow:0 0 0 2px #f59e0b,0 4px 8px rgba(0,0,0,.3)}100%{box-shadow:0 0 0 6px #f59e0b,0 4px 8px rgba(0,0,0,.3)}}
+.blocked-mark{display:block;width:82%;height:82%;border-radius:50%;pointer-events:none;position:relative;background:#2b2b2b;opacity:.88;box-shadow:inset 0 2px 5px rgba(255,255,255,.18),inset 0 -3px 5px rgba(0,0,0,.6),0 2px 5px rgba(0,0,0,.3)}
+.blocked-mark::before,.blocked-mark::after{content:"";position:absolute;left:50%;top:50%;width:56%;height:3px;background:#ef4444;border-radius:2px}
+.blocked-mark::before{transform:translate(-50%,-50%) rotate(45deg)}
+.blocked-mark::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.dot.new{animation:dropIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)}
+@keyframes dropIn {
+  0% { transform: scale(0.3) translateY(-10px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Modo de Remoção de Peça */
+.cell.selectable .dot {
+  cursor: pointer;
+  animation: pulseTarget 1s infinite alternate;
+}
+@keyframes pulseTarget {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 2px #ef4444; }
+  100% { transform: scale(1.05); box-shadow: 0 0 0 5px #ef4444; }
+}
+
+/* Power-ups */
+.pup{display:grid;place-items:center;width:70%;height:70%;font-size:clamp(9px,3.2vmin,22px);border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 0 0 2px rgba(0,0,0,.18);pointer-events:none}
+.pup.live{box-shadow:0 0 0 2px #f59e0b;animation:pupPulse .8s infinite alternate}
+@keyframes pupPulse{0%{transform:scale(.9)}100%{transform:scale(1.12)}}
+.resv{display:block;width:78%;height:78%;border-radius:50%;border:3px dashed var(--rc);pointer-events:none}
+#hud .usebtn{flex:none;padding:5px 10px;border-radius:999px;background:#222;color:#fff;font-weight:700}
+
+.dot.locked{opacity:.38;filter:grayscale(.5)}
+.fx{position:absolute;inset:-25%;border-radius:50%;pointer-events:none;z-index:4}
+.fx.boom{background:radial-gradient(circle,#fff9 0,#ffb020cc 35%,#ef444400 70%);animation:fxOut .6s ease-out forwards}
+.fx.poof{background:radial-gradient(circle,#ffffffd0 0,#ffffff00 70%);animation:fxOut .4s ease-out forwards}
+@keyframes fxOut{0%{transform:scale(.2);opacity:1}100%{transform:scale(1.4);opacity:0}}
+#hud .chip.rules{background:rgba(34,34,34,.88);color:#fff}
+
+/* Configurações (tela cheia) */
+#settings{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;background:#f4f4f6;color:#222}
+#settings.open{display:flex}
+#settings header{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;background:#fff;border-bottom:1px solid #0001;font-size:16px}
+#settings header button{width:36px;height:36px;border-radius:50%;background:#eee;font-size:16px}
+#cfgPanel{flex:1;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+#settings .card{background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 1px 4px #0001}
+#settings h4{margin:0 0 6px;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+#settings .line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:14px}
+#settings .line+.line{border-top:1px solid #0001}
+.seg{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{padding:7px 11px;border-radius:9px;background:#ececef;font-weight:600;font-size:13px;min-width:38px}
+.seg button.on{background:#222;color:#fff}
+.pgrid{display:grid;grid-template-columns:1fr 54px 54px;align-items:center;row-gap:2px;font-size:14px}
+.pgrid .h{font-size:11px;color:#666;text-align:center;padding-bottom:2px}
+.pgrid .nm{padding:6px 0}
+.pgrid .nm small{display:block;color:#666;font-size:12px;line-height:1.25}
+.seg.presets{justify-content:stretch}
+.seg.presets button{flex:1}
+.man{padding:6px 0}
+.man+.man{border-top:1px solid #0001}
+.man p,#settings .hint{margin:2px 0 6px;font-size:12px;color:#555;line-height:1.35}
+.tg{justify-self:center;width:44px;height:26px;border-radius:999px;background:#d6d6db;position:relative;transition:background .15s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px #0003}
+.tg.on{background:#31a66a}
+.tg.on::after{left:21px}
+#settings footer{display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);background:#fff;border-top:1px solid #0001}
+#settings footer button{flex:1;padding:12px;border-radius:12px;background:#ececef;font-weight:700}
+#settings footer button.primary{flex:2;background:#222;color:#fff}
+
+/* Luz neon nas bordas: cor do jogador da vez */
+#turnGlow{position:absolute;inset:0;z-index:10;pointer-events:none;
+  box-shadow:inset 0 0 0 3px var(--glow,#fff),inset 0 0 14px 3px var(--glow,#fff),inset 0 0 38px 4px var(--glow,#fff);
+  animation:neonPulse 1.4s ease-in-out infinite alternate;transition:box-shadow .3s ease}
+@keyframes neonPulse{0%{opacity:.45}100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#turnGlow{animation:none;opacity:.8}}
+
+/* Placar / avisos */
+#hud{position:absolute;z-index:15;top:max(8px,env(safe-area-inset-top,0px));left:50px;right:8px;height:34px;display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:12px}
+#hud::-webkit-scrollbar{display:none}
+#hud .chip{flex:none;display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:var(--glass);box-shadow:0 1px 6px #0001;font-weight:600}
+#hud .chip i{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+#hud .chip.active{box-shadow:0 0 0 2px #222}
+#hud .chip.out{opacity:.4;text-decoration:line-through}
+#hud .msg{flex:none;padding:5px 11px;border-radius:999px;background:#ef4444;color:#fff;font-weight:700}
+#hud .msg.win{background:#222}
+#hud .msg.undo{background:#f59e0b;color:#222}
+
+/* Toolbar & Dock */
+#dock{position:absolute;z-index:20;top:max(8px,env(safe-area-inset-top));left:8px;display:flex;align-items:flex-start;gap:7px;max-width:calc(100vw - 16px);color:#222}
+#dockToggle{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 2px 16px #00000015;font-size:16px}
+#toolbar{display:none;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 9px;border-radius:15px;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 4px 24px #00000018;max-width:min(680px,calc(100vw - 54px));font-size:12px}
+#toolbar.open{display:flex}
+.tool{min-height:28px;display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:9px;background:#ffffff90}
+.tool select,.tool input{border:0;outline:0;background:transparent;color:#222;max-width:76px;font-size:12px}
+.tool input{width:86px}
+.tool select{max-width:54px}
+.players{display:flex;gap:6px;align-items:center}
+.player{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:8px;background:#ffffff80}
+.player .swatch{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.player input{width:70px;min-width:0}
+.cbtn{min-width:28px;min-height:28px;border-radius:8px;background:#ffffff90;font-weight:700}
+.cbtn.on{background:#222;color:#fff}
+.iconbtn{font-size:15px;min-width:28px;min-height:28px;border-radius:8px;background:#ffffff90;display:grid;place-items:center}
+#turnDot{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+
+@media(max-width:520px){
+  #toolbar{gap:5px;padding:6px}
+  .tool{padding:3px 5px}
+  .player input{width:55px}
+  .tool input{width:65px}
+}
+</style>
+</head>
+<body>
+
+<div id="landing">
+  <button id="start" aria-label="Iniciar jogo" title="Iniciar">🐓</button>
+</div>
+
+<main id="game" aria-label="Tabuleiro do jogo">
+  <svg id="linesSvg"></svg>
+  <div id="turnGlow" aria-hidden="true"></div>
+  <div id="hud" aria-live="polite"></div>
+  <div id="board" role="grid" aria-label="Tabuleiro com 10 colunas e 20 linhas"></div>
+  
+  <div id="dock">
+    <button id="dockToggle" aria-label="Abrir ferramentas" title="Ferramentas">🐓</button>
+    <section id="toolbar" aria-label="Ferramentas do jogo">
+      <button class="iconbtn" id="fullscreen" aria-label="Tela cheia" title="Tela cheia">⛶</button>
+      <div class="tool" role="group" aria-label="Número de jogadores" title="Número de jogadores">
+        👥
+        <button class="cbtn" type="button" data-n="2">2</button>
+        <button class="cbtn" type="button" data-n="3">3</button>
+        <button class="cbtn" type="button" data-n="4">4</button>
+        <button class="cbtn" type="button" data-n="5">5</button>
+        <button class="cbtn" type="button" data-n="6">6</button>
+      </div>
+      <div class="players" id="players"></div>
+      <div class="tool" title="Jogador da vez">
+        <span id="turnDot"></span>
+        <span id="turnLabel">1</span>
+      </div>
+      <button class="iconbtn" id="openCfg" aria-label="Configurações" title="Configurações">⚙️</button>
+      <button class="iconbtn" id="reset" aria-label="Reiniciar tabuleiro" title="Limpar tabuleiro">↺</button>
+    </section>
+  </div>
+</main>
+
+<div id="settings" role="dialog" aria-modal="true" aria-label="Personalizar partida">
+  <header><b>⚙️ Personalizar partida</b><button type="button" id="cfgClose" aria-label="Fechar">✕</button></header>
+  <div id="cfgPanel"></div>
+  <footer><button type="button" id="cfgManual">📖 Manual</button><button type="button" class="primary" id="cfgApply">Aplicar e reiniciar</button></footer>
+</div>
+
+<script>
+(()=>{
+  const colors = ['#ed5b55','#3488db','#31a66a','#a16be0','#f0a52b','#e45ba9'];
+  const landing = document.querySelector('#landing');
+  const game = document.querySelector('#game');
+  const board = document.querySelector('#board');
+  const linesSvg = document.querySelector('#linesSvg');
+  const start = document.querySelector('#start');
+  const dockToggle = document.querySelector('#dockToggle');
+  const toolbar = document.querySelector('#toolbar');
+  const countBtns = [...document.querySelectorAll('.cbtn')];
+  const playersWrap = document.querySelector('#players');
+  const turnDot = document.querySelector('#turnDot');
+  const turnLabel = document.querySelector('#turnLabel');
+  const hud = document.querySelector('#hud');
+
+  const COLS = 10;
+  const ROWS = 20;
+  const PU = {
+    shield:  { icon: '🛡️', name: 'Escudo' },
+    reserve: { icon: '📌', name: 'Reserva' },
+    unblock: { icon: '🔑', name: 'Desbloqueio' },
+    trap:    { icon: '💣', name: 'Armadilha' },
+    elim2:   { icon: '✌️', name: 'Eliminar 2' },
+    break:   { icon: '🔨', name: 'Quebra-galo' },
+    cn:      { icon: '🎲', name: 'Sorteio' },
+    double:  { icon: '⚡', name: 'Jogada dupla' }
+  };
+  const PU_INFO = {
+    shield:  'Resiste à próxima retirada de peça.',
+    reserve: 'Reserva 1 casa livre por 2 rodadas.',
+    unblock: 'Reabre 1 casa bloqueada.',
+    trap:    'Escondida, nasce perto de galos a formar ou peças soltas. Explode em 3 rodadas; ninguém sabe onde, e você é imune.',
+    elim2:   'Próximo galo retira 2 peças de cada adversário.',
+    break:   'Próximo galo retira até peças protegidas em galo.',
+    cn:      'Próximo galo: cada casa retirada é sorteada.',
+    double:  'Joga duas vezes seguidas.'
+  };
+  const mkTypes = (init, live) => {
+    const t = {};
+    Object.keys(PU).forEach(k => { t[k] = { init: init.includes(k), live: live.includes(k) }; });
+    return t;
+  };
+  const ALL = Object.keys(PU);
+  const PRESETS = {
+    classico:    { label: 'Clássico',    cfg: { targets: 'all', afterRemove: 'block', undoMax: 2, undoSec: 2, initCount: 0,  spawnEvery: 0, life: 2, types: mkTypes([], []) } },
+    estrategico: { label: 'Estratégico', cfg: { targets: 'one', afterRemove: 'block', undoMax: 2, undoSec: 2, initCount: 8,  spawnEvery: 0, life: 2, types: mkTypes(['shield', 'reserve', 'unblock', 'trap'], []) } },
+    caos:        { label: 'Caos',        cfg: { targets: 'all', afterRemove: 'random', undoMax: 2, undoSec: 2, initCount: 12, spawnEvery: 4, life: 2, types: mkTypes(ALL, ALL) } }
+  };
+  const DEFAULT_CFG = PRESETS.estrategico.cfg;
+  const cloneCfg = c => JSON.parse(JSON.stringify(c));
+  let cfg = cloneCfg(DEFAULT_CFG);
+  try {
+    const saved = JSON.parse(localStorage.getItem('galobabu.cfg') || 'null');
+    if (saved) cfg = Object.assign(cfg, saved, { types: Object.assign(cfg.types, saved.types || {}) });
+  } catch (e) {}
+  const saveCfg = () => { try { localStorage.setItem('galobabu.cfg', JSON.stringify(cfg)); } catch (e) {} };
+  const normCfg = c => JSON.stringify([c.targets, c.afterRemove, c.undoMax, c.undoSec, c.initCount, c.spawnEvery, c.life,
+    Object.keys(PU).map(k => [!!(c.types[k] && c.types[k].init), !!(c.types[k] && c.types[k].live)])]);
+  const presetName = c => {
+    const k = Object.keys(PRESETS).find(x => normCfg(PRESETS[x].cfg) === normCfg(c));
+    return k ? PRESETS[k].label : 'Personalizado';
+  };
+  const activeIcons = c => Object.keys(PU).filter(k => c.types[k] &&
+    ((c.types[k].init && c.initCount > 0) || (c.types[k].live && c.spawnEvery > 0))).map(k => PU[k].icon).join('');
+  const buzz = pat => { try { if (navigator.vibrate) navigator.vibrate(pat); } catch (e) {} };
+
+  let count = 2;
+  let turn = 0;
+  let marks = new Map(); // idx -> playerIndex
+  let players = [];
+  let eliminated = []; // jogadores que ficaram sem peças
+  let pendingVictims = new Map(); // adversário -> quantas peças ainda faltam retirar
+  let gameOverMsg = '';
+  let isRemovalMode = false;
+  let gameOver = false;
+  let setupPending = true; // aguardando a escolha do nº de jogadores
+  let lastPlaced = -1; // só a peça recém-jogada anima
+  let lastMove = null; // {idx, owner, snap} da última peça colocada
+  let undoTimer = null; // janela curta para desfazer
+  let inv = [], armed = [], shield = []; // poder guardado, poder ativo (elim2/cn/double), escudo
+  let reserved = new Map(); // idx -> {owner, until}
+  let pups = new Map();     // idx -> {type, exp|null}
+  let moveCount = 0;
+  let targeting = null;     // 'reserve' | 'unblock': aguardando toque numa casa
+  let removalCN = false;    // este galo usa o poder Sorteio
+  let removalBreak = false; // este galo ignora a proteção de peças em galo
+  let removalOne = false;   // só um adversário perde peça neste galo
+  let removalNeed = 1;      // peças a retirar de cada vítima
+  let traps = new Map();    // idx -> {owner, until} (ocultas)
+  let fx = new Map();       // idx -> 'boom' | 'poof' (efeito visual de uma vez)
+  let undosLeft = [];
+  let note = '', noteTimer = null;
+  let blocked = new Set(); // casas bloqueadas (peça retirada de adversário)
+  let formedLines = new Map(); // key -> {cells:[a,b,c], owner, dir} (somente trincas válidas)
+
+  function setupPlayers() {
+    const old = players;
+    players = Array.from({length: count}, (_, i) => ({
+      name: old[i] ? old[i].name : '',
+      color: colors[i]
+    }));
+    eliminated = new Array(count).fill(false);
+    pendingVictims = new Map();
+    blocked = new Set();
+    gameOverMsg = '';
+    isRemovalMode = false;
+    undosLeft = new Array(count).fill(cfg.undoMax);
+    clearTimeout(undoTimer);
+    lastMove = null;
+    gameOver = false;
+    inv = new Array(count).fill(null);
+    armed = new Array(count).fill(null);
+    shield = new Array(count).fill(false);
+    reserved = new Map();
+    pups = new Map();
+    traps = new Map();
+    moveCount = 0;
+    targeting = null;
+    removalCN = false; removalBreak = false; removalOne = false;
+    note = '';
+    seedPowerups();
+    renderPlayers();
+    updateTurn();
+  }
+
+  function renderPlayers() {
+    playersWrap.innerHTML = '';
+    players.forEach((p, i) => {
+      const item = document.createElement('label');
+      item.className = 'player';
+      item.title = `Jogador ${i+1}`;
+
+      const sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = p.color;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 12;
+      input.placeholder = `J${i+1}`;
+      input.value = p.name;
+      input.addEventListener('input', () => { p.name = input.value; updateTurn(); });
+
+      item.append(sw, input);
+      playersWrap.append(item);
+    });
+  }
+
+  function renderBoard() {
+    board.innerHTML = '';
+    linesSvg.innerHTML = '';
+    const frag = document.createDocumentFragment();
+
+    for (let i = 0; i < COLS * ROWS; i++) {
+      const cell = document.createElement('button');
+      cell.className = 'cell';
+      cell.type = 'button';
+      cell.setAttribute('role', 'gridcell');
+      cell.style.setProperty('--r', Math.floor(i / COLS));
+      cell.style.setProperty('--c', i % COLS);
+
+      cell.addEventListener('click', () => handleCellClick(i));
+
+      frag.append(cell);
+    }
+    board.append(frag);
+    paintMarks();
+  }
+
+  function paintMarks() {
+    [...board.children].forEach((cell, i) => {
+      cell.innerHTML = '';
+      cell.classList.remove('selectable');
+      if (blocked.has(i)) {
+        const b = document.createElement('span');
+        b.className = 'blocked-mark';
+        cell.append(b);
+      } else if (marks.has(i)) {
+        const pIdx = marks.get(i);
+        const dot = document.createElement('span');
+        dot.className = 'dot' + (i === lastPlaced ? ' new' : '') + (lastMove && i === lastMove.idx ? ' undo' : '') +
+          (isRemovalMode && !gameOver && pIdx !== turn && pendingVictims.has(pIdx) && !canRemove(i) ? ' locked' : '');
+        dot.style.background = `radial-gradient(circle at 35% 35%, ${adjustColor(players[pIdx].color, 40)}, ${players[pIdx].color} 60%, ${adjustColor(players[pIdx].color, -30)})`;
+        cell.append(dot);
+
+        if (isRemovalMode && !gameOver && canRemove(i)) {
+          cell.classList.add('selectable');
+        }
+      } else if (reserved.has(i)) {
+        const rs = document.createElement('span');
+        rs.className = 'resv';
+        rs.style.setProperty('--rc', players[reserved.get(i).owner].color);
+        cell.append(rs);
+      } else if (pups.has(i)) {
+        const t = pups.get(i);
+        const pu = document.createElement('span');
+        pu.className = 'pup' + (t.exp != null ? ' live' : '');
+        pu.textContent = PU[t.type].icon;
+        cell.append(pu);
+      }
+      if (fx.has(i)) {
+        const f = document.createElement('span');
+        f.className = 'fx ' + fx.get(i);
+        cell.append(f);
+      }
+    });
+    fx.clear();
+    lastPlaced = -1;
+  }
+
+  // Peças que fazem parte de alguma trinca formada
+  function protectedCells() {
+    const set = new Set();
+    formedLines.forEach(line => line.cells.forEach(x => set.add(x)));
+    return set;
+  }
+
+  const labelOf = i => players[i].name.trim() || ('J' + (i + 1));
+
+  function pieceCount(player) {
+    let n = 0;
+    marks.forEach(o => { if (o === player) n++; });
+    return n;
+  }
+
+  // Peça removível: de um adversário que ainda "deve" uma peça nesta rodada.
+  // Peça em trinca só pode ser retirada se o dono não tiver nenhuma peça fora de trinca.
+  function canRemove(i) {
+    if (!marks.has(i)) return false;
+    const owner = marks.get(i);
+    if (owner === turn || !pendingVictims.has(owner)) return false;
+    const prot = protectedCells();
+    if (!prot.has(i) || removalBreak) return true;
+    for (const [idx, o] of marks) {
+      if (o === owner && !prot.has(idx)) return false;
+    }
+    return true;
+  }
+
+  // Adversários vivos e com peças. Cada um perde 1 peça por galo (2 com Eliminar 2),
+  // ou só um deles, à escolha, se a regra "Um só" estiver ligada. Escudo resiste uma vez.
+  function startRemoval() {
+    pendingVictims = new Map();
+    removalNeed = armed[turn] === 'elim2' ? 2 : 1;
+    removalCN = armed[turn] === 'cn';
+    removalBreak = armed[turn] === 'break';
+    removalOne = cfg.targets === 'one';
+    if (['elim2', 'cn', 'break'].includes(armed[turn])) armed[turn] = null;
+    players.forEach((_, i) => {
+      if (i === turn || eliminated[i] || pieceCount(i) === 0) return;
+      if (shield[i] && !removalOne) { shield[i] = false; flash(`🛡️ ${labelOf(i)} resistiu!`); return; }
+      pendingVictims.set(i, Math.min(removalNeed, pieceCount(i)));
+    });
+    isRemovalMode = pendingVictims.size > 0;
+    if (!isRemovalMode) { removalCN = false; removalBreak = false; removalOne = false; }
+    return isRemovalMode;
+  }
+
+  function finishGame(msg) {
+    gameOver = true;
+    isRemovalMode = false;
+    removalCN = false; removalBreak = false; removalOne = false;
+    pendingVictims = new Map();
+    gameOverMsg = msg;
+    buzz([60, 40, 60, 40, 200]);
+    clearTimeout(undoTimer);
+    lastMove = null;
+    targeting = null;
+    paintMarks();
+    updateHud();
+  }
+
+  // Tabuleiro cheio: vence quem tiver mais peças
+  function endByBoard() {
+    const counts = players.map((_, i) => eliminated[i] ? -1 : pieceCount(i));
+    const max = Math.max(...counts);
+    const winners = counts.map((c, i) => c === max ? i : -1).filter(i => i >= 0);
+    finishGame(winners.length === 1
+      ? `🏆 ${labelOf(winners[0])} venceu com ${max} peças! Toque em ↺`
+      : `🤝 Empate (${max} peças): ${winners.map(labelOf).join(', ')}. Toque em ↺`);
+  }
+
+  // Passa a vez (pulando eliminados) ou encerra se o tabuleiro encheu
+  function advanceTurn() {
+    if (marks.size + blocked.size >= COLS * ROWS) { endByBoard(); return; }
+    if (armed[turn] === 'double' && !eliminated[turn]) { armed[turn] = null; flash('⚡ Jogue de novo!'); updateTurn(); return; }
+    moveCount++;
+    tickPowerups();
+    if (gameOver) return;
+    let n = turn;
+    do { n = (n + 1) % count; } while (eliminated[n]);
+    turn = n;
+    targeting = null;
+    updateTurn();
+  }
+
+  // ----- Power-ups -----
+  function freeCell(i) { return !marks.has(i) && !blocked.has(i) && !pups.has(i) && !reserved.has(i) && !traps.has(i); }
+
+  // Início: pares espelhados (casa i e a oposta), para ficar justo
+  function seedPowerups() {
+    const kinds = Object.keys(PU).filter(t => cfg.types[t] && cfg.types[t].init);
+    if (!kinds.length || cfg.initCount <= 0) return;
+    const total = COLS * ROWS;
+    let k = 0, guard = 0;
+    while (k < Math.floor(cfg.initCount / 2) && guard++ < 1000) {
+      const i = Math.floor(Math.random() * total), m = total - 1 - i;
+      if (i === m || !freeCell(i) || !freeCell(m)) continue;
+      const type = kinds[k % kinds.length];
+      pups.set(i, { type, exp: null });
+      pups.set(m, { type, exp: null });
+      k++;
+    }
+  }
+
+  // Durante o jogo: surge um temporário perto de quem está com menos peças
+  function spawnLive() {
+    const kinds = Object.keys(PU).filter(t => cfg.types[t] && cfg.types[t].live);
+    if (!kinds.length) return false;
+    const alive = players.map((_, k) => k).filter(k => !eliminated[k]);
+    if (!alive.length) return false;
+    const last = alive.reduce((a, k) => pieceCount(k) < pieceCount(a) ? k : a, alive[0]);
+    const near = [], any = [];
+    for (let i = 0; i < COLS * ROWS; i++) {
+      if (!freeCell(i)) continue;
+      any.push(i);
+      const r = Math.floor(i / COLS), c = i % COLS;
+      for (const [j, o] of marks) {
+        if (o === last && Math.abs(Math.floor(j / COLS) - r) <= 2 && Math.abs(j % COLS - c) <= 2) { near.push(i); break; }
+      }
+    }
+    const pool = near.length ? near : any;
+    if (!pool.length) return false;
+    const i = pool[Math.floor(Math.random() * pool.length)];
+    pups.set(i, { type: kinds[Math.floor(Math.random() * kinds.length)], exp: moveCount + cfg.life * count });
+    return true;
+  }
+
+  function tickPowerups() {
+    let changed = false;
+    const msgs = [];
+    pups.forEach((p, i) => { if (p.exp != null && moveCount >= p.exp) { pups.delete(i); changed = true; } });
+    reserved.forEach((r, i) => { if (moveCount >= r.until) { reserved.delete(i); changed = true; } });
+    traps.forEach((t, i) => {            // armadilha que ninguém pisou explode sozinha
+      if (gameOver || moveCount < t.until) return;
+      msgs.push(explodeTrap(i, t));
+      changed = true;
+    });
+    if (cfg.spawnEvery > 0 && moveCount % cfg.spawnEvery === 0 && spawnLive()) changed = true;
+    if (changed && !gameOver) paintMarks();
+    if (msgs.length && !gameOver) flash(msgs.join(' '));
+  }
+
+  function collectPowerup(i) {
+    const p = pups.get(i);
+    if (!p) return;
+    pups.delete(i);
+    if (inv[turn]) { flash(`${PU[p.type].icon} ${PU[p.type].name} perdido: você já tem um poder`); return; }
+    inv[turn] = p.type;
+    flash(`${PU[p.type].icon} ${labelOf(turn)} pegou ${PU[p.type].name}!`);
+  }
+
+  // Escolhe sozinho a casa da armadilha: perto de galos de adversários a formar
+  // (2 peças alinhadas e a 3ª livre) ou, na falta, perto de peças soltas deles.
+  function pickTrapCell() {
+    const isOpp = o => o !== undefined && o !== turn && !eliminated[o];
+    const prot = protectedCells();
+    let best = -1, bestScore = -1;
+    for (let i = 0; i < COLS * ROWS; i++) {
+      if (marks.has(i) || blocked.has(i) || traps.has(i)) continue;
+      const r = Math.floor(i / COLS), c = i % COLS;
+      let sc = Math.random() * 0.5;
+      DIRS.forEach(d => {
+        for (let k = 0; k < 3; k++) {
+          const cells = [];
+          for (let m = 0; m < 3; m++) {
+            const rr = r + (m - k) * d.r, cc = c + (m - k) * d.c;
+            if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) { cells.length = 0; break; }
+            cells.push(rr * COLS + cc);
+          }
+          if (cells.length < 3) continue;
+          const others = cells.filter(x => x !== i);
+          if (others.some(x => blocked.has(x))) continue;
+          const owners = others.map(x => marks.get(x));
+          const opp = owners.filter(isOpp);
+          if (opp.length === 2 && opp[0] === opp[1]) sc += 10;                 // galo de adversário a formar
+          else if (opp.length === 1 && owners.includes(undefined)) sc += 3;   // começo de galo
+        }
+      });
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const rr = r + dr, cc = c + dc;
+          if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS || (!dr && !dc)) continue;
+          const j = rr * COLS + cc;
+          if (isOpp(marks.get(j)) && !prot.has(j)) sc += 1;                    // peça solta de adversário
+        }
+      }
+      if (sc > bestScore) { bestScore = sc; best = i; }
+    }
+    return best;
+  }
+
+  function usePower() {
+    if (gameOver || setupPending || isRemovalMode || !inv[turn]) return;
+    if (targeting) { targeting = null; updateHud(); return; }
+    const t = inv[turn];
+    expireUndo(); // usar um poder confirma a jogada anterior
+    if (t === 'shield') {
+      if (shield[turn]) { flash('Você já tem escudo ativo'); return; }
+      shield[turn] = true; inv[turn] = null;
+      flash('🛡️ Escudo ativo: você resiste à próxima retirada');
+    } else if (t === 'trap') {
+      const cell = pickTrapCell();
+      if (cell < 0) { flash('Sem casa livre para a armadilha'); return; }
+      traps.set(cell, { owner: turn, until: moveCount + 3 * count });
+      inv[turn] = null;
+      flash('💣 Armadilha ativada em segredo');
+    } else if (t === 'reserve') {
+      targeting = 'reserve'; updateHud();
+    } else if (t === 'unblock') {
+      if (!blocked.size) { flash('Nenhuma casa bloqueada'); return; }
+      targeting = 'unblock'; updateHud();
+    } else { // elim2, break, cn, double: ficam ativos
+      if (armed[turn]) { flash('Você já tem um poder ativo'); return; }
+      armed[turn] = t; inv[turn] = null;
+      flash(`${PU[t].icon} ${PU[t].name} ativo!`);
+    }
+  }
+
+  function applyTarget(i) {
+    let msg;
+    if (targeting === 'reserve') {
+      if (marks.has(i) || blocked.has(i) || reserved.has(i)) { flash('Escolha uma casa livre'); return; }
+      reserved.set(i, { owner: turn, until: moveCount + 2 * count });
+      msg = '📌 Casa reservada por 2 rodadas';
+    } else {
+      if (!blocked.has(i)) { flash('Escolha uma casa bloqueada'); return; }
+      blocked.delete(i);
+      msg = '🔑 Casa liberada';
+    }
+    targeting = null;
+    inv[turn] = null;
+    paintMarks();
+    flash(msg);
+  }
+
+  // Explosão: destrói peças de quem não é o dono na casa e nas 8 vizinhas (peças em galo resistem,
+  // exceto a da própria casa). O dono é imune. A casa vira cratera (bloqueada).
+  function explodeTrap(i, trap) {
+    traps.delete(i);
+    pups.delete(i);
+    reserved.delete(i);
+    const r0 = Math.floor(i / COLS), c0 = i % COLS;
+    const prot = protectedCells();
+    const hit = new Set();
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const r = r0 + dr, c = c0 + dc;
+        if (r < 0 || r >= ROWS || c < 0 || c >= COLS) continue;
+        const j = r * COLS + c;
+        fx.set(j, 'boom');
+        if (!marks.has(j)) continue;
+        const o = marks.get(j);
+        if (o === trap.owner || (j !== i && prot.has(j))) continue;
+        marks.delete(j);
+        hit.add(o);
+      }
+    }
+    blocked.add(i);
+    buzz([90, 40, 140]);
+    refreshLines();
+    let msg = `💥 Armadilha de ${labelOf(trap.owner)} explodiu!`;
+    hit.forEach(o => {
+      if (!eliminated[o] && pieceCount(o) === 0) { eliminated[o] = true; msg += ` ${labelOf(o)} ficou sem peças!`; }
+    });
+    const alive = players.map((_, k) => k).filter(k => !eliminated[k]);
+    if (alive.length === 1) finishGame(`🏆 ${labelOf(alive[0])} venceu! ${msg} Toque em ↺`);
+    return msg;
+  }
+
+  // Evita travar o jogo se todas as casas livres estiverem reservadas por outros
+  const hasOtherPlay = () => {
+    for (let j = 0; j < COLS * ROWS; j++) {
+      if (marks.has(j) || blocked.has(j)) continue;
+      const r = reserved.get(j);
+      if (!r || r.owner === turn) return true;
+    }
+    return false;
+  };
+
+  // Depois de jogar (e escolher a armadilha, se houver): galo -> retirada, senão passa a vez
+  function finishPlacement(i) {
+    if (evaluatePlacement(i) && startRemoval()) {
+      buzz(25);
+      paintMarks();
+      updateHud();
+      return;
+    }
+    advanceTurn();
+  }
+
+  // O que acontece com a casa de uma peça retirada
+  function applyAfterRemove(i, victim) {
+    let mode = removalCN ? 'random' : cfg.afterRemove;
+    const wasRandom = mode === 'random';
+    const others = players.map((_, k) => k).filter(k => k !== turn && k !== victim && !eliminated[k]);
+    if (wasRandom) {
+      const opts = others.length ? ['block', 'mine', 'other'] : ['block', 'mine'];
+      mode = opts[Math.floor(Math.random() * opts.length)];
+    }
+    let msg = '';
+    if (mode === 'mine') {
+      marks.set(i, turn); lastPlaced = i;
+      msg = '🎲 Virou sua';
+    } else if (mode === 'other') {
+      const o = others[Math.floor(Math.random() * others.length)];
+      marks.set(i, o); lastPlaced = i;
+      msg = `🎲 Virou de ${labelOf(o)}`;
+    } else {
+      blocked.add(i);
+      msg = '🎲 Casa bloqueada';
+    }
+    return wasRandom ? msg : '';
+  }
+
+  function flash(text) {
+    note = text;
+    updateHud();
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => { note = ''; updateHud(); }, 2000);
+  }
+
+  function snapshot() {
+    return {
+      marks: new Map(marks), formed: new Map(formedLines), blocked: new Set(blocked), turn,
+      eliminated: [...eliminated], inv: [...inv], armed: [...armed], shield: [...shield],
+      reserved: new Map(reserved), pups: new Map(pups), traps: new Map(traps), moveCount
+    };
+  }
+
+  // A janela de desfazer fecha sozinha (cfg.undoSec segundos)
+  function expireUndo() {
+    clearTimeout(undoTimer);
+    if (!lastMove) return;
+    lastMove = null;
+    paintMarks();
+    updateHud();
+  }
+
+  // Toque na peça recém-jogada dentro da janela: desfaz na hora
+  function handleUndoTap() {
+    const owner = lastMove.owner;
+    const snap = lastMove.snap;
+    clearTimeout(undoTimer);
+    marks = new Map(snap.marks);
+    formedLines = new Map(snap.formed);
+    blocked = new Set(snap.blocked);
+    eliminated = [...snap.eliminated];
+    inv = [...snap.inv]; armed = [...snap.armed]; shield = [...snap.shield];
+    reserved = new Map(snap.reserved); pups = new Map(snap.pups); traps = new Map(snap.traps); moveCount = snap.moveCount;
+    pendingVictims = new Map();
+    removalCN = false; removalBreak = false; removalOne = false; targeting = null;
+    turn = snap.turn;
+    undosLeft[owner]--;
+    isRemovalMode = false;
+    lastMove = null;
+    refreshLines();
+    paintMarks();
+    updateTurn();
+    flash(`↩ Jogada desfeita (restam ${undosLeft[owner]})`);
+  }
+
+  function updateHud() {
+    hud.innerHTML = '';
+    const addMsg = (text, cls) => {
+      const m = document.createElement('span');
+      m.className = 'msg' + (cls ? ' ' + cls : '');
+      m.textContent = text;
+      hud.append(m);
+    };
+    const addBtn = (text, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'usebtn';
+      b.textContent = text;
+      b.addEventListener('click', fn);
+      hud.append(b);
+    };
+    if (gameOver) {
+      addMsg(gameOverMsg, 'win');
+    } else {
+      if (note) addMsg(note);
+      if (targeting) {
+        addMsg(targeting === 'reserve' ? '📌 Toque numa casa livre' : '🔑 Toque numa casa bloqueada');
+      } else if (isRemovalMode) {
+        const vals = [...pendingVictims.values()];
+        const hint = removalCN ? ' · 🎲 sorteio' : cfg.afterRemove === 'block' ? ' · casa bloqueia' : cfg.afterRemove === 'mine' ? ' · vira sua' : ' · 🎲 sorteio';
+        const txt = k => k === 1 ? '1 peça' : k + ' peças';
+        addMsg(removalOne
+          ? `${labelOf(turn)}: retire ${txt(vals[0])}${vals.length > 1 ? ' de 1 adversário' : ''}${hint}`
+          : `${labelOf(turn)}: retire ${txt(vals.reduce((a, b) => a + b, 0))}${hint}`);
+      }
+      if (lastMove) addMsg(`↩ Toque na peça para desfazer (restam ${undosLeft[lastMove.owner]})`, 'undo');
+      if (!setupPending && !isRemovalMode && inv[turn]) addBtn(targeting ? 'Cancelar' : `${PU[inv[turn]].icon} Usar ${PU[inv[turn]].name}`, usePower);
+    }
+    players.forEach((p, i) => {
+      const n = pieceCount(i);
+      const chip = document.createElement('span');
+      chip.className = 'chip' + (i === turn && !gameOver && !eliminated[i] ? ' active' : '') + (eliminated[i] ? ' out' : '');
+      chip.title = eliminated[i] ? `${labelOf(i)}: eliminado` : `${labelOf(i)}: ${n} peças`;
+      const dot = document.createElement('i');
+      dot.style.background = p.color;
+      const extra = (shield[i] ? '🛡️' : '') + (inv[i] ? PU[inv[i]].icon : '') + (armed[i] ? '▸' + PU[armed[i]].icon : '');
+      chip.append(dot, document.createTextNode(String(n) + (extra ? ' ' + extra : '')));
+      hud.append(chip);
+    });
+    // Regras ativas (toque para abrir a personalização)
+    const rc = document.createElement('button');
+    rc.type = 'button';
+    rc.className = 'chip rules';
+    rc.title = 'Regras ativas';
+    rc.textContent = `📋 ${presetName(cfg)} ${activeIcons(cfg)}`.trim();
+    rc.addEventListener('click', openSettings);
+    hud.append(rc);
+  }
+
+  function updateTurn() {
+    const p = players[turn];
+    if (!p) return;
+    turnDot.style.background = p.color;
+    game.style.setProperty('--glow', adjustColor(p.color, 15)); // luz neon das bordas
+    turnLabel.textContent = p.name.trim() || String(turn + 1);
+    updateHud();
+  }
+
+  function handleCellClick(i) {
+    if (gameOver || setupPending) return;
+
+    // Toque na última peça dentro da janela: desfaz
+    if (lastMove && i === lastMove.idx) { handleUndoTap(); return; }
+
+    // Poder que pede uma casa (Reserva / Desbloqueio / casa da Armadilha)
+    if (targeting) { applyTarget(i); return; }
+
+    if (isRemovalMode) {
+      // Retira peça de adversário (peças em galo são protegidas, salvo Quebra-galo)
+      if (!canRemove(i)) {
+        if (marks.has(i) && marks.get(i) !== turn) flash(pendingVictims.has(marks.get(i)) ? '🔒 Peça protegida em galo' : 'Esse adversário não perde peça agora');
+        return;
+      }
+      const victim = marks.get(i);
+
+      // Modo "Um só": o escudo do escolhido absorve a retirada
+      if (removalOne && shield[victim]) {
+        shield[victim] = false;
+        pendingVictims = new Map();
+        isRemovalMode = false; removalCN = false; removalBreak = false; removalOne = false;
+        paintMarks();
+        advanceTurn();
+        if (!gameOver) flash(`🛡️ ${labelOf(victim)} resistiu!`);
+        return;
+      }
+
+      marks.delete(i);
+      fx.set(i, 'poof');
+      buzz(30);
+      const left = pendingVictims.get(victim) - 1;
+      if (left > 0) pendingVictims.set(victim, left); else pendingVictims.delete(victim);
+      if (removalOne) pendingVictims = left > 0 ? new Map([[victim, left]]) : new Map();
+      const outMsg = applyAfterRemove(i, victim);
+      refreshLines();
+
+      let lostMsg = '';
+      if (pieceCount(victim) === 0) {
+        eliminated[victim] = true;
+        pendingVictims.delete(victim);
+        lostMsg = `${labelOf(victim)} ficou sem peças e perdeu!`;
+        const alive = players.map((_, k) => k).filter(k => !eliminated[k]);
+        if (alive.length === 1) {
+          finishGame(`🏆 ${labelOf(alive[0])} venceu! ${lostMsg} Toque em ↺`);
+          return;
+        }
+      }
+      const msg = [outMsg, lostMsg].filter(Boolean).join(' · ');
+
+      paintMarks();
+      if (pendingVictims.size > 0) {
+        updateHud();
+        if (msg) flash(msg);
+        return;
+      }
+      isRemovalMode = false;
+      removalCN = false; removalBreak = false; removalOne = false;
+      advanceTurn();
+      if (msg && !gameOver) flash(msg);
+      return;
+    }
+
+    // Modo jogada normal
+    if (marks.has(i) || blocked.has(i)) return;
+    const res = reserved.get(i);
+    if (res && res.owner !== turn && hasOtherPlay()) { flash(`📌 Reservada por ${labelOf(res.owner)}`); return; }
+
+    const snap = snapshot();
+    marks.set(i, turn);
+    reserved.delete(i);
+    clearTimeout(undoTimer);
+
+    // Pisou numa armadilha de outro jogador: explode (sem desfazer, para não revelar a casa)
+    const trap = traps.get(i);
+    if (trap && trap.owner !== turn) {
+      lastMove = null;
+      pups.delete(i);
+      const msg = explodeTrap(i, trap);
+      if (gameOver) return;
+      paintMarks();
+      advanceTurn();
+      if (!gameOver) flash(msg);
+      return;
+    }
+    if (trap) traps.delete(i); // o dono desarma a própria armadilha
+
+    if (undosLeft[turn] > 0) {
+      lastMove = { idx: i, owner: turn, snap };
+      undoTimer = setTimeout(expireUndo, cfg.undoSec * 1000);
+    } else {
+      lastMove = null;
+    }
+    lastPlaced = i;
+    collectPowerup(i);
+    paintMarks();
+
+    finishPlacement(i);
+  }
+
+  // Direções: Horizontal, Vertical, Diagonal Principal, Diagonal Secundária
+  const DIRS = [
+    { r: 0, c: 1 },
+    { r: 1, c: 0 },
+    { r: 1, c: 1 },
+    { r: 1, c: -1 }
+  ];
+
+  // Sequência contínua de peças do mesmo dono na direção, passando por idx
+  function getRun(idx, dir, owner) {
+    const r0 = Math.floor(idx / COLS), c0 = idx % COLS;
+    const inb = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+    const run = [idx];
+    let r = r0 - dir.r, c = c0 - dir.c;
+    while (inb(r, c) && marks.get(r * COLS + c) === owner) {
+      run.unshift(r * COLS + c);
+      r -= dir.r; c -= dir.c;
+    }
+    r = r0 + dir.r; c = c0 + dir.c;
+    while (inb(r, c) && marks.get(r * COLS + c) === owner) {
+      run.push(r * COLS + c);
+      r += dir.r; c += dir.c;
+    }
+    return run;
+  }
+
+  // Avalia só a peça recém-jogada. Uma trinca nova só é válida se usar 3 peças que
+  // ainda não pertençam a uma trinca formada na mesma direção.
+  function evaluatePlacement(idx) {
+    const owner = marks.get(idx);
+    let newlyFormed = false;
+
+    DIRS.forEach((dir, d) => {
+      const run = getRun(idx, dir, owner);
+      if (run.length < 3) return;
+
+      // Peças que já fazem parte de uma trinca formada NESTA direção
+      const used = new Set();
+      formedLines.forEach(line => {
+        if (line.dir === d && line.owner === owner) line.cells.forEach(x => used.add(x));
+      });
+
+      // Procura uma janela de 3 peças com a peça jogada, sem reaproveitar peças
+      // de trinca já formada na mesma direção (isso seria prolongamento).
+      const pos = run.indexOf(idx);
+      for (let start = Math.max(0, pos - 2); start <= Math.min(pos, run.length - 3); start++) {
+        const cells = run.slice(start, start + 3);
+        if (cells.some(x => used.has(x))) continue;
+        const key = d + ':' + [...cells].sort((a, b) => a - b).join('-');
+        formedLines.set(key, { cells, owner, dir: d });
+        if (owner === turn) newlyFormed = true;
+        break;
+      }
+    });
+
+    refreshLines();
+    return newlyFormed;
+  }
+
+  // Remove trincas que perderam peças e redesenha as linhas
+  function refreshLines() {
+    for (const [key, line] of [...formedLines]) {
+      if (!line.cells.every(x => marks.get(x) === line.owner)) formedLines.delete(key);
+    }
+    linesSvg.innerHTML = '';
+    formedLines.forEach(line => {
+      const sorted = [...line.cells].sort((a, b) => a - b);
+      drawLine(sorted[0], sorted[2]);
+    });
+  }
+
+  function drawLine(idxStart, idxEnd) {
+    const cellStart = board.children[idxStart];
+    const cellEnd = board.children[idxEnd];
+    if (!cellStart || !cellEnd) return;
+
+    const rectStart = cellStart.getBoundingClientRect();
+    const rectEnd = cellEnd.getBoundingClientRect();
+    const boardRect = board.getBoundingClientRect();
+
+    const x1 = rectStart.left + rectStart.width / 2 - boardRect.left;
+    const y1 = rectStart.top + rectStart.height / 2 - boardRect.top;
+    const x2 = rectEnd.left + rectEnd.width / 2 - boardRect.left;
+    const y2 = rectEnd.top + rectEnd.height / 2 - boardRect.top;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', '#000000');
+    line.setAttribute('stroke-width', '4');
+    line.setAttribute('stroke-linecap', 'round');
+
+    linesSvg.appendChild(line);
+  }
+
+  function adjustColor(hex, percent) {
+    let num = parseInt(hex.replace('#', ''), 16),
+        amt = Math.round(2.55 * percent),
+        R = (num >> 16) + amt,
+        G = (num >> 8 & 0x00FF) + amt,
+        B = (num & 0x0000FF) + amt;
+    return '#' + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+  }
+
+  // Eventos de Interface
+  start.addEventListener('click', () => {
+    // Tela cheia (precisa ser chamada direto do toque)
+    try {
+      const req = document.documentElement.requestFullscreen;
+      if (req && !document.fullscreenElement) {
+        const r = document.documentElement.requestFullscreen();
+        if (r && r.catch) r.catch(() => {});
+      }
+    } catch (e) {}
+
+    landing.style.display = 'none';
+    game.style.display = 'block';
+    setupPlayers();
+    renderBoard();
+
+    // Barra aberta para escolher o nº de jogadores
+    setupPending = true;
+    toolbar.classList.add('open');
+    dockToggle.setAttribute('aria-label', 'Recolher ferramentas');
+    syncCountButtons();
+  });
+
+  dockToggle.addEventListener('click', () => {
+    const open = toolbar.classList.toggle('open');
+    if (!open) setupPending = false; // fechou sem escolher: segue com o valor atual
+    dockToggle.setAttribute('aria-label', open ? 'Recolher ferramentas' : 'Abrir ferramentas');
+  });
+
+  function syncCountButtons() {
+    countBtns.forEach(b => b.classList.toggle('on', Number(b.dataset.n) === count));
+  }
+
+  countBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const n = Number(btn.dataset.n);
+      const keepGame = !setupPending && n === count; // mesmo número no meio da partida: não reinicia
+      if (!keepGame) {
+        count = n;
+        turn = 0;
+        marks.clear();
+        formedLines.clear();
+        setupPlayers(); // mantém os nomes e zera o estado da partida
+        renderBoard();
+      }
+      setupPending = false;
+      syncCountButtons();
+      toolbar.classList.remove('open');
+      dockToggle.setAttribute('aria-label', 'Abrir ferramentas');
+    });
+  });
+
+  function restartMatch() {
+    marks.clear();
+    formedLines.clear();
+    turn = 0;
+    lastPlaced = -1;
+    setupPlayers(); // zera peças, eliminados, desfazeres, power-ups e mantém os nomes
+    renderBoard();
+  }
+  document.querySelector('#reset').addEventListener('click', restartMatch);
+
+  // ----- Aba de personalização (tela cheia) + Manual -----
+  const cfgModal = document.querySelector('#settings');
+  const cfgPanel = document.querySelector('#cfgPanel');
+  const cfgManualBtn = document.querySelector('#cfgManual');
+  const NUMKEYS = ['undoMax', 'undoSec', 'initCount', 'spawnEvery', 'life'];
+  let draft = cloneCfg(cfg);   // cópia em edição (compartilhada entre a aba e o manual)
+  let view = 'config';
+
+  const seg = (k, opts, val) => `<div class="seg" data-k="${k}">` + opts.map(([v, l]) =>
+    `<button type="button" data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('') + '</div>';
+  const line = (label, ctl) => `<div class="line"><span>${label}</span>${ctl}</div>`;
+  const AFTER = [['block', 'Bloqueia'], ['mine', 'Vira minha'], ['random', 'Sorteio']];
+  const TARGETS = [['all', 'Todos'], ['one', 'Um só']];
+  const toggles = (k, c) => {
+    const t = c.types[k] || { init: false, live: false };
+    return `<button type="button" class="tg${t.init ? ' on' : ''}" data-t="${k}" data-w="init" aria-label="${PU[k].name} no início"></button>` +
+           `<button type="button" class="tg${t.live ? ' on' : ''}" data-t="${k}" data-w="live" aria-label="${PU[k].name} durante o jogo"></button>`;
+  };
+  const gridHead = '<span></span><span class="h">Início</span><span class="h">Durante</span>';
+
+  function configHtml(c) {
+    const cur = presetName(c);
+    const pre = Object.keys(PRESETS).map(k =>
+      `<button type="button" data-p="${k}" class="${PRESETS[k].label === cur ? 'on' : ''}">${PRESETS[k].label}</button>`).join('');
+    const rows = Object.keys(PU).map(k => `<span class="nm">${PU[k].icon} ${PU[k].name}</span>${toggles(k, c)}`).join('');
+    return `<section class="card"><h4>Modos</h4><div class="seg presets">${pre}</div></section>` +
+      `<section class="card"><h4>Galo</h4>` +
+        line('Peça retirada', seg('afterRemove', AFTER, c.afterRemove)) +
+        line('Quem perde', seg('targets', TARGETS, c.targets)) +
+      `</section>` +
+      `<section class="card"><h4>Desfazer</h4>` +
+        line('Vezes', seg('undoMax', [0, 1, 2, 3, 4].map(n => [n, n]), c.undoMax)) +
+        line('Tempo', seg('undoSec', [1, 2, 3, 5].map(n => [n, n + 's']), c.undoSec)) +
+      `</section>` +
+      `<section class="card"><h4>Power-ups</h4>` +
+        line('No início', seg('initCount', [0, 4, 8, 12].map(n => [n, n]), c.initCount)) +
+        line('Novo a cada', seg('spawnEvery', [[0, 'Nunca'], [4, '4'], [6, '6'], [8, '8']], c.spawnEvery)) +
+        line('Duração', seg('life', [1, 2, 3, 4].map(n => [n, n]), c.life)) +
+        `<div class="pgrid">${gridHead}${rows}</div>` +
+      `</section>`;
+  }
+
+  function manualHtml(c) {
+    const rows = Object.keys(PU).map(k =>
+      `<span class="nm">${PU[k].icon} <b>${PU[k].name}</b><small>${PU_INFO[k]}</small></span>${toggles(k, c)}`).join('');
+    return `<section class="card"><h4>Como jogar</h4>` +
+        `<div class="man"><p>Forme 3 peças em linha (galo) e retire peças dos adversários. Peças em galo ficam protegidas. Quem ficar sem peças perde; no fim, vence quem tiver mais.</p></div>` +
+        `<div class="man"><b>Desfazer</b><p>Toque na sua peça logo após jogar, dentro do tempo e do limite definidos.</p></div>` +
+        `<div class="man"><b>Peças</b><p>🔒 apagada = protegida em galo. Casa com X = bloqueada.</p></div>` +
+      `</section>` +
+      `<section class="card"><h4>Modos</h4>` +
+        `<div class="man"><p><b>Clássico:</b> só o galo, sem power-ups.<br><b>Estratégico:</b> power-ups espalhados no início, sem sorte durante o jogo, um adversário perde peça por galo.<br><b>Caos:</b> tudo ligado, power-ups surgindo e retirada sorteada.</p></div>` +
+      `</section>` +
+      `<section class="card"><h4>Regras</h4>` +
+        `<div class="man"><b>Peça retirada</b><p>Bloqueia: a casa fica bloqueada. Vira minha: a casa passa a ser sua. Sorteio: bloqueia, vira sua ou de outro.</p>${seg('afterRemove', AFTER, c.afterRemove)}</div>` +
+        `<div class="man"><b>Quem perde</b><p>Todos: 1 peça de cada adversário. Um só: 1 adversário à sua escolha.</p>${seg('targets', TARGETS, c.targets)}</div>` +
+      `</section>` +
+      `<section class="card"><h4>Power-ups</h4>` +
+        `<p class="hint">Jogue na casa com o ícone para pegar (guarda 1) e use pelo botão no topo. Início: espalhados no começo. Durante: surgem na partida e somem.</p>` +
+        `<div class="pgrid">${gridHead}${rows}</div>` +
+      `</section>`;
+  }
+
+  // Lê os controles que estiverem na tela, mantendo o resto do rascunho
+  function readSettings(base) {
+    const next = cloneCfg(base);
+    Object.keys(PU).forEach(k => { next.types[k] = next.types[k] || { init: false, live: false }; });
+    cfgPanel.querySelectorAll('.seg[data-k]').forEach(g => {
+      const on = g.querySelector('button.on');
+      if (!on) return;
+      const k = g.dataset.k;
+      next[k] = NUMKEYS.includes(k) ? Number(on.dataset.v) : on.dataset.v;
+    });
+    cfgPanel.querySelectorAll('.tg').forEach(b => { next.types[b.dataset.t][b.dataset.w] = b.classList.contains('on'); });
+    return next;
+  }
+
+  function renderSettings() {
+    cfgPanel.innerHTML = view === 'manual' ? manualHtml(draft) : configHtml(draft);
+    cfgManualBtn.textContent = view === 'manual' ? '← Voltar' : '📖 Manual';
+    cfgPanel.querySelectorAll('.seg[data-k] button').forEach(b => b.addEventListener('click', () => {
+      b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    }));
+    cfgPanel.querySelectorAll('.tg').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+    cfgPanel.querySelectorAll('.presets button').forEach(b => b.addEventListener('click', () => {
+      draft = cloneCfg(PRESETS[b.dataset.p].cfg);
+      renderSettings();
+    }));
+  }
+
+  function openSettings() {
+    draft = cloneCfg(cfg);
+    view = 'config';
+    renderSettings();
+    toolbar.classList.remove('open');
+    dockToggle.setAttribute('aria-label', 'Abrir ferramentas');
+    cfgModal.classList.add('open');
+    cfgPanel.scrollTop = 0;
+  }
+  function closeSettings() { cfgModal.classList.remove('open'); }
+
+  document.querySelector('#openCfg').addEventListener('click', openSettings);
+  document.querySelector('#cfgClose').addEventListener('click', closeSettings);
+  cfgManualBtn.addEventListener('click', () => {
+    draft = readSettings(draft);
+    view = view === 'manual' ? 'config' : 'manual';
+    renderSettings();
+    cfgPanel.scrollTop = 0;
+  });
+  document.querySelector('#cfgApply').addEventListener('click', () => {
+    cfg = readSettings(draft);
+    saveCfg();
+    setupPending = false;
+    syncCountButtons();
+    closeSettings();
+    restartMatch();
+  });
+
+  document.querySelector('#fullscreen').addEventListener('click', async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch(e) {}
+  });
+
+  // Girou a tela ou mudou o tamanho: redesenha as linhas das trincas após o novo layout
+  const relayout = () => requestAnimationFrame(() => requestAnimationFrame(refreshLines));
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', relayout);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moinho 40 Nós - CAPs Rua 8</title>
+    <style>
+        /* ANIMAÇÕES DE PULSAÇÃO PARA AS BORDAS (TURNOS) */
+        /* Neon de um lado só: cor vem das variáveis --c (cor) e --c2 (cor clara) */
+        @keyframes neon-side { 0%, 100% { background: var(--c); box-shadow: 0 0 8px var(--c), 0 0 20px var(--c); } 50% { background: var(--c2); box-shadow: 0 0 12px var(--c2), 0 0 32px var(--c2); } }
+
+        @keyframes neon-pulse-red { 0%, 100% { box-shadow: 0 0 5px #f44336, 0 0 15px #f44336; } 50% { box-shadow: 0 0 5px #f44336, 0 0 25px #ff5757; } }
+        @keyframes neon-pulse-cyan { 0%, 100% { box-shadow: 0 0 5px #00BCD4, 0 0 15px #00BCD4; } 50% { box-shadow: 0 0 5px #00BCD4, 0 0 25px #84FFFF; } }
+        @keyframes sequential-glow { 0%, 25%, 100% { box-shadow: none; transform: scale(1); border-color: rgba(255,255,255,0.2); } 12.5% { box-shadow: 0 0 20px white; transform: scale(1.05); border-color: white; } }
+        @keyframes pop { 0% { transform: translate(-50%, -50%) scale(1.0); } 50% { transform: translate(-50%, -50%) scale(1.3); } 100% { transform: translate(-50%, -50%) scale(1.0); } }
+
+        body { font-family: 'Arial', sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; min-height: 100vh; }
+
+        #fine-tune-controls { position: relative; background-color: #1f1f1f; padding: 15px; border-radius: 12px; width: 95vw; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        #toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
+        .tool-btn { width: 36px; height: 36px; padding: 0; background: #2a2a2a; border: 1px solid #555; border-radius: 8px; color: #fff; font-size: 1.1em; cursor: pointer; line-height: 1; }
+        #manual-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1100; align-items: center; justify-content: center; }
+        .manual-box { background: #1f1f1f; border: 1px solid #444; border-radius: 12px; width: 92vw; max-width: 560px; height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        .manual-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #333; font-weight: bold; color: #00BCD4; }
+        #manual-close { background: #f44336; border: none; color: #fff; font-weight: bold; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em; }
+        .manual-tabs { display: flex; gap: 6px; padding: 8px 10px; }
+        .manual-tabs button { flex: 1; padding: 10px 4px; background: #2a2a2a; border: 1px solid #444; border-radius: 6px; color: #aaa; font-weight: bold; font-size: 0.75em; cursor: pointer; }
+        .manual-tabs button.active { background: #00BCD4; color: #000; border-color: #00BCD4; }
+        .manual-body { flex: 1; overflow-y: auto; padding: 4px 14px 16px; font-size: 0.85em; line-height: 1.45; }
+        .manual-body h4 { margin: 14px 0 4px; color: #00BCD4; font-size: 1em; }
+        .manual-body ul { margin: 0; padding-left: 18px; }
+        .manual-body li { margin-bottom: 4px; }
+
+        .palette-container { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; background: #000; padding: 5px; border-radius: 5px; margin: 8px 0; }
+        .swatch { width: 100%; padding-top: 50%; border-radius: 2px; cursor: pointer; border: 1px solid #333; }
+        .swatch.active { border: 2px solid #fff; transform: scale(1.1); }
+
+        .controls-wrapper { display: flex; justify-content: center; width: 98vw; max-width: 700px; margin-bottom: 15px; gap: 8px; }
+        .controls-wrapper button { padding: 15px 5px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; cursor: pointer; font-size: 0.75em; font-weight: bold; color: white; flex: 1; transition: 0.3s; }
+
+        #btn-2 { animation: sequential-glow 4s infinite 0s; background-color: #2196F3; }
+        #btn-3 { animation: sequential-glow 4s infinite 1s; background-color: #4CAF50; }
+        #btn-4 { animation: sequential-glow 4s infinite 2s; background-color: #FF9800; }
+
+        .mode-reset { background-color: #333; }
+        .mode-undo { background-color: #444; }
+        .mode-action { background-color: #37474f; letter-spacing: 1px; font-size: 0.85em !important; flex: 1.5 !important; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+        .waiting-confirm-reset { animation: neon-pulse-red 0.5s infinite !important; background-color: #f44336 !important; }
+        .waiting-confirm-undo { animation: neon-pulse-cyan 0.5s infinite !important; background-color: #00BCD4 !important; }
+
+        #center-cfg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9; cursor: pointer; background: transparent; -webkit-tap-highlight-color: transparent; }
+        #reset-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; }
+        .reset-box { display: flex; flex-direction: column; gap: 12px; width: 75vw; max-width: 320px; }
+        .reset-box button { padding: 20px 10px; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; font-size: 1em; font-weight: bold; color: #fff; cursor: pointer; }
+        #btn-new-round { background: #4CAF50; }
+        #btn-menu { background: #2196F3; }
+        .container { position: relative; margin: 16px auto 0; }
+        #board-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        /* Anéis: sem cantos arredondados e sem transição de tamanho, para a linha passar exatamente pelo centro dos nós */
+        .line-c5, .line-c4, .line-c3, .line-c2, .line-c1 { position: absolute; border-style: solid; transform: translate(-50%, -50%); top: 50%; left: 50%; box-sizing: border-box; }
+        #radial-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+
+        /* Indicador de turno: uma barra neon por lado do tabuleiro; só a do jogador da vez acende */
+        #turn-ring { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 5; }
+        .side { position: absolute; border-radius: 6px; opacity: 0; --c: #fff; --c2: #fff; }
+        .side.on { opacity: 1; animation: neon-side 1.2s infinite; }
+        .side-top { left: 0; right: 0; top: -13px; height: 6px; }
+        .side-bottom { left: 0; right: 0; bottom: -13px; height: 6px; }
+        .side-left { top: 0; bottom: 0; left: -13px; width: 6px; }
+        .side-right { top: 0; bottom: 0; right: -13px; width: 6px; }
+
+
+        .ponto { position: absolute; border-radius: 50%; cursor: pointer; border: 1px solid #555; z-index: 10; transform: translate(-50%, -50%); transition: transform 0.2s; background: radial-gradient(circle at 35% 35%, #FFF 5%, #888 70%); box-sizing: border-box; }
+        .ponto.red { background: radial-gradient(circle at 35% 35%, #FF8A80 5%, #f44336 70%); box-shadow: 0 0 10px #f44336; }
+        .ponto.blue { background: radial-gradient(circle at 35% 35%, #82B1FF 5%, #2196F3 70%); box-shadow: 0 0 10px #2196F3; }
+        .ponto.green { background: radial-gradient(circle at 35% 35%, #B9F6CA 5%, #4CAF50 70%); box-shadow: 0 0 10px #4CAF50; }
+        .ponto.orange { background: radial-gradient(circle at 35% 35%, #FFD180 5%, #FF9800 70%); box-shadow: 0 0 10px #FF9800; }
+        .ponto.pop { animation: pop 0.25s; }
+        .ponto.selected { border: 3px solid #00BCD4; transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 15px #00BCD4; }
+        .ponto.removable { border: 2px solid #fff; animation: neon-pulse-red 0.5s infinite; z-index: 20; }
+
+
+        .player-stat-box { padding: 4px 2px; border-radius: 4px; font-size: 0.62em; font-weight: bold; text-align: center; color: white; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+
+        .player-stats-bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; width: 95vw; max-width: 700px; margin-top: 18px; }
+        .legend { margin-top: 6px; font-size: 0.6em; color: #777; }
+    </style>
+</head>
+<body>
+
+    <div id="fine-tune-controls">
+        <div id="toolbar">
+            <button id="btn-manual" class="tool-btn" title="Manual">📖</button>
+            <button id="btn-fullscreen" class="tool-btn" title="Tela cheia">⛶</button>
+        </div>
+        <div class="control-group"><label>Linhas:</label><input type="range" id="line-thickness" min="1" max="15" value="3" oninput="vThick.innerText=this.value"><span id="vThick">3</span></div>
+        <div id="line-palette" class="palette-container"></div>
+        <div id="bg-palette" class="palette-container"></div>
+        <div class="control-group"><label>Largura:</label><input type="range" id="board-width" min="50" max="96" value="90" oninput="vWidth.innerText=this.value"><span id="vWidth">90</span></div>
+        <div class="control-group"><label>Altura:</label><input type="range" id="board-height" min="50" max="200" value="87" oninput="vHeight.innerText=this.value"><span id="vHeight">87</span></div>
+        <div class="control-group"><label>Nós:</label><input type="range" id="ponto-size" min="15" max="45" value="28" oninput="vPsize.innerText=this.value"><span id="vPsize">28</span></div>
+        <button id="apply-settings" style="width:100%; padding:15px; background:#4CAF50; border:none; border-radius:6px; color:white; font-weight:bold;">APLICAR</button>
+    </div>
+
+    <div id="game-ui" style="display:none; flex-direction:column; align-items:center;">
+        <div id="selection-controls" class="controls-wrapper">
+            <button id="btn-2">CASAL (2)</button><button id="btn-3">TRISAL (3)</button><button id="btn-4">SURUBA (4)</button>
+        </div>
+        <div id="action-controls" class="controls-wrapper" style="display: none;">
+            <button id="btn-undo" class="mode-undo">DESFAZER</button><button id="btn-action" class="mode-action">---</button><button id="btn-reset" class="mode-reset">RESET</button>
+        </div>
+        <div class="container" id="main-container">
+            <div id="turn-ring">
+                <div id="side-top" class="side side-top"></div>
+                <div id="side-right" class="side side-right"></div>
+                <div id="side-bottom" class="side side-bottom"></div>
+                <div id="side-left" class="side side-left"></div>
+            </div>
+            <div id="board-container">
+                <div id="line-c1" class="line-c1"></div>
+                <div id="line-c2" class="line-c2"></div>
+                <div id="line-c3" class="line-c3"></div>
+                <div id="line-c4" class="line-c4"></div>
+                <div id="line-c5" class="line-c5"></div>
+                <svg id="radial-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                <div id="pts-ctx"></div>
+                <div id="center-cfg"></div>
+            </div>
+        </div>
+        <div id="player-stats-bar" class="player-stats-bar"></div>
+        <div class="legend">J = jogador &nbsp;·&nbsp; ↓ a colocar &nbsp;·&nbsp; ● no tabuleiro</div>
+    </div>
+
+    <div id="reset-modal" onclick="if(event.target===this) this.style.display='none'">
+        <div class="reset-box">
+            <button id="btn-new-round">🔄 NOVA RODADA</button>
+            <button id="btn-menu">👥 Nº DE JOGADORES</button>
+        </div>
+    </div>
+
+    <div id="manual-modal" onclick="if(event.target===this) closeManual()">
+        <div class="manual-box">
+            <div class="manual-head"><span>📖 MANUAL</span><button id="manual-close">✕ FECHAR</button></div>
+            <div class="manual-tabs">
+                <button id="tab-app" class="active">📱 INTERFACE DO APP</button>
+                <button id="tab-rules">📜 REGRAS DO JOGO</button>
+            </div>
+            <div class="manual-body">
+                <div id="man-app">
+                    <h4>Personalizar</h4>
+                    <ul>
+                        <li>Ajuste espessura das linhas, cores de linha e fundo, largura, altura e tamanho dos nós. Toque em <b>APLICAR</b> para ver o tabuleiro.</li>
+                        <li>Para reabrir esta tela durante o jogo, toque no <b>centro do tabuleiro</b> (botão invisível). A partida não é perdida.</li>
+                        <li><b>⛶</b> liga/desliga a tela cheia. <b>📖</b> abre este manual.</li>
+                    </ul>
+                    <h4>Começar</h4>
+                    <ul>
+                        <li>Escolha <b>CASAL (2)</b>, <b>TRISAL (3)</b> ou <b>SURUBA (4)</b>.</li>
+                        <li>Cores: J1 vermelho, J2 azul, J3 verde, J4 laranja.</li>
+                    </ul>
+                    <h4>Botões do jogo</h4>
+                    <ul>
+                        <li><b>DESFAZER:</b> toque duas vezes para confirmar. Volta até 10 jogadas.</li>
+                        <li><b>Botão central:</b> mostra a ação da vez (COLOCAR, MOVER ou CAPTURAR) na cor do jogador. Toque nele para ligar/desligar a tela cheia.</li>
+                        <li><b>RESET:</b> escolha entre NOVA RODADA (mesmo nº de jogadores) ou Nº DE JOGADORES (volta ao menu). Tocar fora cancela.</li>
+                    </ul>
+                    <h4>Indicadores</h4>
+                    <ul>
+                        <li><b>Luz neon:</b> pisca no lado do tabuleiro de quem joga. Com 2 jogadores: J1 em cima e J2 embaixo. Com 3 ou 4: J1 em cima, J2 direita, J3 embaixo, J4 esquerda.</li>
+                        <li><b>Placar embaixo:</b> <code>J1 12↓ 3●</code> = 12 peças a colocar e 3 no tabuleiro. <code>✖</code> = eliminado.</li>
+                        <li><b>Fim:</b> o botão central mostra 🏆 e o vencedor (ou EMPATE).</li>
+                    </ul>
+                    <h4>Como jogar no toque</h4>
+                    <ul>
+                        <li><b>Colocar:</b> toque numa casa vazia.</li>
+                        <li><b>Mover:</b> toque na sua peça (fica destacada) e depois na casa de destino. Tocar de novo na peça desmarca; tocar em outra sua troca a seleção.</li>
+                        <li><b>Capturar:</b> as peças adversárias piscam em vermelho. Toque na que quer remover.</li>
+                    </ul>
+                </div>
+                <div id="man-rules" style="display:none;">
+                    <h4>Tabuleiro</h4>
+                    <ul>
+                        <li>5 quadrados encaixados, com 8 casas cada (40 casas no total).</li>
+                        <li>As casas também se ligam em linhas radiais entre os quadrados, <b>inclusive nos cantos</b>.</li>
+                    </ul>
+                    <h4>Peças</h4>
+                    <ul>
+                        <li>2 jogadores: 12 peças cada. 3 jogadores: 9. 4 jogadores: 7.</li>
+                        <li>A vez passa de J1 para J2, J3, J4 e volta, pulando os eliminados.</li>
+                    </ul>
+                    <h4>Fase 1: colocar</h4>
+                    <ul>
+                        <li>Na sua vez, coloque 1 peça numa casa vazia, até acabar suas peças.</li>
+                        <li>Enquanto tiver peça para colocar, você não move.</li>
+                    </ul>
+                    <h4>Fase 2: mover</h4>
+                    <ul>
+                        <li>Mova 1 peça sua para uma casa vazia ligada a ela por uma linha: ao longo do quadrado ou para o quadrado vizinho (linha radial).</li>
+                        <li><b>Voo:</b> com exatamente 3 peças no tabuleiro (e nada a colocar), você move para qualquer casa vazia.</li>
+                    </ul>
+                    <h4>Trinca (moinho)</h4>
+                    <ul>
+                        <li>3 peças da sua cor em linha: um lado de um quadrado (3 casas) ou uma linha radial com 3 quadrados seguidos (1-2-3, 2-3-4 ou 3-4-5).</li>
+                        <li>Ao formar uma trinca, colocando ou movendo, você captura <b>1 peça</b> adversária à sua escolha, mesmo que ela esteja numa trinca.</li>
+                        <li>Fechar duas trincas de uma vez também captura só 1 peça.</li>
+                        <li>Se o adversário não tem peça no tabuleiro, não há captura.</li>
+                    </ul>
+                    <h4>Eliminação</h4>
+                    <ul>
+                        <li>Sem peças a colocar, você é eliminado se tiver menos de 3 peças no tabuleiro ou se estiver bloqueado (sem nenhum movimento possível).</li>
+                        <li>As peças do eliminado saem do tabuleiro.</li>
+                        <li>Cada eliminação dá <b>+3 peças a colocar</b> para cada jogador que continua. Quem recebe volta a colocar peças.</li>
+                    </ul>
+                    <h4>Vitória</h4>
+                    <ul>
+                        <li>Vence o último jogador que restar. Se todos forem eliminados, é empate.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let boardState = {}, players = [], currentPlayerIndex = 0, gameState = 'INITIAL';
+        let selectedPoint = null, removeMode = false, pendingCaptures = 0, hist = [], popId = null;
+        let numPlayers = 0;
+        let selLineCol = "#aaaaaa", selBgCol = "#1a1a1a";
+        let validMills = [];
+        const moveConns = {};
+
+        // REGRA: captura sempre de 1 peça por jogada, mesmo se fechar 2+ moinhos de uma vez (true = 1 captura por moinho).
+        const MULTI_CAPTURE = false;
+        const COLOR_NAMES = { red: 'VERMELHO', blue: 'AZUL', green: 'VERDE', orange: 'LARANJA' };
+        const COLOR_LIGHT = { red: '#ff8a80', blue: '#82b1ff', green: '#b9f6ca', orange: '#ffd180' };
+        // Lado do tabuleiro de cada jogador (J1, J2, ...). Com 2 jogadores: frente a frente.
+        const SIDES_2P = ['top', 'bottom'], SIDES_4P = ['top', 'right', 'bottom', 'left'];
+        const COLOR_HEX = { red: '#f44336', blue: '#2196F3', green: '#4CAF50', orange: '#FF9800' };
+
+        function toggleFullscreen() {
+            const docElm = document.documentElement;
+            if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                if (docElm.requestFullscreen) docElm.requestFullscreen();
+                else if (docElm.mozRequestFullScreen) docElm.mozRequestFullScreen();
+                else if (docElm.webkitRequestFullScreen) docElm.webkitRequestFullScreen();
+                else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+            }
+        }
+        document.getElementById('btn-fullscreen').onclick = toggleFullscreen;
+
+        // MANUAL
+        function showManual(tab) {
+            document.getElementById('man-app').style.display = tab === 'app' ? 'block' : 'none';
+            document.getElementById('man-rules').style.display = tab === 'rules' ? 'block' : 'none';
+            document.getElementById('tab-app').classList.toggle('active', tab === 'app');
+            document.getElementById('tab-rules').classList.toggle('active', tab === 'rules');
+            document.querySelector('.manual-body').scrollTop = 0;
+        }
+        function closeManual() { document.getElementById('manual-modal').style.display = 'none'; }
+        document.getElementById('btn-manual').onclick = () => { showManual('app'); document.getElementById('manual-modal').style.display = 'flex'; };
+        document.getElementById('manual-close').onclick = closeManual;
+        document.getElementById('tab-app').onclick = () => showManual('app');
+        document.getElementById('tab-rules').onclick = () => showManual('rules');
+        document.getElementById('btn-action').onclick = toggleFullscreen;
+
+        function init() {
+            const lPal = document.getElementById('line-palette'), bPal = document.getElementById('bg-palette');
+            // 30 cores vivas + 10 tons neutros/escuros (inclui o fundo e a linha padrão)
+            const neutros = ["#ffffff", "#cccccc", "#aaaaaa", "#777777", "#444444", "#2a2a2a", "#1a1a1a", "#0d0d0d", "#000000", "#0b1d3a"];
+            const cores = [];
+            for (let i = 0; i < 30; i++) cores.push(`hsl(${i * 12}, 70%, 50%)`);
+            const all = cores.concat(neutros);
+            all.forEach(color => {
+                [lPal, bPal].forEach((pal, idx) => {
+                    const d = document.createElement('div'); d.className = 'swatch'; d.style.backgroundColor = color;
+                    if ((idx === 0 && color === selLineCol) || (idx === 1 && color === selBgCol)) d.classList.add('active');
+                    d.onclick = () => {
+                        pal.querySelectorAll('.swatch').forEach(s => s.classList.remove('active')); d.classList.add('active');
+                        if (idx === 0) selLineCol = color; else selBgCol = color;
+                    }; pal.appendChild(d);
+                });
+            });
+        }
+
+        document.getElementById('apply-settings').onclick = () => {
+            document.getElementById('fine-tune-controls').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'flex';
+            const thick = parseInt(document.getElementById('line-thickness').value, 10);
+            const w = document.getElementById('board-width').value, h = document.getElementById('board-height').value;
+            let pSize = parseInt(document.getElementById('ponto-size').value, 10);
+
+            // Altura via aspect-ratio (independe da largura do elemento pai)
+            const container = document.getElementById('main-container');
+            container.style.width = w + 'vw'; container.style.aspectRatio = `100 / ${h}`;
+            const board = document.getElementById('board-container'); board.style.backgroundColor = selBgCol;
+
+            // Limita o tamanho dos nós para não se sobreporem (distância mínima entre nós = 10% da menor dimensão)
+            const rect = container.getBoundingClientRect();
+            const maxNode = Math.floor(Math.min(rect.width, rect.height) * 0.1 - 2);
+            pSize = Math.max(12, Math.min(pSize, maxNode));
+
+            // Anéis: largura = s% + espessura, assim o CENTRO da linha passa exatamente pelos nós
+            for (let i = 1; i <= 5; i++) {
+                const l = document.getElementById(`line-c${i}`);
+                const s = [100, 80, 60, 40, 20][i-1];
+                l.style.borderWidth = thick + 'px'; l.style.borderColor = selLineCol;
+                l.style.width = `calc(${s}% + ${thick}px)`; l.style.height = `calc(${s}% + ${thick}px)`;
+            }
+
+            const coordsFor = m => ({1:[m,m], 2:[m,50], 3:[m,100-m], 4:[50,100-m], 5:[100-m,100-m], 6:[100-m,50], 7:[100-m,m], 8:[50,m]});
+
+            // Linhas radiais (todas as 8 posições, igual à regra de movimento e de moinho)
+            const svg = document.getElementById('radial-svg'); svg.innerHTML = '';
+            const c1 = coordsFor(0), c5 = coordsFor(40);
+            for (let p = 1; p <= 8; p++) {
+                const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                ln.setAttribute('x1', c1[p][1]); ln.setAttribute('y1', c1[p][0]);
+                ln.setAttribute('x2', c5[p][1]); ln.setAttribute('y2', c5[p][0]);
+                ln.setAttribute('stroke', selLineCol); ln.setAttribute('stroke-width', thick);
+                ln.setAttribute('vector-effect', 'non-scaling-stroke');
+                svg.appendChild(ln);
+            }
+
+            // Botão invisível central (cabe dentro do anel 5, sem tocar nos nós): abre a personalização
+            const cfg = document.getElementById('center-cfg');
+            cfg.style.width = cfg.style.height = `calc(20% - ${pSize + 4}px)`;
+
+            const ctx = document.getElementById('pts-ctx'); ctx.innerHTML = '';
+            for (let l = 1; l <= 5; l++) {
+                const s = [100, 80, 60, 40, 20][l-1], m = (100 - s) / 2;
+                const coords = coordsFor(m);
+                for (let p = 1; p <= 8; p++) {
+                    const id = `ponto-${l}-${p}`;
+                    const d = document.createElement('div'); d.id = id; d.className = 'ponto';
+                    d.style.width = d.style.height = pSize + 'px'; d.style.top = coords[p][0] + '%'; d.style.left = coords[p][1] + '%';
+                    d.onclick = () => handleInput(id); ctx.appendChild(d);
+                    if (!(id in boardState)) boardState[id] = null; // preserva peças ao reaplicar
+                    moveConns[id] = [`ponto-${l}-${p===8?1:p+1}`, `ponto-${l}-${p===1?8:p-1}`];
+                    if (l > 1) moveConns[id].push(`ponto-${l-1}-${p}`);
+                    if (l < 5) moveConns[id].push(`ponto-${l+1}-${p}`);
+                }
+            }
+            generateMillDictionary();
+            updateUI(); // repinta peças/neon se já houver partida em andamento
+        };
+
+        function openSettings() {
+            document.getElementById('game-ui').style.display = 'none';
+            document.getElementById('fine-tune-controls').style.display = 'block';
+        }
+        document.getElementById('center-cfg').onclick = openSettings;
+
+        function generateMillDictionary() {
+            validMills = [];
+            for (let l = 1; l <= 5; l++) {
+                validMills.push([`ponto-${l}-1`, `ponto-${l}-2`, `ponto-${l}-3`], [`ponto-${l}-7`, `ponto-${l}-6`, `ponto-${l}-5`], [`ponto-${l}-1`, `ponto-${l}-8`, `ponto-${l}-7`], [`ponto-${l}-3`, `ponto-${l}-4`, `ponto-${l}-5`]);
+            }
+            for (let p = 1; p <= 8; p++) {
+                for (let l = 1; l <= 3; l++) validMills.push([`ponto-${l}-${p}`, `ponto-${l+1}-${p}`, `ponto-${l+2}-${p}`]);
+            }
+        }
+
+        function start(n) {
+            const cols = ['red', 'blue', 'green', 'orange'];
+            numPlayers = n;
+            Object.keys(boardState).forEach(k => boardState[k] = null); hist = []; popId = null;
+            players = cols.slice(0, n).map((c, i) => ({ id: i+1, color: c, piecesToPlace: n === 2 ? 12 : (n === 3 ? 9 : 7), isEliminated: false }));
+            gameState = 'PLAYING'; currentPlayerIndex = 0; selectedPoint = null; removeMode = false; pendingCaptures = 0;
+            document.getElementById('selection-controls').style.display = 'none';
+            document.getElementById('action-controls').style.display = 'flex';
+            save(); updateUI();
+        }
+
+        function countOnBoard(color) { return Object.values(boardState).filter(v => v === color).length; }
+        function countTargets(color) { return Object.values(boardState).filter(v => v && v !== color).length; }
+
+        // Chamado após colocar/mover uma peça: abre capturas (se houver moinho e alvos) ou encerra o turno
+        function afterMove(id, p) {
+            const mills = countMills(id, p.color);
+            if (mills > 0) {
+                const n = Math.min(MULTI_CAPTURE ? mills : 1, countTargets(p.color));
+                if (n > 0) { pendingCaptures = n; removeMode = true; return; }
+            }
+            finalize();
+        }
+
+        function handleInput(id) {
+            if (gameState !== 'PLAYING') return;
+            const p = players[currentPlayerIndex], val = boardState[id];
+            let changed = false;
+
+            if (removeMode) {
+                if (val && val !== p.color) {
+                    boardState[id] = null; changed = true;
+                    pendingCaptures--;
+                    if (pendingCaptures > 0 && countTargets(p.color) === 0) pendingCaptures = 0; // sem alvos: não trava
+                    if (pendingCaptures <= 0) { pendingCaptures = 0; removeMode = false; finalize(); }
+                }
+            } else if (p.piecesToPlace > 0) {
+                if (!val) { boardState[id] = p.color; p.piecesToPlace--; popId = id; changed = true; afterMove(id, p); }
+            } else {
+                if (!selectedPoint) { if (val === p.color) selectedPoint = id; }
+                else if (selectedPoint === id) selectedPoint = null;
+                else if (val === p.color) selectedPoint = id; // troca a peça selecionada
+                else if (!val && boardState[selectedPoint] === p.color) {
+                    if (countOnBoard(p.color) === 3 || moveConns[selectedPoint].includes(id)) {
+                        boardState[selectedPoint] = null; boardState[id] = p.color; selectedPoint = null;
+                        popId = id; changed = true; afterMove(id, p);
+                    }
+                }
+            }
+            if (changed) save(); // só grava no histórico quando algo realmente mudou
+            updateUI();
+        }
+
+        function finalize() {
+            let eliminatedCount = 0;
+            const n = players.length;
+            // Verifica na ORDEM DO TURNO (o próximo a jogar primeiro), sem favorecer o J1
+            for (let k = 1; k <= n; k++) {
+                const pl = players[(currentPlayerIndex + k) % n];
+                if (pl.isEliminated) continue;
+                const onB = countOnBoard(pl.color);
+                let shouldEliminate = (pl.piecesToPlace === 0 && onB < 3);
+
+                if (!shouldEliminate && pl.piecesToPlace === 0) {
+                    const canMove = Object.keys(boardState).some(id => {
+                        if (boardState[id] !== pl.color) return false;
+                        if (onB === 3) return true;
+                        return moveConns[id].some(target => !boardState[target]);
+                    });
+                    if (!canMove) shouldEliminate = true;
+                }
+
+                if (shouldEliminate) {
+                    pl.isEliminated = true;
+                    eliminatedCount++;
+                    Object.keys(boardState).forEach(id => { if (boardState[id] === pl.color) boardState[id] = null; });
+                }
+            }
+
+            const alive = players.filter(p => !p.isEliminated);
+            if (alive.length <= 1) {
+                gameState = 'END'; selectedPoint = null;
+                if (alive.length === 1) currentPlayerIndex = players.indexOf(alive[0]);
+                return;
+            }
+
+            // +3 peças para cada jogador eliminado
+            if (eliminatedCount > 0) alive.forEach(pl => { pl.piecesToPlace += 3 * eliminatedCount; });
+
+            do { currentPlayerIndex = (currentPlayerIndex + 1) % players.length; } while (players[currentPlayerIndex].isEliminated);
+        }
+
+        function updateUI() {
+            const p = players[currentPlayerIndex]; if (!p) return;
+
+            // Neon: acende só o lado do jogador da vez
+            document.querySelectorAll('.side').forEach(el => el.classList.remove('on'));
+            const sides = players.length === 2 ? SIDES_2P : SIDES_4P;
+            const sideEl = document.getElementById('side-' + sides[currentPlayerIndex]);
+            sideEl.style.setProperty('--c', COLOR_HEX[p.color]); sideEl.style.setProperty('--c2', COLOR_LIGHT[p.color]);
+            sideEl.classList.add('on');
+
+            Object.keys(boardState).forEach(id => {
+                const el = document.getElementById(id); el.className = 'ponto ' + (boardState[id] || '');
+                if (id === popId) el.classList.add('pop');
+                if (id === selectedPoint) el.classList.add('selected');
+                if (removeMode && boardState[id] && boardState[id] !== p.color) el.classList.add('removable');
+            });
+            popId = null;
+
+            // Botão central: só a AÇÃO, na cor do jogador da vez (toque = liga/desliga tela cheia)
+            const btnA = document.getElementById('btn-action');
+            if (gameState === 'END') {
+                const alive = players.filter(x => !x.isEliminated);
+                if (alive.length === 1) { btnA.innerText = `🏆 J${alive[0].id}`; btnA.style.background = COLOR_HEX[alive[0].color]; }
+                else { btnA.innerText = 'EMPATE'; btnA.style.background = '#555'; }
+            } else {
+                btnA.innerText = removeMode ? 'CAPTURAR' : (p.piecesToPlace > 0 ? 'COLOCAR' : 'MOVER');
+                btnA.style.background = COLOR_HEX[p.color];
+            }
+
+            const bar = document.getElementById('player-stats-bar'); bar.innerHTML = '';
+            players.forEach(pl => {
+                const d = document.createElement('div'); d.className = 'player-stat-box'; d.style.background = pl.isEliminated ? '#222' : COLOR_HEX[pl.color];
+                d.innerText = pl.isEliminated ? `J${pl.id} ✖` : `J${pl.id} ${pl.piecesToPlace}↓ ${countOnBoard(pl.color)}●`;
+                bar.appendChild(d);
+            });
+        }
+
+        // RESET: só duas opções (tocar fora do quadro cancela)
+        document.getElementById('btn-reset').onclick = () => { document.getElementById('reset-modal').style.display = 'flex'; };
+        document.getElementById('btn-new-round').onclick = () => {
+            document.getElementById('reset-modal').style.display = 'none';
+            start(numPlayers); // limpa tudo e inicia nova partida com o mesmo nº de jogadores
+        };
+        document.getElementById('btn-menu').onclick = () => {
+            document.getElementById('reset-modal').style.display = 'none';
+            Object.keys(boardState).forEach(k => boardState[k] = null);
+            players = []; hist = []; gameState = 'INITIAL'; currentPlayerIndex = 0;
+            selectedPoint = null; removeMode = false; pendingCaptures = 0; popId = null; numPlayers = 0;
+            Object.keys(boardState).forEach(id => { document.getElementById(id).className = 'ponto'; });
+            document.querySelectorAll('.side').forEach(el => el.classList.remove('on'));
+            document.getElementById('player-stats-bar').innerHTML = '';
+            document.getElementById('action-controls').style.display = 'none';
+            document.getElementById('selection-controls').style.display = 'flex';
+        };
+
+        document.getElementById('btn-undo').onclick = function() {
+            if (hist.length <= 1) return;
+            if (!this.classList.contains('waiting-confirm-undo')) {
+                this.classList.add('waiting-confirm-undo');
+                setTimeout(() => this.classList.remove('waiting-confirm-undo'), 3000);
+            } else {
+                this.classList.remove('waiting-confirm-undo');
+                hist.pop();
+                const s = JSON.parse(JSON.stringify(hist[hist.length-1]));
+                boardState = s.b; players = s.p; currentPlayerIndex = s.i;
+                pendingCaptures = s.r; removeMode = s.r > 0; gameState = s.g;
+                selectedPoint = null; popId = null;
+                updateUI();
+            }
+        };
+
+        function countMills(id, col) { return validMills.filter(t => t.includes(id) && t.every(p => boardState[p] === col)).length; }
+
+        function save() {
+            hist.push({ b: JSON.parse(JSON.stringify(boardState)), p: JSON.parse(JSON.stringify(players)), i: currentPlayerIndex, r: pendingCaptures, g: gameState });
+            if (hist.length > 11) hist.shift(); // 10 estados de retorno + o estado atual
+        }
+
+        [2,3,4].forEach(n => document.getElementById(`btn-${n}`).onclick = () => start(n));
+        window.onload = init;
+    </script>
+</body>
+</html>
