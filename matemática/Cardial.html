@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cardial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #FFFFFF;
+      --blue-btn: #0018E0;
+      --red-btn: #ED0000;
+      --yellow-btn: #FFCC00;
+      --text-main: #0A0A0A;
+      --green-win: #00C853;
+      --green-dark: #008E3A;
+      --red-err: #ED0000;
+      --red-dark: #A80000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ================= TELA INICIAL ================= */
+    #start-screen {
+      position: fixed;
+      inset: 0;
+      background: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #start-screen.hidden {
+      opacity: 0;
+      transform: scale(1.06);
+      pointer-events: none;
+    }
+
+    #btn-start {
+      position: relative;
+      padding: clamp(22px, 4vw, 34px) clamp(54px, 9vw, 92px);
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #FFFFFF;
+      background: linear-gradient(145deg, #0018E0 0%, #001099 100%);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow:
+        0 18px 38px rgba(0, 24, 224, 0.28),
+        0 4px 12px rgba(0, 0, 0, 0.12),
+        inset 0 2px 2px rgba(255, 255, 255, 0.35);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    }
+
+    #btn-start:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow:
+        0 24px 46px rgba(0, 24, 224, 0.36),
+        0 6px 16px rgba(0, 0, 0, 0.14),
+        inset 0 2px 2px rgba(255, 255, 255, 0.45);
+    }
+
+    #btn-start:active {
+      transform: scale(0.95);
+    }
+
+    /* ================= TELA DE SELEÇÃO DE MODOS (INFANTIL & LANDSCAPE) ================= */
+    #mode-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 15% 15%, #FFF8E1 0%, #FFFFFF 48%, #EEF4FF 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(10px, 2vh, 22px) clamp(12px, 2.2vw, 28px);
+      z-index: 90;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+      transition: opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1), transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+    }
+
+    #mode-screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    #mode-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding-bottom: clamp(6px, 1.2vh, 14px);
+      flex-shrink: 0;
+    }
+
+    #mode-title {
+      font-size: clamp(1.35rem, 3.3vw, 2.5rem);
+      font-weight: 900;
+      letter-spacing: -0.025em;
+      color: #0A0A0A;
+      text-align: center;
+      background: linear-gradient(90deg, #0018E0 0%, #ED0000 50%, #00A844 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      cursor: pointer;
+    }
+
+    #modes-grid {
+      flex: 1 1 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: clamp(8px, 1.5vw, 18px);
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .mode-card {
+      position: relative;
+      overflow: hidden;
+      border: none;
+      border-radius: clamp(18px, 2.5vw, 30px);
+      color: #FFFFFF;
+      font-family: inherit;
+      font-weight: 900;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(6px, 1vh, 14px) clamp(8px, 1.2vw, 16px);
+      cursor: pointer;
+      box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.14),
+        inset 0 3px 3px rgba(255, 255, 255, 0.38),
+        inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease, box-shadow 0.18s ease;
+      animation: cardPopIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-4px) scale(1.03);
+      filter: brightness(1.06);
+      box-shadow:
+        0 14px 28px rgba(0, 0, 0, 0.20),
+        inset 0 3px 4px rgba(255, 255, 255, 0.5),
+        inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .mode-card:active {
+      transform: scale(0.93);
+    }
+
+    /* Paleta vibrante infantil para os cards */
+    .mc-blue   { background: linear-gradient(145deg, #0026FF 0%, #0014B8 100%); }
+    .mc-red    { background: linear-gradient(145deg, #FF1E1E 0%, #CC0000 100%); }
+    .mc-yellow { background: linear-gradient(145deg, #FFD400 0%, #F5A600 100%); color: #1A1200; text-shadow: 0 1px 0 rgba(255,255,255,0.45); }
+    .mc-green  { background: linear-gradient(145deg, #00D65B 0%, #009E42 100%); }
+    .mc-purple { background: linear-gradient(145deg, #8B2CFF 0%, #5E00D6 100%); }
+    .mc-orange { background: linear-gradient(145deg, #FF6D00 0%, #D94E00 100%); }
+    .mc-cyan   { background: linear-gradient(145deg, #00B8D4 0%, #00839E 100%); }
+    .mc-pink   { background: linear-gradient(145deg, #FF2A85 0%, #C70058 100%); }
+
+    .mode-range {
+      font-size: clamp(1.25rem, 2.7vw, 2.45rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    .mode-range.compact-num {
+      font-size: clamp(1.05rem, 2.15vw, 1.95rem);
+    }
+
+    .mode-sub {
+      font-size: clamp(0.75rem, 1.3vw, 1.05rem);
+      font-weight: 800;
+      opacity: 0.9;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    @keyframes cardPopIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.72) translateY(18px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* ================= MODAL DE VALOR PERSONALIZADO ================= */
+    #custom-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 14, 30, 0.72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(10px, 2vw, 24px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease;
+    }
+
+    #custom-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .custom-box {
+      width: min(94vw, 760px);
+      max-height: 94dvh;
+      background: #FFFFFF;
+      border-radius: 32px;
+      padding: clamp(14px, 2.5vh, 26px) clamp(16px, 3vw, 32px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(10px, 1.8vh, 18px);
+      transform: scale(0.92);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #custom-modal.active .custom-box {
+      transform: scale(1);
+    }
+
+    .custom-title {
+      font-size: clamp(1.3rem, 2.8vw, 2.1rem);
+      font-weight: 900;
+      text-align: center;
+      color: #0018E0;
+    }
+
+    .custom-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(10px, 2vw, 20px);
+    }
+
+    .custom-field-card {
+      border: 3px solid #E2E8F0;
+      border-radius: 22px;
+      padding: clamp(8px, 1.4vh, 14px) clamp(12px, 2vw, 20px);
+      background: #F8FAFC;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .custom-field-card.selected {
+      border-color: #0018E0;
+      background: #EEF2FF;
+      transform: scale(1.02);
+      box-shadow: 0 0 0 4px rgba(0, 24, 224, 0.14);
+    }
+
+    .custom-field-label {
+      font-size: clamp(0.8rem, 1.5vw, 1.05rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #475569;
+      letter-spacing: 0.05em;
+    }
+
+    .custom-field-val {
+      font-size: clamp(1.6rem, 3.6vw, 2.8rem);
+      font-weight: 900;
+      color: #0A0A0A;
+      line-height: 1.15;
+      min-height: 1.2em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .custom-keypad {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: clamp(6px, 1.2vw, 12px);
+    }
+
+    .ck-btn {
+      border: none;
+      border-radius: 18px;
+      padding: clamp(10px, 1.8vh, 16px) 0;
+      font-family: inherit;
+      font-size: clamp(1.25rem, 2.6vw, 1.9rem);
+      font-weight: 900;
+      color: #FFFFFF;
+      background: #0018E0;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    .ck-btn:nth-child(even) { background: #ED0000; }
+    .ck-btn:nth-child(3n)   { background: #FFCC00; color: #1A1200; }
+    .ck-btn.ck-del         { background: #334155; color: #FFFFFF; }
+
+    .ck-btn:active {
+      transform: scale(0.92);
+    }
+
+    .custom-actions {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: clamp(10px, 2vw, 18px);
+    }
+
+    .custom-action-btn {
+      border: none;
+      border-radius: 999px;
+      padding: clamp(12px, 2vh, 18px) 20px;
+      font-family: inherit;
+      font-size: clamp(1.1rem, 2.3vw, 1.65rem);
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .custom-action-btn:active { transform: scale(0.95); }
+
+    #btn-custom-cancel {
+      background: #E2E8F0;
+      color: #1E293B;
+    }
+
+    #btn-custom-play {
+      background: linear-gradient(145deg, #00C853 0%, #00963E 100%);
+      color: #FFFFFF;
+      box-shadow: 0 10px 24px rgba(0, 200, 83, 0.32);
+    }
+
+    #custom-error-msg {
+      text-align: center;
+      font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+      font-weight: 800;
+      color: #ED0000;
+      min-height: 1.2em;
+    }
+
+    /* ================= CANVAS DE PARTÍCULAS ================= */
+    #fx-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* ================= FLASH / HALO DE TELA ================= */
+    #screen-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 35;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    #screen-flash.flash-success {
+      background: radial-gradient(circle at center, rgba(0, 200, 83, 0.18) 0%, rgba(0, 200, 83, 0.42) 100%);
+      opacity: 1;
+    }
+
+    #screen-flash.flash-error {
+      background: radial-gradient(circle at center, rgba(237, 0, 0, 0.14) 0%, rgba(237, 0, 0, 0.38) 100%);
+      opacity: 1;
+    }
+
+    /* ================= CONTAINER PRINCIPAL ================= */
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      max-width: 100vw;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: clamp(10px, 2vh, 22px) clamp(8px, 1.8vw, 24px);
+      background: #FFFFFF;
+      z-index: 10;
+    }
+
+    /* ================= TOPO (NÚMERO POR EXTENSO) ================= */
+    #top-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(4px, 1vh, 12px) clamp(8px, 2vw, 20px);
+      min-height: clamp(56px, 11vh, 110px);
+      z-index: 20;
+    }
+
+    #target-word {
+      position: relative;
+      font-size: clamp(1.55rem, 4.8vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      color: #000000;
+      text-align: center;
+      cursor: pointer;
+      padding: 8px 18px;
+      border-radius: 20px;
+      transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+    }
+
+    #target-word:hover {
+      background-color: rgba(0, 0, 0, 0.035);
+    }
+
+    #target-word:active,
+    #target-word.speaking {
+      transform: scale(1.04);
+      background-color: rgba(0, 24, 224, 0.07);
+    }
+
+    #target-word.fs-toggled {
+      animation: fsPulse 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes fsPulse {
+      0% { transform: scale(1); }
+      40% { transform: scale(0.92); color: var(--blue-btn); }
+      100% { transform: scale(1); }
+    }
+
+    /* ================= ÁREA DE TRABALHO (COLUNAS + CENTRO) ================= */
+    #main-arena {
+      display: grid;
+      grid-template-columns: clamp(66px, 14vw, 136px) 1fr clamp(66px, 14vw, 136px);
+      align-items: stretch;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      gap: clamp(4px, 1.5vw, 18px);
+    }
+
+    /* ================= COLUNAS DE BOTÕES NUMÉRICOS ================= */
+    .num-column {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+      padding: clamp(2px, 0.6vh, 8px) 0;
+      gap: clamp(4px, 0.8vh, 10px);
+    }
+
+    .num-btn {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      flex: 1 1 0;
+      max-height: 19%;
+      border: none;
+      border-radius: 999px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: clamp(1.5rem, 3.8vh, 2.8rem);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+      transition: transform 0.13s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .num-btn.blue {
+      background-color: var(--blue-btn);
+    }
+
+    .num-btn.red {
+      background-color: var(--red-btn);
+    }
+
+    .num-btn.yellow {
+      background-color: var(--yellow-btn);
+      color: #FFFFFF;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+    }
+
+    .num-btn:active,
+    .num-btn.pressed {
+      transform: scale(0.90);
+      filter: brightness(1.12);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .num-column.locked .num-btn {
+      opacity: 0.45;
+      pointer-events: none;
+      transform: scale(0.97);
+    }
+
+    /* Efeito Ripple elegante dentro dos botões */
+    .ripple-wave {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.55);
+      transform: scale(0);
+      animation: rippleAnim 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      pointer-events: none;
+    }
+
+    @keyframes rippleAnim {
+      to {
+        transform: scale(3.2);
+        opacity: 0;
+      }
+    }
+
+    /* ================= ÁREA CENTRAL + PLACAR INFERIOR ================= */
+    #center-stage {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+      min-width: 0;
+      padding: clamp(4px, 1vh, 14px) 0;
+    }
+
+    /* Botão Display Central */
+    #display-btn {
+      position: relative;
+      flex: 1 1 auto;
+      width: 100%;
+      max-width: 96%;
+      margin: auto 0;
+      background: transparent;
+      border: 3px solid transparent;
+      border-radius: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition:
+        background-color 0.28s ease,
+        border-color 0.28s ease,
+        transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.28s ease;
+    }
+
+    #display-btn:active {
+      transform: scale(0.96);
+    }
+
+    #display-digits {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(4.8rem, 22vw, 15.5rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: #000000;
+      transition: color 0.25s ease, transform 0.25s ease;
+    }
+
+    /* Placeholder sutil de traços quando vazio */
+    #display-digits.empty {
+      gap: clamp(10px, 2.5vw, 24px);
+    }
+
+    .digit-slot-empty {
+      display: inline-block;
+      width: clamp(32px, 7vw, 76px);
+      height: clamp(8px, 1.4vh, 14px);
+      border-radius: 999px;
+      background-color: rgba(0, 0, 0, 0.10);
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .digit-char {
+      display: inline-block;
+      animation: digitPop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes digitPop {
+      0% {
+        opacity: 0.3;
+        transform: scale(0.55) translateY(14px);
+      }
+      70% {
+        transform: scale(1.12) translateY(-3px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* Dica discreta abaixo dos dígitos apenas quando aguardando toque */
+    #display-hint {
+      position: absolute;
+      bottom: clamp(12px, 2.5vh, 26px);
+      font-size: clamp(0.85rem, 2vw, 1.15rem);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      pointer-events: none;
+    }
+
+    /* Estado ACERTO */
+    #display-btn.state-correct {
+      background: linear-gradient(180deg, rgba(0, 200, 83, 0.12) 0%, rgba(0, 200, 83, 0.22) 100%);
+      border-color: var(--green-win);
+      box-shadow: 0 0 0 6px rgba(0, 200, 83, 0.14), 0 18px 40px rgba(0, 200, 83, 0.22);
+      animation: celebrateBounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #display-btn.state-correct #display-digits {
+      color: var(--green-dark);
+      text-shadow: 0 4px 18px rgba(0, 200, 83, 0.25);
+    }
+
+    #display-btn.state-correct #display-hint {
+      opacity: 0.9;
+      color: var(--green-dark);
+      transform: translateY(0);
+    }
+
+    @keyframes celebrateBounce {
+      0% { transform: scale(0.94); }
+      45% { transform: scale(1.04); }
+      75% { transform: scale(0.99); }
+      100% { transform: scale(1); }
+    }
+
+    /* Estado ERRO */
+    #display-btn.state-wrong {
+      background: linear-gradient(180deg, rgba(237, 0, 0, 0.10) 0%, rgba(237, 0, 0, 0.20) 100%);
+      border-color: var(--red-err);
+      box-shadow: 0 0 0 6px rgba(237, 0, 0, 0.12), 0 18px 40px rgba(237, 0, 0, 0.18);
+      animation: errorShake 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    #display-btn.state-wrong #display-digits {
+      color: var(--red-dark);
+    }
+
+    #display-btn.state-wrong #display-hint {
+      opacity: 0.9;
+      color: var(--red-dark);
+      transform: translateY(0);
+    }
+
+    @keyframes errorShake {
+      0%, 100% { transform: translateX(0); }
+      16% { transform: translateX(-14px) rotate(-1deg); }
+      32% { transform: translateX(13px) rotate(1deg); }
+      48% { transform: translateX(-10px); }
+      64% { transform: translateX(9px); }
+      80% { transform: translateX(-4px); }
+    }
+
+    /* ================= PLACAR INFERIOR (4 NÚMEROS + BOTÃO FULLSCREEN CENTRAL) ================= */
+    #stats-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto 1fr 1fr;
+      align-items: center;
+      text-align: center;
+      padding: clamp(6px, 1.2vh, 14px) clamp(4px, 1vw, 12px) clamp(2px, 0.6vh, 8px);
+    }
+
+    #btn-fullscreen-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: clamp(32px, 4.5vw, 42px);
+      height: clamp(32px, 4.5vw, 42px);
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.045);
+      color: rgba(0, 0, 0, 0.36);
+      cursor: pointer;
+      padding: 6px;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #btn-fullscreen-toggle:hover {
+      background: rgba(0, 0, 0, 0.09);
+      color: rgba(0, 0, 0, 0.65);
+    }
+
+    #btn-fullscreen-toggle:active {
+      transform: scale(0.88);
+    }
+
+    #btn-fullscreen-toggle svg {
+      width: clamp(16px, 2.2vw, 21px);
+      height: clamp(16px, 2.2vw, 21px);
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .stat-value {
+      font-size: clamp(1rem, 2.4vw, 1.55rem);
+      font-weight: 800;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .stat-value.bump {
+      transform: scale(1.32);
+    }
+
+    #stat-total { color: #000000; }
+    #stat-hits  { color: var(--blue-btn); }
+    #stat-miss  { color: var(--red-btn); }
+    #stat-avg   { color: #000000; }
+
+    /* Ajustes específicos para retrato estreito */
+    @media (orientation: portrait) {
+      #main-arena {
+        grid-template-columns: clamp(62px, 18vw, 108px) 1fr clamp(62px, 18vw, 108px);
+      }
+      #display-digits {
+        font-size: clamp(4.2rem, 19vw, 9.5rem);
+      }
+      #modes-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+      }
+    }
+
+    /* Ajustes para números maiores (milhares/milhões) no visor central */
+    #display-digits.len-4 { font-size: clamp(3.8rem, 17vw, 12.5rem); }
+    #display-digits.len-5 { font-size: clamp(3.2rem, 14vw, 10.5rem); }
+    #display-digits.len-6 { font-size: clamp(2.7rem, 11.8vw, 8.8rem); }
+    #display-digits.len-7 { font-size: clamp(2.3rem, 10.2vw, 7.6rem); }
+  </style>
+</head>
+<body>
+
+  <!-- Tela Inicial -->
+  <div id="start-screen">
+    <button id="btn-start" type="button" aria-label="Iniciar Cardial">Cardial</button>
+  </div>
+
+  <!-- Tela de Seleção de Modos de Jogo -->
+  <section id="mode-screen" aria-label="Escolha o Modo de jogo">
+    <header id="mode-header">
+      <h2 id="mode-title" title="Toque para ouvir novamente">Escolha o Modo de jogo para iniciar</h2>
+    </header>
+    <div id="modes-grid"></div>
+  </section>
+
+  <!-- Modal de Valor Personalizado -->
+  <div id="custom-modal" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
+    <div class="custom-box">
+      <h3 class="custom-title" id="custom-modal-title">Intervalo Personalizado</h3>
+      <div class="custom-fields">
+        <div class="custom-field-card selected" id="field-min-card" data-field="min">
+          <span class="custom-field-label">De (Mínimo)</span>
+          <span class="custom-field-val" id="custom-min-val">0</span>
+        </div>
+        <div class="custom-field-card" id="field-max-card" data-field="max">
+          <span class="custom-field-label">Até (Máximo)</span>
+          <span class="custom-field-val" id="custom-max-val">500</span>
+        </div>
+      </div>
+      <div id="custom-error-msg"></div>
+      <div class="custom-keypad" id="custom-keypad">
+        <button type="button" class="ck-btn" data-ck="1">1</button>
+        <button type="button" class="ck-btn" data-ck="2">2</button>
+        <button type="button" class="ck-btn" data-ck="3">3</button>
+        <button type="button" class="ck-btn" data-ck="4">4</button>
+        <button type="button" class="ck-btn" data-ck="5">5</button>
+        <button type="button" class="ck-btn ck-del" data-ck="DEL">⌫</button>
+        <button type="button" class="ck-btn" data-ck="6">6</button>
+        <button type="button" class="ck-btn" data-ck="7">7</button>
+        <button type="button" class="ck-btn" data-ck="8">8</button>
+        <button type="button" class="ck-btn" data-ck="9">9</button>
+        <button type="button" class="ck-btn" data-ck="0">0</button>
+        <button type="button" class="ck-btn ck-del" data-ck="CLR">C</button>
+      </div>
+      <div class="custom-actions">
+        <button type="button" class="custom-action-btn" id="btn-custom-cancel">Voltar</button>
+        <button type="button" class="custom-action-btn" id="btn-custom-play">Jogar!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flash visual de acerto/erro -->
+  <div id="screen-flash"></div>
+
+  <!-- Canvas para partículas e ondas de celebração -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Interface Principal -->
+  <main id="app-container" aria-hidden="true">
+    <!-- Topo: Número escrito por extenso -->
+    <header id="top-header">
+      <h1 id="target-word" title="Toque para ouvir • Segure para trocar o modo de jogo">seiscentos e quarenta e dois</h1>
+    </header>
+
+    <!-- Arena Principal: Coluna Esquerda | Centro + Placar | Coluna Direita -->
+    <section id="main-arena">
+      <!-- Lateral Esquerda: 0 a 4 -->
+      <div class="num-column" id="col-left">
+        <button type="button" class="num-btn blue" data-digit="0">0</button>
+        <button type="button" class="num-btn red" data-digit="1">1</button>
+        <button type="button" class="num-btn yellow" data-digit="2">2</button>
+        <button type="button" class="num-btn blue" data-digit="3">3</button>
+        <button type="button" class="num-btn red" data-digit="4">4</button>
+      </div>
+
+      <!-- Centro: Visor / Botão de Resposta + 4 Números de Estatística -->
+      <div id="center-stage">
+        <button type="button" id="display-btn" aria-label="Visor da resposta. Toque para confirmar ou limpar.">
+          <div id="display-digits">642</div>
+          <span id="display-hint"></span>
+        </button>
+
+        <!-- Rodapé com os 4 indicadores numéricos e botão discreto de Fullscreen como 3º elemento -->
+        <footer id="stats-bar" aria-label="Estatísticas">
+          <div class="stat-item" title="Total de exercícios">
+            <span class="stat-value" id="stat-total">0</span>
+          </div>
+          <div class="stat-item" title="Acertos">
+            <span class="stat-value" id="stat-hits">0</span>
+          </div>
+          <button type="button" id="btn-fullscreen-toggle" aria-label="Alternar tela cheia" title="Tela cheia">
+            <svg id="icon-fs-enter" viewBox="0 0 24 24" aria-hidden="true">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+            <svg id="icon-fs-exit" viewBox="0 0 24 24" aria-hidden="true" style="display: none;">
+              <polyline points="4 14 10 14 10 20"></polyline>
+              <polyline points="20 10 14 10 14 4"></polyline>
+              <line x1="14" y1="10" x2="21" y2="3"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+          </button>
+          <div class="stat-item" title="Erros">
+            <span class="stat-value" id="stat-miss">0</span>
+          </div>
+          <div class="stat-item" title="Média (0.00 a 10.00)">
+            <span class="stat-value" id="stat-avg">0.00</span>
+          </div>
+        </footer>
+      </div>
+
+      <!-- Lateral Direita: 5 a 9 -->
+      <div class="num-column" id="col-right">
+        <button type="button" class="num-btn blue" data-digit="5">5</button>
+        <button type="button" class="num-btn red" data-digit="6">6</button>
+        <button type="button" class="num-btn yellow" data-digit="7">7</button>
+        <button type="button" class="num-btn blue" data-digit="8">8</button>
+        <button type="button" class="num-btn red" data-digit="9">9</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* =========================================================================
+         1. CONVERSOR DE NÚMEROS PARA PORTUGUÊS POR EXTENSO (0 A 3.000.000+)
+         ========================================================================= */
+      const UNIDADES = [
+        'zero', 'um', 'dois', 'três', 'quatro',
+        'cinco', 'seis', 'sete', 'oito', 'nove'
+      ];
+      const DEZ_A_DEZENOVE = [
+        'dez', 'onze', 'doze', 'treze', 'quatorze',
+        'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'
+      ];
+      const DEZENAS = [
+        '', '', 'vinte', 'trinta', 'quarenta',
+        'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'
+      ];
+      const CENTENAS = [
+        '', 'cento', 'duzentos', 'trezentos', 'quatrocentos',
+        'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'
+      ];
+
+      function grupoAte999PorExtenso(n) {
+        if (n === 0) return '';
+        if (n === 100) return 'cem';
+
+        const partes = [];
+        const c = Math.floor(n / 100);
+        const resto = n % 100;
+
+        if (c > 0) {
+          partes.push(CENTENAS[c]);
+        }
+
+        if (resto > 0) {
+          if (resto < 10) {
+            partes.push(UNIDADES[resto]);
+          } else if (resto < 20) {
+            partes.push(DEZ_A_DEZENOVE[resto - 10]);
+          } else {
+            const d = Math.floor(resto / 10);
+            const u = resto % 10;
+            partes.push(DEZENAS[d]);
+            if (u > 0) {
+              partes.push(UNIDADES[u]);
+            }
+          }
+        }
+
+        return partes.join(' e ');
+      }
+
+      function numeroPorExtenso(n) {
+        n = Math.floor(Math.abs(Number(n) || 0));
+        if (n === 0) return 'zero';
+
+        const milhoes = Math.floor(n / 1000000);
+        const restoMilhoes = n % 1000000;
+        const milhares = Math.floor(restoMilhoes / 1000);
+        const unidades = restoMilhoes % 1000;
+
+        const segmentos = [];
+
+        if (milhoes > 0) {
+          if (milhoes === 1) {
+            segmentos.push('um milhão');
+          } else {
+            segmentos.push(`${grupoAte999PorExtenso(milhoes)} milhões`);
+          }
+        }
+
+        if (milhares > 0) {
+          if (milhares === 1) {
+            segmentos.push('mil');
+          } else {
+            segmentos.push(`${grupoAte999PorExtenso(milhares)} mil`);
+          }
+        }
+
+        if (unidades > 0) {
+          segmentos.push(grupoAte999PorExtenso(unidades));
+        }
+
+        if (segmentos.length === 1) {
+          return segmentos[0];
+        }
+
+        // Regra de conjunção "e" no português entre milhões, milhares e centenas
+        let resultado = segmentos[0];
+        for (let i = 1; i < segmentos.length; i++) {
+          const isUltimo = i === segmentos.length - 1;
+          if (isUltimo) {
+            // Usa "e" quando o último bloco é menor que 100 ou centena exata (ex: 100, 200, 300)
+            // ou quando não há bloco intermediário de milhares
+            const valorBloco = (i === segmentos.length - 1 && unidades > 0) ? unidades : milhares;
+            if (valorBloco < 100 || valorBloco % 100 === 0 || segmentos.length === 2) {
+              resultado += ` e ${segmentos[i]}`;
+            } else {
+              resultado += ` ${segmentos[i]}`;
+            }
+          } else {
+            resultado += ` ${segmentos[i]}`;
+          }
+        }
+
+        return resultado;
+      }
+
+      /* =========================================================================
+         2. SINTETIZADOR DE ÁUDIO (WEB AUDIO API) & TTS (SPEECH SYNTHESIS)
+         ========================================================================= */
+      let audioCtx = null;
+      let ptVoice = null;
+
+      function initAudio() {
+        try {
+          if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContextClass();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+        } catch (e) {
+          console.warn('Web Audio API indisponível:', e);
+        }
+      }
+
+      // Escala pentatônica maior agradável para os dígitos 0 a 9
+      const DIGIT_FREQS = [
+        261.63, // 0: C4
+        293.66, // 1: D4
+        329.63, // 2: E4
+        392.00, // 3: G4
+        440.00, // 4: A4
+        523.25, // 5: C5
+        587.33, // 6: D5
+        659.25, // 7: E5
+        783.99, // 8: G5
+        880.00  // 9: A5
+      ];
+
+      function playKeyTone(digit) {
+        if (!audioCtx) return;
+        try {
+          const now = audioCtx.currentTime;
+          const freq = DIGIT_FREQS[digit] || 440;
+
+          // Oscilador principal (timbre marimba/xilofone suave)
+          const osc = audioCtx.createOscillator();
+          const harmonic = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const harmGain = audioCtx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+
+          harmonic.type = 'triangle';
+          harmonic.frequency.setValueAtTime(freq * 2, now);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(0.24, now + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.28);
+
+          harmGain.gain.setValueAtTime(0.001, now);
+          harmGain.gain.exponentialRampToValueAtTime(0.06, now + 0.008);
+          harmGain.gain.exponentialRampToValueAtTime(0.0008, now + 0.11);
+
+          osc.connect(gain);
+          harmonic.connect(harmGain);
+          gain.connect(audioCtx.destination);
+          harmGain.connect(audioCtx.destination);
+
+          osc.start(now);
+          harmonic.start(now);
+          osc.stop(now + 0.30);
+          harmonic.stop(now + 0.14);
+        } catch (e) {}
+      }
+
+      function playSuccessSound() {
+        if (!audioCtx) return;
+        try {
+          const now = audioCtx.currentTime;
+          // Arpejo ascendente luminoso: C5 - E5 - G5 - C6
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const start = now + i * 0.075;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, start);
+
+            gain.gain.setValueAtTime(0.001, start);
+            gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0008, start + 0.45);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(start);
+            osc.stop(start + 0.48);
+          });
+        } catch (e) {}
+      }
+
+      function playErrorSound() {
+        if (!audioCtx) return;
+        try {
+          const now = audioCtx.currentTime;
+          // Duas notas descendentes suaves e graves
+          const notes = [233.08, 174.61]; // Bb3 -> F3
+          notes.forEach((freq, i) => {
+            const start = now + i * 0.15;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, start);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.94, start + 0.24);
+
+            // Filtro passa-baixa para deixar o som redondo e agradável
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(620, start);
+
+            gain.gain.setValueAtTime(0.001, start);
+            gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0008, start + 0.28);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(start);
+            osc.stop(start + 0.30);
+          });
+        } catch (e) {}
+      }
+
+      function playClearSound() {
+        if (!audioCtx) return;
+        try {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(420, now);
+          osc.frequency.exponentialRampToValueAtTime(240, now + 0.13);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.14);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } catch (e) {}
+      }
+
+      // Carrega a melhor voz pt-BR disponível
+      function loadPortugueseVoice() {
+        if (!('speechSynthesis' in window)) return;
+        const voices = window.speechSynthesis.getVoices();
+        ptVoice =
+          voices.find(v => v.lang === 'pt-BR' && (v.name.includes('Google') || v.name.includes('Luciana') || v.name.includes('Francisca'))) ||
+          voices.find(v => v.lang === 'pt-BR') ||
+          voices.find(v => v.lang.startsWith('pt')) ||
+          null;
+      }
+
+      if ('speechSynthesis' in window) {
+        loadPortugueseVoice();
+        window.speechSynthesis.onvoiceschanged = loadPortugueseVoice;
+      }
+
+      const targetWordEl = document.getElementById('target-word');
+
+      function speakText(text) {
+        if (!('speechSynthesis' in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'pt-BR';
+          if (ptVoice) utterance.voice = ptVoice;
+          utterance.rate = 0.96;
+          utterance.pitch = 1.02;
+
+          utterance.onstart = () => targetWordEl.classList.add('speaking');
+          utterance.onend = () => targetWordEl.classList.remove('speaking');
+          utterance.onerror = () => targetWordEl.classList.remove('speaking');
+
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          console.warn('Erro no TTS:', e);
+        }
+      }
+
+      /* =========================================================================
+         3. SISTEMA DE PARTÍCULAS E ONDAS VISUAIS (CANVAS)
+         ========================================================================= */
+      const fxCanvas = document.getElementById('fx-canvas');
+      const fxCtx = fxCanvas.getContext('2d');
+      let particles = [];
+      let shockwaves = [];
+      let animFrameId = null;
+
+      function resizeFxCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        fxCanvas.width = window.innerWidth * dpr;
+        fxCanvas.height = window.innerHeight * dpr;
+        fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      window.addEventListener('resize', resizeFxCanvas);
+      resizeFxCanvas();
+
+      function triggerWinCelebration(originX, originY) {
+        const palette = ['#00C853', '#69F0AE', '#0018E0', '#FFCC00', '#00E676', '#FFFFFF'];
+
+        // Ondas expansivas verdes
+        shockwaves.push({
+          x: originX,
+          y: originY,
+          radius: 10,
+          maxRadius: Math.max(window.innerWidth, window.innerHeight) * 0.65,
+          alpha: 0.75,
+          color: '#00C853',
+          lineWidth: 10
+        });
+        shockwaves.push({
+          x: originX,
+          y: originY,
+          radius: 10,
+          maxRadius: Math.max(window.innerWidth, window.innerHeight) * 0.45,
+          alpha: 0.6,
+          color: '#FFCC00',
+          lineWidth: 6
+        });
+
+        // Explosão de partículas e estrelas
+        for (let i = 0; i < 68; i++) {
+          const angle = (Math.PI * 2 * i) / 68 + (Math.random() - 0.5) * 0.35;
+          const speed = 4 + Math.random() * 11;
+          particles.push({
+            x: originX,
+            y: originY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2.5,
+            size: 5 + Math.random() * 8,
+            color: palette[Math.floor(Math.random() * palette.length)],
+            alpha: 1,
+            gravity: 0.24,
+            drag: 0.96,
+            rotation: Math.random() * Math.PI * 2,
+            vRot: (Math.random() - 0.5) * 0.25,
+            shape: Math.random() > 0.45 ? 'circle' : 'rect'
+          });
+        }
+
+        startFxLoop();
+      }
+
+      function triggerErrorPulse(originX, originY) {
+        shockwaves.push({
+          x: originX,
+          y: originY,
+          radius: 16,
+          maxRadius: Math.min(window.innerWidth, window.innerHeight) * 0.42,
+          alpha: 0.7,
+          color: '#ED0000',
+          lineWidth: 8
+        });
+
+        for (let i = 0; i < 24; i++) {
+          const angle = (Math.PI * 2 * i) / 24 + Math.random() * 0.2;
+          const speed = 2.5 + Math.random() * 5.5;
+          particles.push({
+            x: originX,
+            y: originY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 4 + Math.random() * 5,
+            color: i % 2 === 0 ? '#ED0000' : '#FF5252',
+            alpha: 0.9,
+            gravity: 0.08,
+            drag: 0.94,
+            rotation: 0,
+            vRot: 0,
+            shape: 'circle'
+          });
+        }
+
+        startFxLoop();
+      }
+
+      function startFxLoop() {
+        if (animFrameId) return;
+        const step = () => {
+          fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+          // Atualiza ondas
+          for (let i = shockwaves.length - 1; i >= 0; i--) {
+            const w = shockwaves[i];
+            w.radius += (w.maxRadius - w.radius) * 0.09 + 4;
+            w.alpha *= 0.92;
+            w.lineWidth *= 0.95;
+
+            fxCtx.save();
+            fxCtx.beginPath();
+            fxCtx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+            fxCtx.strokeStyle = w.color;
+            fxCtx.globalAlpha = Math.max(0, w.alpha);
+            fxCtx.lineWidth = Math.max(1, w.lineWidth);
+            fxCtx.stroke();
+            fxCtx.restore();
+
+            if (w.alpha < 0.02) {
+              shockwaves.splice(i, 1);
+            }
+          }
+
+          // Atualiza partículas
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.vx *= p.drag;
+            p.vy = p.vy * p.drag + p.gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rotation += p.vRot;
+            p.alpha -= 0.016;
+
+            if (p.alpha <= 0) {
+              particles.splice(i, 1);
+              continue;
+            }
+
+            fxCtx.save();
+            fxCtx.globalAlpha = p.alpha;
+            fxCtx.translate(p.x, p.y);
+            fxCtx.rotate(p.rotation);
+            fxCtx.fillStyle = p.color;
+
+            if (p.shape === 'circle') {
+              fxCtx.beginPath();
+              fxCtx.arc(0, 0, p.size * 0.55, 0, Math.PI * 2);
+              fxCtx.fill();
+            } else {
+              fxCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+            }
+            fxCtx.restore();
+          }
+
+          if (particles.length > 0 || shockwaves.length > 0) {
+            animFrameId = requestAnimationFrame(step);
+          } else {
+            animFrameId = null;
+          }
+        };
+        animFrameId = requestAnimationFrame(step);
+      }
+
+      /* =========================================================================
+         4. FULLSCREEN & ORIENTAÇÃO LANDSCAPE
+         ========================================================================= */
+      async function enterFullscreenAndLockLandscape() {
+        try {
+          const docEl = document.documentElement;
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (docEl.requestFullscreen) {
+              await docEl.requestFullscreen();
+            } else if (docEl.webkitRequestFullscreen) {
+              await docEl.webkitRequestFullscreen();
+            }
+          }
+        } catch (err) {
+          console.warn('Fullscreen não autorizado pelo navegador:', err);
+        }
+
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+          }
+        } catch (err) {
+          console.info('Travamento de orientação landscape não suportado neste dispositivo.');
+        }
+      }
+
+      async function toggleFullscreenMode() {
+        const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        if (!isFs) {
+          await enterFullscreenAndLockLandscape();
+        } else {
+          try {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              await document.webkitExitFullscreen();
+            }
+          } catch (err) {
+            console.warn('Erro ao sair do fullscreen:', err);
+          }
+        }
+      }
+
+      function syncFullscreenButtonIcon() {
+        const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        const enterIcon = document.getElementById('icon-fs-enter');
+        const exitIcon = document.getElementById('icon-fs-exit');
+        const toggleBtn = document.getElementById('btn-fullscreen-toggle');
+        if (enterIcon && exitIcon) {
+          enterIcon.style.display = isFs ? 'none' : 'block';
+          exitIcon.style.display = isFs ? 'block' : 'none';
+        }
+        if (toggleBtn) {
+          toggleBtn.title = isFs ? 'Sair da tela cheia' : 'Tela cheia';
+        }
+      }
+
+      document.addEventListener('fullscreenchange', syncFullscreenButtonIcon);
+      document.addEventListener('webkitfullscreenchange', syncFullscreenButtonIcon);
+
+      /* =========================================================================
+         5. ESTADO DO JOGO, MODOS DE TREINO E LÓGICA PRINCIPAL
+         ========================================================================= */
+      const GAME_MODES = [
+        { min: 0, max: 10, label: '0 a 10', sub: 'Iniciante', color: 'mc-blue' },
+        { min: 10, max: 20, label: '10 a 20', sub: 'Dezenas', color: 'mc-red' },
+        { min: 0, max: 20, label: '0 a 20', sub: 'Fácil', color: 'mc-yellow' },
+        { min: 0, max: 50, label: '0 a 50', sub: 'Explorador', color: 'mc-green' },
+        { min: 0, max: 100, label: '0 a 100', sub: 'Centena', color: 'mc-purple' },
+        { min: 50, max: 100, label: '50 a 100', sub: 'Avançando', color: 'mc-orange' },
+        { min: 100, max: 200, label: '100 a 200', sub: 'Centenas', color: 'mc-cyan' },
+        { min: 100, max: 1000, label: '100 a 1000', sub: 'Desafio', color: 'mc-pink' },
+        { min: 1000, max: 3000, label: '1000 a 3000', sub: 'Milhares', color: 'mc-blue' },
+        { min: 0, max: 999999, label: '0 a 999999', sub: 'Mestre', color: 'mc-red', compact: true },
+        { min: 500000, max: 3000000, label: '500000 a 3000000', sub: 'Milhões', color: 'mc-green', compact: true },
+        { custom: true, label: 'Valor Personalizado', sub: 'Escolher', color: 'mc-purple', compact: true }
+      ];
+
+      const state = {
+        minRange: 0,
+        maxRange: 1000,
+        targetNumber: 642,
+        targetString: '642',
+        targetWord: 'seiscentos e quarenta e dois',
+        currentInput: '',
+        status: 'TYPING', // 'TYPING' | 'CORRECT' | 'WRONG'
+        totalExercises: 0,
+        hits: 0,
+        misses: 0,
+        recentNumbers: []
+      };
+
+      // Referências DOM
+      const startScreen = document.getElementById('start-screen');
+      const btnStart = document.getElementById('btn-start');
+      const modeScreen = document.getElementById('mode-screen');
+      const modeTitleEl = document.getElementById('mode-title');
+      const modesGrid = document.getElementById('modes-grid');
+      const customModal = document.getElementById('custom-modal');
+      const fieldMinCard = document.getElementById('field-min-card');
+      const fieldMaxCard = document.getElementById('field-max-card');
+      const customMinValEl = document.getElementById('custom-min-val');
+      const customMaxValEl = document.getElementById('custom-max-val');
+      const customErrorMsg = document.getElementById('custom-error-msg');
+      const btnCustomCancel = document.getElementById('btn-custom-cancel');
+      const btnCustomPlay = document.getElementById('btn-custom-play');
+
+      const appContainer = document.getElementById('app-container');
+      const displayBtn = document.getElementById('display-btn');
+      const displayDigits = document.getElementById('display-digits');
+      const displayHint = document.getElementById('display-hint');
+      const colLeft = document.getElementById('col-left');
+      const colRight = document.getElementById('col-right');
+      const screenFlash = document.getElementById('screen-flash');
+
+      const statTotalEl = document.getElementById('stat-total');
+      const statHitsEl = document.getElementById('stat-hits');
+      const statMissEl = document.getElementById('stat-miss');
+      const statAvgEl = document.getElementById('stat-avg');
+      const btnFullscreenToggle = document.getElementById('btn-fullscreen-toggle');
+
+      btnFullscreenToggle.addEventListener('click', async () => {
+        initAudio();
+        playClearSound();
+        await toggleFullscreenMode();
+        syncFullscreenButtonIcon();
+      });
+
+      // Renderiza os 12 botões da tela de seleção de modos
+      function buildModesGrid() {
+        modesGrid.innerHTML = '';
+        GAME_MODES.forEach((mode, index) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `mode-card ${mode.color}`;
+          btn.style.animationDelay = `${index * 0.035}s`;
+
+          const rangeSpan = document.createElement('span');
+          rangeSpan.className = 'mode-range' + (mode.compact ? ' compact-num' : '');
+          rangeSpan.textContent = mode.label;
+
+          const subSpan = document.createElement('span');
+          subSpan.className = 'mode-sub';
+          subSpan.textContent = mode.sub;
+
+          btn.appendChild(rangeSpan);
+          btn.appendChild(subSpan);
+
+          btn.addEventListener('click', () => {
+            playKeyTone(index % 10);
+            createButtonRipple(btn);
+
+            if (mode.custom) {
+              openCustomModal();
+            } else {
+              startGameWithRange(mode.min, mode.max);
+            }
+          });
+
+          modesGrid.appendChild(btn);
+        });
+      }
+
+      function openModeMenu(shouldSpeak = true) {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        customModal.classList.remove('active');
+        appContainer.setAttribute('aria-hidden', 'true');
+        modeScreen.classList.add('active');
+
+        // Re-dispara animação dos cards
+        buildModesGrid();
+
+        if (shouldSpeak) {
+          setTimeout(() => {
+            speakText('Escolha o Modo de jogo para iniciar');
+          }, 180);
+        }
+      }
+
+      function startGameWithRange(min, max) {
+        state.minRange = Math.min(min, max);
+        state.maxRange = Math.max(min, max);
+        state.recentNumbers = [];
+
+        customModal.classList.remove('active');
+        modeScreen.classList.remove('active');
+        appContainer.setAttribute('aria-hidden', 'false');
+
+        setTimeout(() => {
+          setupNewExercise(true);
+        }, 200);
+      }
+
+      // Lógica do Modal Personalizado
+      let activeCustomField = 'min'; // 'min' | 'max'
+      let customMinStr = '0';
+      let customMaxStr = '500';
+
+      function openCustomModal() {
+        customMinStr = String(state.minRange);
+        customMaxStr = String(state.maxRange);
+        activeCustomField = 'min';
+        customErrorMsg.textContent = '';
+        updateCustomModalUI();
+        customModal.classList.add('active');
+        speakText('Digite o valor mínimo e o valor máximo');
+      }
+
+      function updateCustomModalUI() {
+        customMinValEl.textContent = customMinStr || '0';
+        customMaxValEl.textContent = customMaxStr || '0';
+        fieldMinCard.classList.toggle('selected', activeCustomField === 'min');
+        fieldMaxCard.classList.toggle('selected', activeCustomField === 'max');
+      }
+
+      fieldMinCard.addEventListener('click', () => {
+        playKeyTone(2);
+        activeCustomField = 'min';
+        customErrorMsg.textContent = '';
+        updateCustomModalUI();
+      });
+
+      fieldMaxCard.addEventListener('click', () => {
+        playKeyTone(5);
+        activeCustomField = 'max';
+        customErrorMsg.textContent = '';
+        updateCustomModalUI();
+      });
+
+      document.querySelectorAll('#custom-keypad .ck-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-ck');
+          customErrorMsg.textContent = '';
+
+          let targetStr = activeCustomField === 'min' ? customMinStr : customMaxStr;
+
+          if (key === 'DEL') {
+            playClearSound();
+            targetStr = targetStr.length > 1 ? targetStr.slice(0, -1) : '0';
+          } else if (key === 'CLR') {
+            playClearSound();
+            targetStr = '0';
+          } else {
+            playKeyTone(parseInt(key, 10));
+            if (targetStr === '0') {
+              targetStr = key;
+            } else if (targetStr.length < 7) {
+              targetStr += key;
+            }
+          }
+
+          if (activeCustomField === 'min') {
+            customMinStr = targetStr;
+          } else {
+            customMaxStr = targetStr;
+          }
+          updateCustomModalUI();
+        });
+      });
+
+      btnCustomCancel.addEventListener('click', () => {
+        playClearSound();
+        customModal.classList.remove('active');
+      });
+
+      btnCustomPlay.addEventListener('click', () => {
+        const minVal = parseInt(customMinStr || '0', 10);
+        const maxVal = parseInt(customMaxStr || '0', 10);
+
+        if (isNaN(minVal) || isNaN(maxVal) || minVal < 0 || maxVal > 3000000) {
+          playErrorSound();
+          customErrorMsg.textContent = 'Use valores entre 0 e 3.000.000';
+          return;
+        }
+        if (minVal >= maxVal) {
+          playErrorSound();
+          customErrorMsg.textContent = 'O valor máximo deve ser maior que o mínimo';
+          return;
+        }
+
+        playSuccessSound();
+        startGameWithRange(minVal, maxVal);
+      });
+
+      modeTitleEl.addEventListener('click', () => {
+        speakText('Escolha o Modo de jogo para iniciar');
+      });
+
+      // Gera um número aleatório dentro do intervalo [minRange, maxRange] escolhido
+      function generateNextNumber() {
+        const min = state.minRange;
+        const max = state.maxRange;
+        const span = max - min + 1;
+
+        if (span <= 1) return min;
+
+        let candidate = min;
+        let attempts = 0;
+        const maxHistory = Math.min(10, Math.floor(span * 0.6));
+
+        do {
+          candidate = min + Math.floor(Math.random() * span);
+          attempts++;
+        } while (state.recentNumbers.includes(candidate) && attempts < 20);
+
+        state.recentNumbers.push(candidate);
+        if (state.recentNumbers.length > maxHistory) {
+          state.recentNumbers.shift();
+        }
+        return candidate;
+      }
+
+      function setupNewExercise(shouldSpeak = true) {
+        const num = generateNextNumber();
+        state.targetNumber = num;
+        state.targetString = String(num);
+        state.targetWord = numeroPorExtenso(num);
+        state.currentInput = '';
+        state.status = 'TYPING';
+
+        targetWordEl.textContent = state.targetWord;
+        setKeypadLocked(false);
+        clearVisualFeedback();
+        renderDisplay();
+
+        if (shouldSpeak) {
+          speakText(state.targetWord);
+        }
+      }
+
+      function setKeypadLocked(locked) {
+        if (locked) {
+          colLeft.classList.add('locked');
+          colRight.classList.add('locked');
+        } else {
+          colLeft.classList.remove('locked');
+          colRight.classList.remove('locked');
+        }
+      }
+
+      function clearVisualFeedback() {
+        displayBtn.classList.remove('state-correct', 'state-wrong');
+        screenFlash.classList.remove('flash-success', 'flash-error');
+        displayHint.textContent = '';
+      }
+
+      function renderDisplay() {
+        displayDigits.innerHTML = '';
+        const expectedLen = state.targetString.length;
+
+        // Ajusta classe de escala para números de 4 a 7 algarismos
+        displayDigits.classList.remove('len-4', 'len-5', 'len-6', 'len-7');
+        if (expectedLen >= 4) {
+          displayDigits.classList.add(`len-${Math.min(expectedLen, 7)}`);
+        }
+
+        if (state.currentInput.length === 0) {
+          displayDigits.classList.add('empty');
+          for (let i = 0; i < expectedLen; i++) {
+            const slot = document.createElement('span');
+            slot.className = 'digit-slot-empty';
+            displayDigits.appendChild(slot);
+          }
+        } else {
+          displayDigits.classList.remove('empty');
+          for (let i = 0; i < state.currentInput.length; i++) {
+            const span = document.createElement('span');
+            span.className = 'digit-char';
+            span.textContent = state.currentInput[i];
+            // Só anima o último dígito inserido
+            if (i < state.currentInput.length - 1) {
+              span.style.animation = 'none';
+            }
+            displayDigits.appendChild(span);
+          }
+        }
+      }
+
+      function updateStatsUI(changedType) {
+        statTotalEl.textContent = state.totalExercises;
+        statHitsEl.textContent = state.hits;
+        statMissEl.textContent = state.misses;
+
+        const avg = state.totalExercises > 0
+          ? (state.hits / state.totalExercises) * 10
+          : 0;
+        statAvgEl.textContent = avg.toFixed(2);
+
+        // Animação de pulso nos números alterados
+        const toAnimate = [statTotalEl, statAvgEl];
+        if (changedType === 'hit') toAnimate.push(statHitsEl);
+        if (changedType === 'miss') toAnimate.push(statMissEl);
+
+        toAnimate.forEach(el => {
+          el.classList.remove('bump');
+          void el.offsetWidth;
+          el.classList.add('bump');
+          setTimeout(() => el.classList.remove('bump'), 260);
+        });
+      }
+
+      function evaluateAnswer() {
+        const isCorrect = state.currentInput === state.targetString;
+        state.totalExercises++;
+        setKeypadLocked(true);
+
+        const rect = displayBtn.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        if (isCorrect) {
+          state.hits++;
+          state.status = 'CORRECT';
+          updateStatsUI('hit');
+
+          displayBtn.classList.add('state-correct');
+          screenFlash.classList.add('flash-success');
+          displayHint.textContent = 'Toque no número para continuar';
+
+          playSuccessSound();
+          triggerWinCelebration(centerX, centerY);
+
+          setTimeout(() => {
+            screenFlash.classList.remove('flash-success');
+          }, 550);
+        } else {
+          state.misses++;
+          state.status = 'WRONG';
+          updateStatsUI('miss');
+
+          displayBtn.classList.add('state-wrong');
+          screenFlash.classList.add('flash-error');
+          displayHint.textContent = 'Toque para tentar novamente';
+
+          playErrorSound();
+          triggerErrorPulse(centerX, centerY);
+
+          setTimeout(() => {
+            screenFlash.classList.remove('flash-error');
+          }, 550);
+        }
+      }
+
+      function handleDigitInput(digitChar, buttonEl = null) {
+        if (state.status !== 'TYPING') return;
+        if (state.currentInput.length >= state.targetString.length) return;
+
+        const digitNum = parseInt(digitChar, 10);
+        playKeyTone(digitNum);
+
+        if (buttonEl) {
+          createButtonRipple(buttonEl);
+        }
+
+        state.currentInput += digitChar;
+        renderDisplay();
+
+        // Correção automática ao atingir o mesmo número de algarismos da resposta
+        if (state.currentInput.length === state.targetString.length) {
+          setTimeout(() => {
+            evaluateAnswer();
+          }, 120);
+        }
+      }
+
+      function createButtonRipple(btn) {
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple-wave';
+        const size = Math.max(btn.offsetWidth, btn.offsetHeight);
+        ripple.style.width = ripple.style.height = `${size}px`;
+        ripple.style.left = `${(btn.offsetWidth - size) / 2}px`;
+        ripple.style.top = `${(btn.offsetHeight - size) / 2}px`;
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 550);
+      }
+
+      /* =========================================================================
+         6. EVENTOS DE INTERAÇÃO (BOTÕES, DISPLAY, LONG PRESS NO TOPO, TECLADO)
+         ========================================================================= */
+
+      // 6.1 Botão Iniciar ("Cardial")
+      btnStart.addEventListener('click', async () => {
+        initAudio();
+        loadPortugueseVoice();
+        await enterFullscreenAndLockLandscape();
+
+        startScreen.classList.add('hidden');
+        openModeMenu(true);
+      });
+
+      // 6.2 Botões Numéricos (0 a 9)
+      document.querySelectorAll('.num-btn').forEach(btn => {
+        btn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          const digit = btn.getAttribute('data-digit');
+          btn.classList.add('pressed');
+          handleDigitInput(digit, btn);
+        });
+
+        const releaseBtn = () => btn.classList.remove('pressed');
+        btn.addEventListener('pointerup', releaseBtn);
+        btn.addEventListener('pointerleave', releaseBtn);
+        btn.addEventListener('pointercancel', releaseBtn);
+      });
+
+      // 6.3 Botão Display Central
+      displayBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (state.status === 'CORRECT') {
+          // Acertou: gera o próximo exercício
+          playClearSound();
+          setupNewExercise(true);
+        } else if (state.status === 'WRONG') {
+          // Errou: limpa resposta e repete o áudio do mesmo exercício para tentar de novo
+          playClearSound();
+          state.currentInput = '';
+          state.status = 'TYPING';
+          setKeypadLocked(false);
+          clearVisualFeedback();
+          renderDisplay();
+          speakText(state.targetWord);
+        } else if (state.status === 'TYPING' && state.currentInput.length > 0) {
+          // Durante digitação: permite apagar o que já foi digitado
+          playClearSound();
+          state.currentInput = '';
+          renderDisplay();
+        }
+      });
+      // 6.4 Topo: Clique curto lê via TTS | Clique longo (~600ms) abre o Menu de Modo de Jogo
+      let longPressTimer = null;
+      let longPressTriggered = false;
+
+      targetWordEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        longPressTriggered = false;
+        clearTimeout(longPressTimer);
+
+        longPressTimer = setTimeout(() => {
+          longPressTriggered = true;
+          playClearSound();
+          openModeMenu(true);
+        }, 600);
+      });
+
+      targetWordEl.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        clearTimeout(longPressTimer);
+        if (!longPressTriggered) {
+          speakText(state.targetWord);
+        }
+      });
+
+      targetWordEl.addEventListener('pointerleave', () => {
+        clearTimeout(longPressTimer);
+      });
+
+      targetWordEl.addEventListener('pointercancel', () => {
+        clearTimeout(longPressTimer);
+      });
+
+      // 6.5 Suporte opcional a teclado físico (0-9, Backspace, Enter/Espaço)
+      window.addEventListener('keydown', (e) => {
+        if (!startScreen.classList.contains('hidden')) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            btnStart.click();
+          }
+          return;
+        }
+
+        if (e.key >= '0' && e.key <= '9') {
+          e.preventDefault();
+          const btn = document.querySelector(`.num-btn[data-digit="${e.key}"]`);
+          if (btn) {
+            btn.classList.add('pressed');
+            setTimeout(() => btn.classList.remove('pressed'), 140);
+          }
+          handleDigitInput(e.key, btn);
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          if (state.status === 'TYPING' && state.currentInput.length > 0) {
+            e.preventDefault();
+            playClearSound();
+            state.currentInput = state.currentInput.slice(0, -1);
+            renderDisplay();
+          }
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          if (state.status === 'CORRECT' || state.status === 'WRONG') {
+            e.preventDefault();
+            displayBtn.dispatchEvent(new PointerEvent('pointerdown'));
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

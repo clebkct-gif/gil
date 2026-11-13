@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Comparação de Números</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* =========================================================
+           RESET & VARIÁVEIS DE DESIGN (Fiel à imagem de referência)
+           ========================================================= */
+        :root {
+            --bg-black: #000000;
+            --text-white: #ffffff;
+            --accent-yellow: #ffee00;
+            --green-top: #4ade80;
+            --green-bottom: #15803d;
+            --red-top: #f87171;
+            --red-bottom: #b91c1c;
+            --header-height: clamp(44px, 7vh, 64px);
+            --footer-height: clamp(68px, 13vh, 105px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+        }
+
+        /* =========================================================
+           TELA INICIAL (BOTÃO ÚNICO "COMPARATIVO")
+           ========================================================= */
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: radial-gradient(circle at center, #18181b 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+
+        #start-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #btn-comparativo {
+            position: relative;
+            padding: clamp(22px, 4vh, 34px) clamp(48px, 8vw, 90px);
+            font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #ffffff;
+            background: linear-gradient(180deg, #4b5563 0%, #1f2937 48%, #09090b 52%, #27272a 100%);
+            border: 3px solid #71717a;
+            border-radius: 24px;
+            box-shadow: 
+                0 14px 35px rgba(0, 0, 0, 0.85),
+                inset 0 2px 3px rgba(255, 255, 255, 0.35),
+                0 0 25px rgba(255, 238, 0, 0.15);
+            cursor: pointer;
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        #btn-comparativo:hover {
+            transform: scale(1.04);
+            border-color: var(--accent-yellow);
+            box-shadow: 
+                0 18px 40px rgba(0, 0, 0, 0.9),
+                inset 0 2px 4px rgba(255, 255, 255, 0.5),
+                0 0 35px rgba(255, 238, 0, 0.35);
+        }
+
+        #btn-comparativo:active {
+            transform: scale(0.95);
+        }
+
+        /* =========================================================
+           INTERFACE PRINCIPAL DO JOGO
+           ========================================================= */
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-black);
+        }
+
+        /* ---------------------------------------------------------
+           BARRA SUPERIOR (HEADER)
+           --------------------------------------------------------- */
+        .top-bar {
+            width: 100%;
+            height: var(--header-height);
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid #3f3f46;
+            flex-shrink: 0;
+        }
+
+        .score-box {
+            width: clamp(85px, 12vw, 150px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.15rem, 2.4vh, 1.65rem);
+            font-weight: 800;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            transition: transform 0.2s ease;
+        }
+
+        .score-box.pop {
+            animation: scorePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #score-correct {
+            background: linear-gradient(180deg, #52e078 0%, #22c55e 45%, #15803d 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        #score-wrong {
+            background: linear-gradient(180deg, #ff7a8a 0%, #ef4444 45%, #b91c1c 100%);
+            border-left: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        #btn-title-fullscreen {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #6b7280 0%, #27272a 48%, #09090b 55%, #3f3f46 100%);
+            border: none;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: clamp(0.85rem, 2.1vw, 1.45rem);
+            font-weight: 800;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+            cursor: pointer;
+            padding: 0 12px;
+            transition: filter 0.15s ease;
+        }
+
+        #btn-title-fullscreen:hover {
+            filter: brightness(1.15);
+        }
+
+        #btn-title-fullscreen:active {
+            filter: brightness(0.9);
+        }
+
+        /* ---------------------------------------------------------
+           ÁREA CENTRAL (BOTÃO DISPLAY)
+           --------------------------------------------------------- */
+        #display-button {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            background-color: #000000;
+            border: 4px solid transparent;
+            border-radius: 16px;
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, transform 0.12s ease;
+            overflow: hidden;
+        }
+
+        /* Estados interativos do botão display */
+        #display-button.clickable {
+            cursor: pointer;
+        }
+
+        #display-button.clickable:active {
+            transform: scale(0.992);
+        }
+
+        #display-button.state-correct {
+            border-color: #22c55e;
+            box-shadow: inset 0 0 45px rgba(34, 197, 94, 0.28), 0 0 20px rgba(34, 197, 94, 0.35);
+            background-color: #021207;
+            animation: pulseGreen 0.5s ease;
+        }
+
+        #display-button.state-wrong {
+            border-color: #ef4444;
+            box-shadow: inset 0 0 45px rgba(239, 68, 68, 0.32), 0 0 20px rgba(239, 68, 68, 0.4);
+            background-color: #160303;
+            animation: shakeHorizontal 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        /* Grid interno para alinhar perfeitamente: Número Esquerdo | Símbolo Central | Número Direito */
+        .equation-grid {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr minmax(100px, 16vw) 1fr;
+            align-items: center;
+            padding: 0 3vw;
+        }
+
+        .number-slot {
+            font-size: clamp(4.2rem, 15vw, 11.5rem);
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            transition: transform 0.25s ease;
+        }
+
+        #num-left {
+            text-align: right;
+            padding-right: clamp(16px, 4vw, 55px);
+        }
+
+        #num-right {
+            text-align: left;
+            padding-left: clamp(16px, 4vw, 55px);
+        }
+
+        #symbol-slot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: clamp(80px, 15vw, 160px);
+            font-size: clamp(4.8rem, 16vw, 12rem);
+            font-weight: 900;
+            color: var(--accent-yellow);
+            line-height: 1;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        #symbol-slot.symbol-appear {
+            animation: symbolPopIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #display-button.state-wrong #symbol-slot {
+            color: #ef4444;
+            text-shadow: 0 0 25px rgba(239, 68, 68, 0.65);
+        }
+
+        #display-button.state-correct #symbol-slot {
+            color: var(--accent-yellow);
+            text-shadow: 0 0 28px rgba(255, 238, 0, 0.6);
+        }
+
+        /* Dica visual discreta no rodapé do display */
+        #display-hint {
+            position: absolute;
+            bottom: clamp(10px, 2vh, 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(0.85rem, 1.7vw, 1.15rem);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 6px 18px;
+            border-radius: 999px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            white-space: nowrap;
+        }
+
+        #display-hint.visible {
+            opacity: 0.92;
+            animation: hintFloat 1.8s ease-in-out infinite;
+        }
+
+        #display-hint.hint-correct {
+            color: #86efac;
+            background: rgba(20, 83, 45, 0.55);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+        }
+
+        #display-hint.hint-wrong {
+            color: #fca5a5;
+            background: rgba(127, 29, 29, 0.55);
+            border: 1px solid rgba(248, 113, 113, 0.4);
+        }
+
+        /* ---------------------------------------------------------
+           BARRA INFERIOR (CONTROLES DE RESPOSTA <  =  >)
+           --------------------------------------------------------- */
+        .bottom-bar {
+            width: 100%;
+            height: var(--footer-height);
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            background: linear-gradient(180deg, #a1a1aa 0%, #52525b 35%, #18181b 65%, #09090b 100%);
+            border-top: 1px solid #d4d4d8;
+            flex-shrink: 0;
+        }
+
+        .answer-btn {
+            position: relative;
+            background: transparent;
+            border: none;
+            border-radius: 14px;
+            margin: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+            font-size: clamp(2.4rem, 6.2vh, 4.2rem);
+            font-weight: 900;
+            cursor: pointer;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+            transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease, opacity 0.2s ease;
+        }
+
+        .answer-btn[data-symbol="<"],
+        .answer-btn[data-symbol=">"] {
+            color: #ffffff;
+        }
+
+        .answer-btn[data-symbol="="] {
+            color: var(--accent-yellow);
+        }
+
+        .answer-btn:not(:disabled):hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            transform: scale(1.06);
+        }
+
+        .answer-btn:not(:disabled):active,
+        .answer-btn.btn-pressed {
+            transform: scale(0.86);
+            background-color: rgba(255, 238, 0, 0.22);
+        }
+
+        .answer-btn:disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+
+        /* =========================================================
+           ANIMAÇÕES
+           ========================================================= */
+        @keyframes symbolPopIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            70% { transform: scale(1.18); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes scorePop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shakeHorizontal {
+            0%, 100% { transform: translateX(0); }
+            15%, 55% { transform: translateX(-12px); }
+            35%, 75% { transform: translateX(12px); }
+        }
+
+        @keyframes pulseGreen {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.012); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes hintFloat {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -4px); }
+        }
+
+        /* Ajustes finos para telas muito baixas em paisagem mobile */
+        @media (max-height: 430px) {
+            :root {
+                --header-height: 38px;
+                --footer-height: 62px;
+            }
+            .number-slot {
+                font-size: clamp(3.4rem, 13vw, 6.5rem);
+            }
+            #symbol-slot {
+                font-size: clamp(3.8rem, 14vw, 7rem);
+                min-height: 65px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA INICIAL COM BOTÃO ÚNICO "COMPARATIVO" -->
+    <div id="start-screen">
+        <button id="btn-comparativo" type="button" aria-label="Iniciar jogo Comparativo">
+            Comparativo
+        </button>
+    </div>
+
+    <!-- INTERFACE PRINCIPAL DO JOGO -->
+    <main id="game-container" aria-hidden="true">
+        <!-- BARRA SUPERIOR -->
+        <header class="top-bar">
+            <div id="score-correct" class="score-box" title="Acertos" aria-label="Acertos: 0">0</div>
+            <button id="btn-title-fullscreen" type="button" title="Alternar Tela Cheia">
+                COMPARAÇÃO DE NÚMEROS
+            </button>
+            <div id="score-wrong" class="score-box" title="Erros" aria-label="Erros: 0">0</div>
+        </header>
+
+        <!-- ÁREA CENTRAL (BOTÃO DISPLAY) -->
+        <button id="display-button" type="button" aria-label="Área de exibição dos números">
+            <div class="equation-grid">
+                <span id="num-left" class="number-slot">999</span>
+                <span id="symbol-slot" aria-live="polite"></span>
+                <span id="num-right" class="number-slot">99</span>
+            </div>
+            <div id="display-hint"></div>
+        </button>
+
+        <!-- BARRA INFERIOR (BOTÕES DE RESPOSTA) -->
+        <footer class="bottom-bar" role="group" aria-label="Símbolos matemáticos">
+            <button class="answer-btn" type="button" data-symbol="<" aria-label="Menor que">&lt;</button>
+            <button class="answer-btn" type="button" data-symbol="=" aria-label="Igual a">=</button>
+            <button class="answer-btn" type="button" data-symbol=">" aria-label="Maior que">&gt;</button>
+        </footer>
+    </main>
+
+    <script>
+        /**
+         * JOGO EDUCATIVO: COMPARAÇÃO DE NÚMEROS (<, =, >)
+         * Arquitetura em arquivo único com Web Audio API, Web Speech API (pt-BR),
+         * Fullscreen API e Screen Orientation Lock.
+         */
+        (() => {
+            // =========================================================
+            // REFERÊNCIAS DE ELEMENTOS DO DOM
+            // =========================================================
+            const startScreen = document.getElementById('start-screen');
+            const btnComparativo = document.getElementById('btn-comparativo');
+            const gameContainer = document.getElementById('game-container');
+            const btnTitleFullscreen = document.getElementById('btn-title-fullscreen');
+
+            const scoreCorrectEl = document.getElementById('score-correct');
+            const scoreWrongEl = document.getElementById('score-wrong');
+
+            const displayButton = document.getElementById('display-button');
+            const numLeftEl = document.getElementById('num-left');
+            const symbolSlotEl = document.getElementById('symbol-slot');
+            const numRightEl = document.getElementById('num-right');
+            const displayHintEl = document.getElementById('display-hint');
+
+            const answerButtons = Array.from(document.querySelectorAll('.answer-btn'));
+
+            // =========================================================
+            // ESTADO DO JOGO
+            // =========================================================
+            const state = {
+                leftNum: 0,
+                rightNum: 0,
+                correctCount: 0,
+                wrongCount: 0,
+                // 'answering' | 'waiting_retry' | 'waiting_next'
+                status: 'answering',
+                lastPairKey: ''
+            };
+
+            // =========================================================
+            // SISTEMA DE ÁUDIO SINTETIZADO (WEB AUDIO API)
+            // =========================================================
+            let audioCtx = null;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {
+                        audioCtx = new AudioContextClass();
+                    }
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(() => {});
+                }
+            }
+
+            /**
+             * Som curto e tátil ao tocar nos botões
+             */
+            function playTapSound() {
+                try {
+                    initAudio();
+                    if (!audioCtx) return;
+
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(580, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.065);
+
+                    gain.gain.setValueAtTime(0.22, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } catch (e) {
+                    // Falha silenciosa se áudio bloqueado
+                }
+            }
+
+            /**
+             * Som alegre ascendente (arpejo maior) para resposta CORRETA
+             */
+            function playSuccessSound() {
+                try {
+                    initAudio();
+                    if (!audioCtx) return;
+
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // Dó5, Mi5, Sol5, Dó6
+                    const now = audioCtx.currentTime;
+
+                    notes.forEach((freq, idx) => {
+                        const startTime = now + idx * 0.085;
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, startTime);
+
+                        gain.gain.setValueAtTime(0.001, startTime);
+                        gain.gain.linearRampToValueAtTime(0.25, startTime + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.28);
+
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.3);
+                    });
+                } catch (e) {}
+            }
+
+            /**
+             * Som grave descendente característico para resposta ERRADA
+             */
+            function playErrorSound() {
+                try {
+                    initAudio();
+                    if (!audioCtx) return;
+
+                    const now = audioCtx.currentTime;
+
+                    // Duas ondas graves dissonantes descendo
+                    [190, 145].forEach((startFreq, idx) => {
+                        const startTime = now + idx * 0.14;
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(startFreq, startTime);
+                        osc.frequency.linearRampToValueAtTime(startFreq * 0.68, startTime + 0.22);
+
+                        gain.gain.setValueAtTime(0.18, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.24);
+
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.25);
+                    });
+                } catch (e) {}
+            }
+
+            // =========================================================
+            // SÍNTESE DE VOZ (WEB SPEECH API - pt-BR)
+            // =========================================================
+            let ptBrVoice = null;
+
+            function loadVoices() {
+                if (!('speechSynthesis' in window)) return;
+                const voices = window.speechSynthesis.getVoices();
+                ptBrVoice =
+                    voices.find(v => v.lang === 'pt-BR') ||
+                    voices.find(v => v.lang && v.lang.toLowerCase().startsWith('pt')) ||
+                    null;
+            }
+
+            if ('speechSynthesis' in window) {
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+
+            function speakText(text) {
+                try {
+                    if (!('speechSynthesis' in window)) return;
+                    window.speechSynthesis.cancel();
+
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'pt-BR';
+                    if (ptBrVoice) {
+                        utterance.voice = ptBrVoice;
+                    }
+                    utterance.rate = 0.96;
+                    utterance.pitch = 1.02;
+                    utterance.volume = 1.0;
+
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    // Fallback silencioso caso TTS não esteja disponível
+                }
+            }
+
+            function cancelSpeech() {
+                try {
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                    }
+                } catch (e) {}
+            }
+
+            // =========================================================
+            // CONTROLE DE TELA CHEIA (FULLSCREEN) E ORIENTAÇÃO LANDSCAPE
+            // =========================================================
+            async function enterFullscreenAndLandscape() {
+                const elem = document.documentElement;
+                try {
+                    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                        if (elem.requestFullscreen) {
+                            await elem.requestFullscreen();
+                        } else if (elem.webkitRequestFullscreen) {
+                            await elem.webkitRequestFullscreen();
+                        }
+                    }
+                } catch (err) {
+                    // Navegador ou iframe bloqueou fullscreen; continua normalmente
+                }
+
+                try {
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('landscape');
+                    }
+                } catch (err) {
+                    // Dispositivo desktop ou navegador sem suporte a orientation lock
+                }
+            }
+
+            async function toggleFullscreen() {
+                playTapSound();
+                const isFullscreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+                try {
+                    if (!isFullscreen) {
+                        await enterFullscreenAndLandscape();
+                    } else {
+                        if (document.exitFullscreen) {
+                            await document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            await document.webkitExitFullscreen();
+                        }
+                    }
+                } catch (err) {
+                    // Fallback gracioso se não puder alternar fullscreen
+                }
+            }
+
+            // =========================================================
+            // LÓGICA DE GERAÇÃO DE NÚMEROS E VALIDAÇÃO
+            // =========================================================
+            function randomInt(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+
+            /**
+             * Gera um número entre 1 e 3 dígitos de forma equilibrada
+             */
+            function generateVariedNumber() {
+                const digitTier = Math.random();
+                if (digitTier < 0.25) {
+                    return randomInt(1, 9);       // 1 dígito
+                } else if (digitTier < 0.62) {
+                    return randomInt(10, 99);     // 2 dígitos
+                } else {
+                    return randomInt(100, 999);   // 3 dígitos
+                }
+            }
+
+            /**
+             * Gera um novo par de números garantindo variedade entre (<, =, >)
+             */
+            function generateNewRound() {
+                cancelSpeech();
+
+                let a = 0;
+                let b = 0;
+                let pairKey = '';
+
+                // Evita repetir o exato mesmo par consecutivo
+                do {
+                    const relationRoll = Math.random();
+
+                    if (relationRoll < 0.26) {
+                        // Caso de IGUALDADE (~26% das rodadas)
+                        a = generateVariedNumber();
+                        b = a;
+                    } else {
+                        // Caso de MAIOR QUE ou MENOR QUE
+                        a = generateVariedNumber();
+                        b = generateVariedNumber();
+
+                        // Ocasionalmente gera números próximos ou com dígitos invertidos (ex: 89 e 98) para treino cognitivo
+                        if (Math.random() < 0.25 && a >= 10 && a <= 99) {
+                            const tens = Math.floor(a / 10);
+                            const units = a % 10;
+                            if (tens !== units && units !== 0) {
+                                b = units * 10 + tens;
+                            }
+                        }
+
+                        if (a === b) {
+                            b = a < 999 ? a + 1 : a - 1;
+                        }
+                    }
+
+                    pairKey = `${a}:${b}`;
+                } while (pairKey === state.lastPairKey);
+
+                state.lastPairKey = pairKey;
+                state.leftNum = a;
+                state.rightNum = b;
+                state.status = 'answering';
+
+                // Atualiza DOM
+                numLeftEl.textContent = a;
+                numRightEl.textContent = b;
+                symbolSlotEl.textContent = '';
+                symbolSlotEl.classList.remove('symbol-appear');
+
+                resetDisplayVisualState();
+                setAnswerButtonsEnabled(true);
+            }
+
+            function resetDisplayVisualState() {
+                displayButton.classList.remove('state-correct', 'state-wrong', 'clickable');
+                displayHintEl.classList.remove('visible', 'hint-correct', 'hint-wrong');
+                displayHintEl.textContent = '';
+            }
+
+            function setAnswerButtonsEnabled(enabled) {
+                answerButtons.forEach(btn => {
+                    btn.disabled = !enabled;
+                });
+            }
+
+            function animateScoreCounter(element, value) {
+                element.textContent = value;
+                element.classList.remove('pop');
+                void element.offsetWidth; // Força reflow para reiniciar animação
+                element.classList.add('pop');
+            }
+
+            function getExpectedSymbol(a, b) {
+                if (a < b) return '<';
+                if (a > b) return '>';
+                return '=';
+            }
+
+            function buildSpokenSentence(a, symbol, b) {
+                if (symbol === '>') {
+                    return `${a} é maior que ${b}`;
+                } else if (symbol === '<') {
+                    return `${a} é menor que ${b}`;
+                } else {
+                    return `${a} é igual a ${b}`;
+                }
+            }
+
+            /**
+             * Processa a escolha do símbolo pelo jogador (<, =, >)
+             */
+            function handleSymbolChoice(chosenSymbol, btnElement) {
+                if (state.status !== 'answering') return;
+
+                // Feedback visual e sonoro imediato no botão tocado
+                playTapSound();
+                if (btnElement) {
+                    btnElement.classList.add('btn-pressed');
+                    setTimeout(() => btnElement.classList.remove('btn-pressed'), 160);
+                }
+
+                // Insere o símbolo no centro entre os dois números com animação
+                symbolSlotEl.textContent = chosenSymbol;
+                symbolSlotEl.classList.remove('symbol-appear');
+                void symbolSlotEl.offsetWidth;
+                symbolSlotEl.classList.add('symbol-appear');
+
+                // Bloqueia os botões inferiores enquanto aguarda ação no display
+                setAnswerButtonsEnabled(false);
+
+                const expectedSymbol = getExpectedSymbol(state.leftNum, state.rightNum);
+                const isCorrect = chosenSymbol === expectedSymbol;
+
+                // Pequeno atraso de 120ms para o jogador perceber o símbolo entrando antes do resultado
+                setTimeout(() => {
+                    if (isCorrect) {
+                        state.status = 'waiting_next';
+                        state.correctCount += 1;
+
+                        animateScoreCounter(scoreCorrectEl, state.correctCount);
+                        scoreCorrectEl.setAttribute('aria-label', `Acertos: ${state.correctCount}`);
+
+                        displayButton.classList.remove('state-wrong');
+                        displayButton.classList.add('state-correct', 'clickable');
+
+                        displayHintEl.textContent = 'Toque na tela para o próximo';
+                        displayHintEl.className = 'visible hint-correct';
+
+                        playSuccessSound();
+                        const sentence = buildSpokenSentence(state.leftNum, chosenSymbol, state.rightNum);
+                        speakText(sentence);
+                    } else {
+                        state.status = 'waiting_retry';
+                        state.wrongCount += 1;
+
+                        animateScoreCounter(scoreWrongEl, state.wrongCount);
+                        scoreWrongEl.setAttribute('aria-label', `Erros: ${state.wrongCount}`);
+
+                        displayButton.classList.remove('state-correct');
+                        displayButton.classList.add('state-wrong', 'clickable');
+
+                        displayHintEl.textContent = 'Toque na tela para tentar novamente';
+                        displayHintEl.className = 'visible hint-wrong';
+
+                        playErrorSound();
+                        speakText('Resposta errada');
+                    }
+                }, 120);
+            }
+
+            /**
+             * Clique no botão display central
+             */
+            function handleDisplayClick() {
+                if (state.status === 'waiting_retry') {
+                    // Limpa apenas a resposta errada e mantém os mesmos números
+                    playTapSound();
+                    cancelSpeech();
+                    symbolSlotEl.textContent = '';
+                    symbolSlotEl.classList.remove('symbol-appear');
+                    resetDisplayVisualState();
+                    state.status = 'answering';
+                    setAnswerButtonsEnabled(true);
+                } else if (state.status === 'waiting_next') {
+                    // Gera uma nova rodada
+                    playTapSound();
+                    generateNewRound();
+                }
+            }
+
+            // =========================================================
+            // EVENT LISTENERS (TOQUE, CLIQUE E TECLADO)
+            // =========================================================
+            btnComparativo.addEventListener('click', async () => {
+                initAudio();
+                playTapSound();
+                await enterFullscreenAndLandscape();
+
+                startScreen.classList.add('hidden');
+                gameContainer.setAttribute('aria-hidden', 'false');
+                generateNewRound();
+            });
+
+            btnTitleFullscreen.addEventListener('click', toggleFullscreen);
+
+            answerButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const symbol = btn.getAttribute('data-symbol');
+                    handleSymbolChoice(symbol, btn);
+                });
+            });
+
+            displayButton.addEventListener('click', handleDisplayClick);
+
+            // Suporte opcional a teclado para acessibilidade e testes em desktop
+            window.addEventListener('keydown', (e) => {
+                if (!startScreen.classList.contains('hidden')) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        btnComparativo.click();
+                    }
+                    return;
+                }
+
+                if (state.status === 'answering') {
+                    if (e.key === '<' || e.key === 'ArrowLeft') {
+                        handleSymbolChoice('<', answerButtons[0]);
+                    } else if (e.key === '=' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        handleSymbolChoice('=', answerButtons[1]);
+                    } else if (e.key === '>' || e.key === 'ArrowRight') {
+                        handleSymbolChoice('>', answerButtons[2]);
+                    }
+                } else if (state.status === 'waiting_retry' || state.status === 'waiting_next') {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleDisplayClick();
+                    }
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

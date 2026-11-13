@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desafio do Caixa: BRL Cinematográfico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #050811;
+        }
+
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Fundo Estilo Cassino / Banco Cinematográfico */
+        .cinema-bg {
+            background: radial-gradient(circle at 50% 20%, #111827 0%, #070a14 60%, #030408 100%);
+        }
+
+        /* -------------------------------------------------------------
+           CÉDULAS CINEMATOGRÁFICAS (UMA ABAIXO DA OUTRA, OCUPANDO A LARGURA TOTAL)
+        ------------------------------------------------------------- */
+        .bill-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .bill-card {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2.3 / 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 0 2px rgba(255, 255, 255, 0.4);
+            transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s ease, filter 0.12s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .bill-card:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .bill-card:active {
+            transform: scale(0.97) translateY(2px);
+            filter: brightness(1.15);
+        }
+
+        /* Efeito de Textura de Papel-Moeda e Micro-Guilloché */
+        .bill-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 0),
+                repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 2px, transparent 2px, transparent 4px);
+            background-size: 8px 8px, 6px 6px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Efeito Suave de Brilho Dinâmico */
+        .bill-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -150%;
+            width: 60%;
+            height: 200%;
+            background: linear-gradient(
+                60deg, 
+                transparent 30%, 
+                rgba(255, 255, 255, 0.15) 50%, 
+                transparent 70%
+            );
+            transform: rotate(25deg);
+            pointer-events: none;
+            transition: left 0.6s ease;
+            z-index: 2;
+        }
+
+        .bill-card:hover::after {
+            left: 200%;
+        }
+
+        /* Marca d'água Realista com Efígie/Textura */
+        .bill-watermark {
+            position: absolute;
+            left: 14%;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 70%, transparent 100%);
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .bill-watermark::after {
+            content: 'BCB';
+            font-size: 10px;
+            font-weight: 900;
+            opacity: 0.25;
+            letter-spacing: 1px;
+        }
+
+        /* Faixa de Segurança Realista */
+        .hologram-strip {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 22%;
+            width: 5%;
+            background: linear-gradient(180deg, 
+                rgba(212, 175, 55, 0.4) 0%, 
+                rgba(255, 255, 255, 0.6) 20%, 
+                rgba(212, 175, 55, 0.4) 40%,
+                rgba(255, 255, 255, 0.6) 60%,
+                rgba(212, 175, 55, 0.4) 80%,
+                rgba(255, 255, 255, 0.6) 100%);
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.7;
+        }
+
+        /* Elemento de Relevo Ornamental SVG no fundo */
+        .bill-bg-pattern {
+            position: absolute;
+            inset: 0;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* CORES E ESTILOS DAS CÉDULAS DO REAL */
+        .bill-200 { background: linear-gradient(135deg, #7a6e60, #bfae99, #5e5246); color: #1e1913; border-left: 6px solid #e2d7c5; }
+        .bill-100 { background: linear-gradient(135deg, #155d7e, #4ea3c8, #0b3a50); color: #03141d; border-left: 6px solid #80deea; }
+        .bill-50  { background: linear-gradient(135deg, #96532b, #cd854e, #623213); color: #240e02; border-left: 6px solid #ffcc80; }
+        .bill-20  { background: linear-gradient(135deg, #b06907, #e0a324, #734100); color: #281400; border-left: 6px solid #ffe082; }
+        .bill-10  { background: linear-gradient(135deg, #80161a, #bd3a3f, #4d090c); color: #210103; border-left: 6px solid #ef5350; }
+        .bill-5   { background: linear-gradient(135deg, #532f60, #885597, #31153b); color: #120418; border-left: 6px solid #ce93d8; }
+        .bill-2   { background: linear-gradient(135deg, #12515e, #3a8a9a, #072f38); color: #021014; border-left: 6px solid #90caf9; }
+        .bill-1   { background: linear-gradient(135deg, #27472b, #4e7a53, #132616); color: #051207; border-left: 6px solid #a5d6a7; }
+
+        /* Estilo da Tag de Valor das Cédulas */
+        .bill-value-badge {
+            background-color: rgba(0, 0, 0, 0.75);
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 900;
+            padding: 2px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+
+        .bill-written-val {
+            font-size: 1.35rem;
+            font-weight: 900;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.7), 0 0 2px rgba(255,255,255,0.4);
+            letter-spacing: -0.02em;
+        }
+
+        /* -------------------------------------------------------------
+           MOEDAS HIPER-REALISTAS DE LADO A LADO (VETORIAL SVG INTEGRADO)
+        ------------------------------------------------------------- */
+        .coins-bar {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 8px;
+            border-radius: 16px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .coin-btn {
+            position: relative;
+            flex: 1;
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s ease;
+            background: transparent;
+            border: none;
+            padding: 0;
+            outline: none;
+        }
+
+        .coin-btn svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.7));
+            transition: filter 0.12s ease;
+        }
+
+        .coin-btn:hover {
+            transform: scale(1.08);
+        }
+
+        .coin-btn:hover svg {
+            filter: drop-shadow(0px 6px 10px rgba(0, 0, 0, 0.9)) drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.4));
+        }
+
+        .coin-btn:active {
+            transform: scale(0.92) translateY(2px);
+        }
+
+        /* Efeito Glow / Confetes */
+        .glow-win {
+            animation: winPulse 1s infinite alternate;
+        }
+        @keyframes winPulse {
+            0% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+            100% { box-shadow: 0 0 35px rgba(16, 185, 129, 0.9); }
+        }
+
+        /* Estado desabilitado ao acertar */
+        .money-disabled {
+            opacity: 0.4 !important;
+            pointer-events: none !important;
+            filter: grayscale(0.7);
+        }
+    </style>
+</head>
+<body class="cinema-bg min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden">
+
+    <!-- TELA INICIAL (SIMPLIFICADA: APENAS O BOTÃO INICIAR) -->
+    <div id="startOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center">
+        <div class="max-w-md w-full flex flex-col items-center justify-center p-4">
+            <button id="btnStartGame" class="w-full max-w-xs py-5 px-8 bg-gradient-to-r from-amber-500 via-emerald-400 to-teal-400 hover:brightness-110 active:scale-95 text-slate-950 font-black text-2xl rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
+                <i class="fa-solid fa-play text-2xl"></i>
+                INICIAR
+            </button>
+        </div>
+    </div>
+
+    <!-- APLICAÇÃO PRINCIPAL -->
+    <div class="max-w-md w-full mx-auto h-screen p-2 flex flex-col justify-between gap-2 overflow-hidden">
+
+        <!-- 1. DISPLAYS FIXOS NO TOPO -->
+        <section class="flex-none space-y-1.5">
+            <div id="displayTargetCard" class="bg-slate-900/95 border border-amber-500/40 rounded-2xl p-2.5 shadow-xl transition-all active:scale-98 cursor-pointer text-center select-none">
+                <div id="displayTarget" class="text-3xl sm:text-4xl font-black text-amber-300 font-mono-num tracking-tight">
+                    R$ 0,00
+                </div>
+            </div>
+            <div id="displayCurrentCard" class="bg-slate-900/95 border border-cyan-500/40 rounded-2xl p-2.5 shadow-xl transition-all active:scale-98 cursor-pointer text-center select-none">
+                <div id="displayCurrent" class="text-3xl sm:text-4xl font-black text-cyan-300 font-mono-num tracking-tight">
+                    R$ 0,00
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. CÉDULAS (UMA ABAIXO DA OUTRA COM ROLAGEM VERTICAL) -->
+        <section class="flex-1 overflow-y-auto pr-1 py-1 scrollbar-thin">
+            <div class="bill-stack">
+                <button data-value="200.00" class="bill-card bill-200">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="hologram-strip"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">REPÚBLICA FEDERATIVA DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 200</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">LOBO-GUARÁ</span>
+                            <span class="bill-written-val font-mono-num">DUZENTOS REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-paw text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="100.00" class="bill-card bill-100">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="hologram-strip"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BANCO CENTRAL DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 100</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">GAROUPA</span>
+                            <span class="bill-written-val font-mono-num">CEM REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-fish text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="50.00" class="bill-card bill-50">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="hologram-strip"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BANCO CENTRAL DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 50</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">ONÇA-PINTADA</span>
+                            <span class="bill-written-val font-mono-num">CINQUENTA REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-cat text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="20.00" class="bill-card bill-20">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="hologram-strip"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BANCO CENTRAL DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 20</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">MICO-LEÃO-DOURADO</span>
+                            <span class="bill-written-val font-mono-num">VINTE REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-paw text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="10.00" class="bill-card bill-10">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BANCO CENTRAL DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 10</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">ARARA-VERMELHA</span>
+                            <span class="bill-written-val font-mono-num">DEZ REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-dove text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="5.00" class="bill-card bill-5">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BANCO CENTRAL DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 5</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">GARÇA</span>
+                            <span class="bill-written-val font-mono-num">CINCO REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-feather text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="2.00" class="bill-card bill-2">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BANCO CENTRAL DO BRASIL</span>
+                        <span class="bill-value-badge font-mono-num">R$ 2</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">TARTARUGA-MARINHA</span>
+                            <span class="bill-written-val font-mono-num">DOIS REAIS</span>
+                        </div>
+                        <i class="fa-solid fa-water text-3xl opacity-35"></i>
+                    </div>
+                </button>
+
+                <button data-value="1.00" class="bill-card bill-1">
+                    <svg class="bill-bg-pattern" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <circle cx="100" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2"/>
+                        <path d="M0,0 Q100,50 200,0 M0,100 Q100,50 200,100" fill="none" stroke="#ffffff" stroke-width="0.5"/>
+                    </svg>
+                    <div class="bill-watermark"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[10px] font-black tracking-tighter opacity-90">BEIJA-FLOR</span>
+                        <span class="bill-value-badge font-mono-num">R$ 1</span>
+                    </div>
+                    <div class="flex justify-between items-end z-10">
+                        <div class="text-left">
+                            <span class="text-[10px] font-bold block leading-none opacity-80">1ª FAMÍLIA CLÁSSICA</span>
+                            <span class="bill-written-val font-mono-num">UM REAL</span>
+                        </div>
+                        <i class="fa-solid fa-crow text-3xl opacity-35"></i>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- 3. MOEDAS (LADO A LADO - VETORES SVG POLIDOS COM VALORES EXPANDIDOS) -->
+        <section class="flex-none pt-1 pb-1">
+            <div class="bg-slate-900/90 border border-slate-700/60 rounded-2xl p-2 shadow-2xl overflow-hidden">
+                <div class="coins-carousel flex overflow-x-auto gap-2 scroll-smooth py-1 px-1">
+                    
+                    <!-- R$ 1,00 (Bimetálica) -->
+                    <button data-value="1.00" data-type="coin" class="coin-btn flex-none" style="width: calc((100% - 24px) / 4); max-width: none;" title="1 Real">
+                        <svg viewBox="0 0 100 100">
+                            <defs>
+                                <radialGradient id="ring-gold" cx="35%" cy="35%" r="65%">
+                                    <stop offset="0%" stop-color="#fff2a8"/>
+                                    <stop offset="30%" stop-color="#eec14a"/>
+                                    <stop offset="70%" stop-color="#ba8418"/>
+                                    <stop offset="100%" stop-color="#6d4904"/>
+                                </radialGradient>
+                                <radialGradient id="core-silver" cx="35%" cy="35%" r="65%">
+                                    <stop offset="0%" stop-color="#ffffff"/>
+                                    <stop offset="45%" stop-color="#e0e6ed"/>
+                                    <stop offset="75%" stop-color="#95a5b5"/>
+                                    <stop offset="100%" stop-color="#506375"/>
+                                </radialGradient>
+                                <linearGradient id="bevel-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+                                    <stop offset="100%" stop-color="#000000" stop-opacity="0.6"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="48" fill="url(#ring-gold)"/>
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="url(#bevel-1)" stroke-width="1.5"/>
+                            <circle cx="50" cy="50" r="34" fill="url(#core-silver)"/>
+                            <circle cx="50" cy="50" r="34" fill="none" stroke="url(#bevel-1)" stroke-width="1.2"/>
+                            <!-- Detalhes em Relevo -->
+                            <path d="M 22 25 L 32 15" stroke="#ba8418" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                            <path d="M 18 35 L 28 25" stroke="#ba8418" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                            <!-- Número e Texto Maximizado -->
+                            <text x="50" y="44" font-family="'Inter', sans-serif" font-weight="900" font-size="34" fill="#0f172a" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 1px 1px rgba(255,255,255,0.8))">1</text>
+                            <text x="50" y="67" font-family="'Inter', sans-serif" font-weight="900" font-size="10" fill="#1e293b" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">REAL</text>
+                        </svg>
+                    </button>
+
+                    <!-- R$ 0,50 (Aço Inoxidável Polido) -->
+                    <button data-value="0.50" data-type="coin" class="coin-btn flex-none" style="width: calc((100% - 24px) / 4); max-width: none;" title="50 Centavos">
+                        <svg viewBox="0 0 100 100">
+                            <defs>
+                                <radialGradient id="steel-light" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stop-color="#ffffff"/>
+                                    <stop offset="40%" stop-color="#e2e8f0"/>
+                                    <stop offset="75%" stop-color="#94a3b8"/>
+                                    <stop offset="100%" stop-color="#475569"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="48" fill="url(#steel-light)"/>
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="url(#bevel-1)" stroke-width="1.5"/>
+                            <circle cx="50" cy="50" r="43" fill="none" stroke="#cbd5e1" stroke-width="0.8" stroke-dasharray="2,2"/>
+                            <!-- Traços em Relevo -->
+                            <path d="M 15 20 L 45 80" stroke="#64748b" stroke-width="2" opacity="0.25"/>
+                            <text x="50" y="42" font-family="'Inter', sans-serif" font-weight="900" font-size="36" fill="#020617" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 1px 1px rgba(255,255,255,0.9))">50</text>
+                            <text x="50" y="67" font-family="'Inter', sans-serif" font-weight="900" font-size="9" fill="#0f172a" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">CENTAVOS</text>
+                        </svg>
+                    </button>
+
+                    <!-- R$ 0,25 (Bronze Polido) -->
+                    <button data-value="0.25" data-type="coin" class="coin-btn flex-none" style="width: calc((100% - 24px) / 4); max-width: none;" title="25 Centavos">
+                        <svg viewBox="0 0 100 100">
+                            <defs>
+                                <radialGradient id="bronze-light" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stop-color="#ffea9f"/>
+                                    <stop offset="35%" stop-color="#f59e0b"/>
+                                    <stop offset="75%" stop-color="#d97706"/>
+                                    <stop offset="100%" stop-color="#78350f"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="48" fill="url(#bronze-light)"/>
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="url(#bevel-1)" stroke-width="1.5"/>
+                            <polygon points="50,6 90,50 50,94 10,50" fill="none" stroke="#b45309" stroke-width="1" opacity="0.3"/>
+                            <text x="50" y="42" font-family="'Inter', sans-serif" font-weight="900" font-size="36" fill="#2d0d02" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 1px 1px rgba(254,243,199,0.8))">25</text>
+                            <text x="50" y="67" font-family="'Inter', sans-serif" font-weight="900" font-size="9" fill="#451a03" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">CENTAVOS</text>
+                        </svg>
+                    </button>
+
+                    <!-- R$ 0,10 (Bronze Brilhante) -->
+                    <button data-value="0.10" data-type="coin" class="coin-btn flex-none" style="width: calc((100% - 24px) / 4); max-width: none;" title="10 Centavos">
+                        <svg viewBox="0 0 100 100">
+                            <defs>
+                                <radialGradient id="bronze-light-10" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stop-color="#fff0b3"/>
+                                    <stop offset="40%" stop-color="#fbbf24"/>
+                                    <stop offset="80%" stop-color="#b45309"/>
+                                    <stop offset="100%" stop-color="#602504"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="48" fill="url(#bronze-light-10)"/>
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="url(#bevel-1)" stroke-width="1.5"/>
+                            <path d="M 20 20 L 40 85" stroke="#92400e" stroke-width="2.5" opacity="0.25"/>
+                            <text x="50" y="42" font-family="'Inter', sans-serif" font-weight="900" font-size="36" fill="#2d0d02" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 1px 1px rgba(254,243,199,0.8))">10</text>
+                            <text x="50" y="67" font-family="'Inter', sans-serif" font-weight="900" font-size="9" fill="#451a03" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">CENTAVOS</text>
+                        </svg>
+                    </button>
+
+                    <!-- R$ 0,05 (Cobre Polido Redondo) -->
+                    <button data-value="0.05" data-type="coin" class="coin-btn flex-none" style="width: calc((100% - 24px) / 4); max-width: none;" title="5 Centavos">
+                        <svg viewBox="0 0 100 100">
+                            <defs>
+                                <radialGradient id="copper-light" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stop-color="#ffcbd1"/>
+                                    <stop offset="35%" stop-color="#f87171"/>
+                                    <stop offset="75%" stop-color="#dc2626"/>
+                                    <stop offset="100%" stop-color="#7f1d1d"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="48" fill="url(#copper-light)"/>
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="url(#bevel-1)" stroke-width="1.5"/>
+                            <circle cx="50" cy="50" r="41" fill="none" stroke="#ef4444" stroke-width="1" opacity="0.4"/>
+                            <text x="50" y="42" font-family="'Inter', sans-serif" font-weight="900" font-size="38" fill="#2a0404" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 1px 1px rgba(254,202,202,0.8))">5</text>
+                            <text x="50" y="67" font-family="'Inter', sans-serif" font-weight="900" font-size="9" fill="#450a0a" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">CENTAVOS</text>
+                        </svg>
+                    </button>
+
+                    <!-- R$ 0,01 (Cobre Clássico Polido) -->
+                    <button data-value="0.01" data-type="coin" class="coin-btn flex-none" style="width: calc((100% - 24px) / 4); max-width: none;" title="1 Centavo">
+                        <svg viewBox="0 0 100 100">
+                            <defs>
+                                <radialGradient id="copper-dark-light" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" stop-color="#fca5a5"/>
+                                    <stop offset="40%" stop-color="#ef4444"/>
+                                    <stop offset="80%" stop-color="#991b1b"/>
+                                    <stop offset="100%" stop-color="#450a0a"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="48" fill="url(#copper-dark-light)"/>
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="url(#bevel-1)" stroke-width="1.5"/>
+                            <text x="50" y="42" font-family="'Inter', sans-serif" font-weight="900" font-size="38" fill="#1f0202" text-anchor="middle" dominant-baseline="central" filter="drop-shadow(0px 1px 1px rgba(254,202,202,0.8))">1</text>
+                            <text x="50" y="67" font-family="'Inter', sans-serif" font-weight="900" font-size="9" fill="#450a0a" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">CENTAVO</text>
+                        </svg>
+                    </button>
+
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- LÓGICA DE JOGO, AUDIO E SÍNTESE DE VOZ (TTS) -->
+    <script>
+        let targetValue = 0.00;
+        let currentValue = 0.00;
+        let isHit = false;
+
+        const startOverlay = document.getElementById('startOverlay');
+        const btnStartGame = document.getElementById('btnStartGame');
+
+        const displayTargetCard = document.getElementById('displayTargetCard');
+        const displayCurrentCard = document.getElementById('displayCurrentCard');
+        const displayTarget = document.getElementById('displayTarget');
+        const displayCurrent = document.getElementById('displayCurrent');
+        const moneyButtons = document.querySelectorAll('[data-value]');
+
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playBillSound() {
+            try {
+                initAudio();
+                const bufferSize = audioCtx.sampleRate * 0.08;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1400;
+                filter.Q.value = 4;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
+            } catch (e) {}
+        }
+
+        function playCoinSound() {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(3400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+
+        function playWinSound() {
+            try {
+                initAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.1 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + idx * 0.1);
+                    osc.stop(audioCtx.currentTime + idx * 0.1 + 0.3);
+                });
+            } catch (e) {}
+        }
+
+        function playOverSound() {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+            } catch(e) {}
+        }
+
+        function numberToExtensoBRL(amount) {
+            const integerPart = Math.floor(amount);
+            const centsPart = Math.round((amount - integerPart) * 100);
+            let result = '';
+            if (integerPart > 0) {
+                result += `${integerPart} ${integerPart === 1 ? 'real' : 'reais'}`;
+            }
+            if (centsPart > 0) {
+                if (integerPart > 0) result += ' e ';
+                result += `${centsPart} ${centsPart === 1 ? 'centavo' : 'centavos'}`;
+            }
+            if (integerPart === 0 && centsPart === 0) {
+                result = 'zero reais';
+            }
+            return result;
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.1;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakTargetValue() {
+            speakText(`Meta: ${numberToExtensoBRL(targetValue)}`);
+        }
+
+        function speakCurrentAccumulated() {
+            speakText(numberToExtensoBRL(currentValue));
+        }
+
+        function setControlsLocked(locked) {
+            moneyButtons.forEach(btn => {
+                if (locked) {
+                    btn.classList.add('money-disabled');
+                } else {
+                    btn.classList.remove('money-disabled');
+                }
+            });
+        }
+
+        function generateRandomTarget() {
+            const randomRaw = Math.random() * 2999.99 + 0.01;
+            targetValue = Math.round(randomRaw * 100) / 100;
+            currentValue = 0.00;
+            isHit = false;
+            setControlsLocked(false);
+            updateDisplays();
+            speakTargetValue();
+        }
+
+        function formatBRL(val) {
+            return val.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+        }
+
+        function updateDisplays() {
+            displayTarget.textContent = formatBRL(targetValue);
+            displayCurrent.textContent = formatBRL(currentValue);
+
+            displayCurrentCard.classList.remove('border-emerald-500', 'border-rose-500', 'glow-win');
+
+            if (Math.abs(currentValue - targetValue) < 0.001) {
+                isHit = true;
+                displayCurrentCard.classList.add('border-emerald-500', 'glow-win');
+                setControlsLocked(true);
+                playWinSound();
+                speakText(`Parabéns! Você acertou ${numberToExtensoBRL(targetValue)}`);
+            } else if (currentValue > targetValue) {
+                playOverSound();
+                speakText(`Passou de ${numberToExtensoBRL(targetValue)}. Zerado!`);
+                currentValue = 0.00;
+                displayCurrent.textContent = formatBRL(currentValue);
+                displayCurrentCard.classList.add('border-rose-500');
+                setTimeout(() => {
+                    displayCurrentCard.classList.remove('border-rose-500');
+                }, 600);
+            }
+        }
+
+        function requestFullscreenMode() {
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen().catch(() => {});
+            } else if (docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            }
+        }
+
+        btnStartGame.addEventListener('click', () => {
+            initAudio();
+            requestFullscreenMode();
+            startOverlay.classList.add('hidden');
+            generateRandomTarget();
+        });
+
+        displayTargetCard.addEventListener('click', () => {
+            if (isHit) {
+                generateRandomTarget();
+            } else {
+                speakTargetValue();
+            }
+        });
+
+        displayCurrentCard.addEventListener('click', () => {
+            if (currentValue > 0 && !isHit) {
+                currentValue = 0.00;
+                updateDisplays();
+                speakText('Zero reais');
+            }
+        });
+
+        moneyButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isHit) return;
+
+                const val = parseFloat(btn.getAttribute('data-value'));
+                const isCoin = btn.getAttribute('data-type') === 'coin';
+
+                if (isCoin) {
+                    playCoinSound();
+                } else {
+                    playBillSound();
+                }
+
+                currentValue = Math.round((currentValue + val) * 100) / 100;
+                updateDisplays();
+
+                if (!isHit && currentValue <= targetValue && currentValue > 0) {
+                    speakCurrentAccumulated();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
