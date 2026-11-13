@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sílabas em Ação - 1 Palavra por Vez</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Fredoka', cursive, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    body {
+      background: #070b19;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #spaceCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* --- BASE BOTÕES JELLY --- */
+    .btn-jelly {
+      position: relative;
+      border-radius: 1.25rem;
+      transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s ease;
+      perspective: 1000px;
+    }
+
+    .jelly-blue {
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 60%, #0369a1 100%);
+      box-shadow: 0 6px 0 #075985, 0 10px 15px rgba(0,0,0,0.4), inset 0 3px 3px rgba(255,255,255,0.6);
+    }
+    .jelly-red {
+      background: linear-gradient(180deg, #fb7185 0%, #e11d48 60%, #be123c 100%);
+      box-shadow: 0 6px 0 #9f1239, 0 10px 15px rgba(0,0,0,0.4), inset 0 3px 3px rgba(255,255,255,0.6);
+    }
+    .jelly-yellow {
+      background: linear-gradient(180deg, #fde047 0%, #eab308 60%, #ca8a04 100%);
+      color: #451a03 !important;
+      box-shadow: 0 6px 0 #854d0e, 0 10px 15px rgba(0,0,0,0.4), inset 0 3px 3px rgba(255,255,255,0.8);
+    }
+    .jelly-green {
+      background: linear-gradient(180deg, #4ade80 0%, #16a34a 60%, #15803d 100%);
+      box-shadow: 0 6px 0 #166534, 0 10px 15px rgba(0,0,0,0.4), inset 0 3px 3px rgba(255,255,255,0.6);
+    }
+    .jelly-purple {
+      background: linear-gradient(180deg, #c084fc 0%, #9333ea 60%, #7e22ce 100%);
+      box-shadow: 0 6px 0 #6b21a8, 0 10px 15px rgba(0,0,0,0.4), inset 0 3px 3px rgba(255,255,255,0.6);
+    }
+    .jelly-orange {
+      background: linear-gradient(180deg, #fb923c 0%, #ea580c 60%, #c2410c 100%);
+      box-shadow: 0 6px 0 #9a3412, 0 10px 15px rgba(0,0,0,0.4), inset 0 3px 3px rgba(255,255,255,0.6);
+    }
+
+    .btn-jelly::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 10%;
+      right: 10%;
+      height: 35%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.1) 100%);
+      border-radius: 0.75rem 0.75rem 50% 50%;
+      pointer-events: none;
+    }
+
+    .btn-jelly.selected {
+      filter: brightness(1.3);
+      transform: translateY(3px) scale(0.95);
+    }
+
+    .btn-jelly:active {
+      transform: translateY(5px) scaleX(1.12) scaleY(0.85) !important;
+    }
+
+    .flip-card {
+      animation: flip3D 0.45s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    @keyframes flip3D {
+      0% { transform: rotateY(0deg); }
+      50% { transform: rotateY(90deg) scale(1.1); filter: brightness(1.3); }
+      100% { transform: rotateY(180deg); }
+    }
+
+    .ui-btn {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      box-shadow: 0 3px 0 #020617, inset 0 1px 1px rgba(255,255,255,0.2);
+    }
+    .ui-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #020617;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen text-white flex flex-col justify-between p-2 select-none relative overflow-hidden">
+
+  <canvas id="spaceCanvas"></canvas>
+
+  <div class="relative z-10 h-full flex flex-col justify-between max-w-4xl mx-auto w-full">
+
+    <!-- 1. TELA INICIAL -->
+    <div id="startScreen" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+      <div class="text-center space-y-6 flex flex-col items-center">
+        <div class="text-8xl sm:text-9xl animate-bounce drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]">
+          🌈
+        </div>
+        <h1 class="text-4xl sm:text-6xl font-black text-amber-400 tracking-wider drop-shadow-[0_6px_0_rgba(0,0,0,0.6)]">
+          SÍLABAS EM AÇÃO
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-lg">Monte a palavra correta sílaba por sílaba!</p>
+        <button id="btnStart" onclick="iniciarJogo()" class="btn-jelly jelly-green text-white font-black text-3xl sm:text-5xl px-12 py-5 rounded-3xl cursor-pointer">
+          INICIAR JOGO
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. BARRA SUPERIOR ULTRA COMPACTA -->
+    <header class="w-full bg-slate-900/60 backdrop-blur-md rounded-xl px-3 py-1.5 border border-slate-700/40 flex items-center justify-between shadow-lg shrink-0 gap-2">
+      <div class="flex items-center gap-2">
+        <div class="ui-btn px-3 py-1 rounded-lg font-black text-xs sm:text-sm flex items-center gap-1.5 text-slate-200">
+          <span>PALAVRA</span>
+          <span id="palavraAtualNum" class="text-amber-400 text-sm sm:text-base">1</span>
+          <span class="text-slate-400 text-[10px]">/ <span id="totalPalavrasNum">105</span></span>
+        </div>
+        
+        <button onclick="toggleFullscreen()" title="Tela Cheia" class="ui-btn text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold hover:text-white flex items-center justify-center">
+          <span id="fsIcon">⛶</span>
+        </button>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="falarPalavraDica()" class="ui-btn text-slate-200 px-3 py-1 rounded-lg font-bold text-sm hover:text-white" title="Ouvir Dica">
+          🔊
+        </button>
+        <button onclick="limparSelecao()" class="ui-btn text-rose-400 px-3 py-1 rounded-lg font-bold text-sm hover:text-rose-300" title="Apagar">
+          ⌫
+        </button>
+      </div>
+    </header>
+
+    <!-- 3. ÁREA VISUAL PRINCIPAL (DICA + BOTÃO RESPOSTA INTERATIVO) -->
+    <main class="flex-1 flex flex-col items-center justify-center py-2 px-1 gap-3 min-h-0">
+      <!-- Emoji Visual da Palavra -->
+      <div id="targetEmoji" class="text-7xl sm:text-8xl drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform cursor-pointer" onclick="falarPalavraDica()">
+        🐱
+      </div>
+
+      <!-- BOTÃO RESPOSTA (FONTE MAIOR, NEGRITO, SEM BORDA BRANCA, TRANSPARENTE) -->
+      <button id="answerButton" onclick="clicarBotaoResposta()" class="w-full max-w-lg h-16 sm:h-20 bg-slate-950/70 backdrop-blur-sm rounded-2xl border-0 border-transparent flex items-center justify-center p-2 shadow-inner cursor-pointer transition-transform active:scale-95">
+        <span id="wordTextDisplay" class="text-amber-400 font-black text-3xl sm:text-5xl tracking-widest uppercase"></span>
+      </button>
+    </main>
+
+    <!-- 4. PAINEL INFERIOR DE BOTÕES (SÍLABAS SUMEM AO SEREM SELECIONADAS) -->
+    <footer class="w-full pb-3 pt-2 shrink-0">
+      <div id="syllablesGrid" class="w-full flex flex-wrap justify-center items-center content-center gap-2 sm:gap-3.5 p-2 bg-slate-900/40 backdrop-blur-sm rounded-2xl border border-slate-800/60 min-h-[110px] max-h-[45vh] overflow-y-auto">
+      </div>
+    </footer>
+
+    <!-- 5. MODAL PALAVRA REVELADA (ACERTO) -->
+    <div id="wordSuccessModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+      <div class="bg-slate-900 border-4 border-amber-400 rounded-3xl p-6 max-w-xs w-full text-center shadow-2xl flex flex-col items-center gap-3 animate-bounce">
+        <span id="wordEmoji" class="text-8xl">⚽</span>
+        <h3 id="wordTitle" class="text-4xl font-black text-amber-400 uppercase tracking-widest">BOLA</h3>
+        <p class="text-emerald-400 font-bold text-base">Muito bem! Correto!</p>
+      </div>
+    </div>
+
+    <!-- 6. MODAL FIM DE JOGO -->
+    <div id="phaseSuccessModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 hidden">
+      <div class="bg-gradient-to-b from-indigo-900 to-slate-900 border-4 border-amber-400 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-6">
+        <div class="text-7xl">🏆🎉</div>
+        <div>
+          <h2 id="phaseSuccessTitle" class="text-3xl sm:text-4xl font-black text-amber-400">PARABÉNS!</h2>
+          <p id="phaseSuccessSubtitle" class="text-slate-300 mt-2 font-medium">Você completou todas as palavras!</p>
+        </div>
+        <button id="btnProximaFase" onclick="iniciarJogo()" class="btn-jelly jelly-green w-full text-white font-black text-2xl py-4 rounded-2xl">
+          JOGAR NOVAMENTE 🔄
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* --- CANVAS DE ANIMAÇÃO ESPACIAL --- */
+    const canvas = document.getElementById('spaceCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const stars = Array.from({ length: 70 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      r: Math.random() * 1.8 + 0.5,
+      alpha: Math.random() * 0.8 + 0.2,
+      speed: Math.random() * 0.02 + 0.005
+    }));
+
+    const comets = [];
+    function spawnComet() {
+      if (Math.random() < 0.03 && comets.length < 3) {
+        comets.push({
+          x: Math.random() * width,
+          y: -20,
+          dx: (Math.random() - 0.2) * 4 + 2,
+          dy: Math.random() * 4 + 3,
+          length: Math.random() * 50 + 40,
+          life: 1
+        });
+      }
+    }
+
+    const ufos = [];
+    function spawnUFO() {
+      if (Math.random() < 0.008 && ufos.length < 2) {
+        ufos.push({
+          x: -50,
+          y: Math.random() * (height * 0.6) + 40,
+          speed: Math.random() * 1.5 + 1,
+          amplitude: Math.random() * 20 + 10,
+          frequency: Math.random() * 0.05 + 0.02,
+          initialY: 0
+        });
+        ufos[ufos.length - 1].initialY = ufos[ufos.length - 1].y;
+      }
+    }
+
+    const celestialBodies = [
+      { name: 'Sun', emoji: '☀️', x: width * 0.8, y: height * 0.15, dx: -0.15, dy: 0.05 },
+      { name: 'Planet1', emoji: '🪐', x: width * 0.15, y: height * 0.75, dx: 0.2, dy: -0.08 }
+    ];
+
+    const ripples = [];
+    window.addEventListener('pointerdown', (e) => {
+      ripples.push({
+        x: e.clientX,
+        y: e.clientY,
+        r: 5,
+        maxR: 80,
+        alpha: 0.8
+      });
+    });
+
+    function renderSpace() {
+      ctx.clearRect(0, 0, width, height);
+
+      stars.forEach(s => {
+        s.alpha += Math.sin(Date.now() * s.speed) * 0.01;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(s.alpha)})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.font = '36px sans-serif';
+      celestialBodies.forEach(b => {
+        b.x += b.dx;
+        b.y += b.dy;
+        if (b.x < -50) b.x = width + 50;
+        if (b.x > width + 50) b.x = -50;
+        ctx.fillText(b.emoji, b.x, b.y);
+      });
+
+      spawnComet();
+      for (let i = comets.length - 1; i >= 0; i--) {
+        const c = comets[i];
+        c.x += c.dx;
+        c.y += c.dy;
+
+        const grad = ctx.createLinearGradient(c.x, c.y, c.x - c.dx * 10, c.y - c.dy * 10);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y);
+        ctx.lineTo(c.x - c.dx * 12, c.y - c.dy * 12);
+        ctx.stroke();
+
+        if (c.y > height + 50 || c.x > width + 50) {
+          comets.splice(i, 1);
+        }
+      }
+
+      spawnUFO();
+      ctx.font = '28px sans-serif';
+      for (let i = ufos.length - 1; i >= 0; i--) {
+        const ufo = ufos[i];
+        ufo.x += ufo.speed;
+        ufo.y = ufo.initialY + Math.sin(ufo.x * ufo.frequency) * ufo.amplitude;
+        ctx.fillText('🛸', ufo.x, ufo.y);
+
+        if (ufo.x > width + 50) ufos.splice(i, 1);
+      }
+
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const r = ripples[i];
+        r.r += 2.5;
+        r.alpha -= 0.02;
+
+        ctx.strokeStyle = `rgba(56, 189, 248, ${r.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        if (r.alpha <= 0 || r.r >= r.maxR) {
+          ripples.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(renderSpace);
+    }
+    renderSpace();
+
+    /* --- FULLSCREEN --- */
+    function toggleFullscreen() {
+      const fsIcon = document.getElementById('fsIcon');
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+        if (fsIcon) fsIcon.innerText = "🗗";
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        if (fsIcon) fsIcon.innerText = "⛶";
+      }
+    }
+
+    /* --- BANCO COMPLETO DE PALAVRAS COM ACENTUAÇÃO CORRETA --- */
+    const BANCO_COMPLETO_PALAVRAS = [
+      // ANIMAIS (30)
+      { palavra: "GATO", silabas: ["GA", "TO"], emoji: "🐱" },
+      { palavra: "PATO", silabas: ["PA", "TO"], emoji: "🦆" },
+      { palavra: "VACA", silabas: ["VA", "CA"], emoji: "🐮" },
+      { palavra: "SAPO", silabas: ["SA", "PO"], emoji: "🐸" },
+      { palavra: "LEÃO", silabas: ["LE", "ÃO"], emoji: "🦁" },
+      { palavra: "LOBO", silabas: ["LO", "BO"], emoji: "🐺" },
+      { palavra: "URSO", silabas: ["UR", "SO"], emoji: "🐻" },
+      { palavra: "FOCA", silabas: ["FO", "CA"], emoji: "🦭" },
+      { palavra: "MACACO", silabas: ["MA", "CA", "CO"], emoji: "🐒" },
+      { palavra: "CAVALO", silabas: ["CA", "VA", "LO"], emoji: "🐴" },
+      { palavra: "CORUJA", silabas: ["CO", "RU", "JA"], emoji: "🦉" },
+      { palavra: "TUCANO", silabas: ["TU", "CA", "NO"], emoji: "🦜" },
+      { palavra: "GIRAFA", silabas: ["GI", "RA", "FA"], emoji: "🦒" },
+      { palavra: "PEIXE", silabas: ["PEI", "XE"], emoji: "🐟" },
+      { palavra: "GALO", silabas: ["GA", "LO"], emoji: "🐓" },
+      { palavra: "PERU", silabas: ["PE", "RU"], emoji: "🦃" },
+      { palavra: "TATU", silabas: ["TA", "TU"], emoji: "🦦" },
+      { palavra: "ELEFANTE", silabas: ["E", "LE", "FAN", "TE"], emoji: "🐘" },
+      { palavra: "BORBOLETA", silabas: ["BOR", "BO", "LE", "TA"], emoji: "🦋" },
+      { palavra: "TARTARUGA", silabas: ["TAR", "TA", "RU", "GA"], emoji: "🐢" },
+      { palavra: "TUBARÃO", silabas: ["TU", "BA", "RÃO"], emoji: "🦈" },
+      { palavra: "ABELHA", silabas: ["A", "BE", "LHA"], emoji: "🐝" },
+      { palavra: "FORMIGA", silabas: ["FOR", "MI", "GA"], emoji: "🐜" },
+      { palavra: "JACARÉ", silabas: ["JA", "CA", "RÉ"], emoji: "🐊" },
+      { palavra: "COBRA", silabas: ["CO", "BRA"], emoji: "🐍" },
+      { palavra: "RATINHO", silabas: ["RA", "TI", "NHO"], emoji: "🐭" },
+      { palavra: "CAMELO", silabas: ["CA", "ME", "LO"], emoji: "🐫" },
+      { palavra: "PORCO", silabas: ["POR", "CO"], emoji: "🐷" },
+      { palavra: "CABRA", silabas: ["CA", "BRA"], emoji: "🐐" },
+      { palavra: "OVELHA", silabas: ["O", "VE", "LHA"], emoji: "🐑" },
+
+      // FRUTAS & COMIDAS (30)
+      { palavra: "SUCO", silabas: ["SU", "CO"], emoji: "🧃" },
+      { palavra: "DOCE", silabas: ["DO", "CE"], emoji: "🍬" },
+      { palavra: "BOLO", silabas: ["BO", "LO"], emoji: "🎂" },
+      { palavra: "PIPOCA", silabas: ["PI", "PO", "CA"], emoji: "🍿" },
+      { palavra: "BANANA", silabas: ["BA", "NA", "NA"], emoji: "🍌" },
+      { palavra: "CHOCOLATE", silabas: ["CHO", "CO", "LA", "TE"], emoji: "🍫" },
+      { palavra: "ABACAXI", silabas: ["A", "BA", "CA", "XI"], emoji: "🍍" },
+      { palavra: "MELANCIA", silabas: ["ME", "LAN", "CI", "A"], emoji: "🍉" },
+      { palavra: "ABACATE", silabas: ["A", "BA", "CA", "TE"], emoji: "🥑" },
+      { palavra: "MORANGO", silabas: ["MO", "RAN", "GO"], emoji: "🍓" },
+      { palavra: "UVA", silabas: ["U", "VA"], emoji: "🍇" },
+      { palavra: "PÊRA", silabas: ["PÊ", "RA"], emoji: "🍐" },
+      { palavra: "MAÇÃ", silabas: ["MA", "ÇÃ"], emoji: "🍎" },
+      { palavra: "LIMÃO", silabas: ["LI", "MÃO"], emoji: "🍋" },
+      { palavra: "SORVETE", silabas: ["SOR", "VE", "TE"], emoji: "🍦" },
+      { palavra: "PUDIM", silabas: ["PU", "DIM"], emoji: "🍮" },
+      { palavra: "PIZZA", silabas: ["PIZ", "ZA"], emoji: "🍕" },
+      { palavra: "QUEIJO", silabas: ["QUEI", "JO"], emoji: "🧀" },
+      { palavra: "BATATA", silabas: ["BA", "TA", "TA"], emoji: "🥔" },
+      { palavra: "TOMATE", silabas: ["TO", "MA", "TE"], emoji: "🍅" },
+      { palavra: "CENOURA", silabas: ["CE", "NOU", "RA"], emoji: "🥕" },
+      { palavra: "MILHO", silabas: ["MI", "LHO"], emoji: "🌽" },
+      { palavra: "PÃO", silabas: ["PÃO"], emoji: "🍞" },
+      { palavra: "CAFÉ", silabas: ["CA", "FÉ"], emoji: "☕" },
+      { palavra: "LEITE", silabas: ["LEI", "TE"], emoji: "🥛" },
+      { palavra: "SOPA", silabas: ["SO", "PA"], emoji: "🍲" },
+      { palavra: "SALADA", silabas: ["SA", "LA", "DA"], emoji: "🥗" },
+      { palavra: "COGUMELO", silabas: ["CO", "GU", "ME", "LO"], emoji: "🍄" },
+      { palavra: "PICOLÉ", silabas: ["PI", "CO", "LÉ"], emoji: "🍧" },
+      { palavra: "MELÃO", silabas: ["ME", "LÃO"], emoji: "🍈" },
+
+      // OBJETOS & BRINQUEDOS (25)
+      { palavra: "BOLA", silabas: ["BO", "LA"], emoji: "⚽" },
+      { palavra: "CASA", silabas: ["CA", "SA"], emoji: "🏠" },
+      { palavra: "MESA", silabas: ["ME", "SA"], emoji: "🪑" },
+      { palavra: "BONECA", silabas: ["BO", "NE", "CA"], emoji: "🪆" },
+      { palavra: "CANETA", silabas: ["CA", "NE", "TA"], emoji: "🖊️" },
+      { palavra: "TELEFONE", silabas: ["TE", "LE", "FO", "NE"], emoji: "📞" },
+      { palavra: "SAPATO", silabas: ["SA", "PA", "TO"], emoji: "👞" },
+      { palavra: "CAMISA", silabas: ["CA", "MI", "SA"], emoji: "👕" },
+      { palavra: "LIVRO", silabas: ["LI", "VRO"], emoji: "📖" },
+      { palavra: "CANECA", silabas: ["CA", "NE", "CA"], emoji: "☕" },
+      { palavra: "PANELA", silabas: ["PA", "NE", "LA"], emoji: "🍳" },
+      { palavra: "JANELA", silabas: ["JA", "NE", "LA"], emoji: "🪟" },
+      { palavra: "SACOLA", silabas: ["SA", "CO", "LA"], emoji: "🛍️" },
+      { palavra: "TAPETE", silabas: ["TA", "PE", "TE"], emoji: "🎨" },
+      { palavra: "ESCOVA", silabas: ["ES", "CO", "VA"], emoji: "🪥" },
+      { palavra: "ESPELHO", silabas: ["ES", "PE", "LHO"], emoji: "🪞" },
+      { palavra: "RELÓGIO", silabas: ["RE", "LÓ", "GIO"], emoji: "⌚" },
+      { palavra: "CHAVE", silabas: ["CHA", "VE"], emoji: "🔑" },
+      { palavra: "TESOURA", silabas: ["TE", "SOU", "RA"], emoji: "✂️" },
+      { palavra: "CADERNO", silabas: ["CA", "DER", "NO"], emoji: "📓" },
+      { palavra: "MOCHILA", silabas: ["MO", "CHI", "LA"], emoji: "🎒" },
+      { palavra: "BICI", silabas: ["BI", "CI"], emoji: "🚲" },
+      { palavra: "PATINETE", silabas: ["PA", "TI", "NE", "TE"], emoji: "🛴" },
+      { palavra: "PETECA", silabas: ["PE", "TE", "CA"], emoji: "🏸" },
+      { palavra: "PEÃO", silabas: ["PE", "ÃO"], emoji: "🪀" },
+
+      // ELEMENTOS DA NATUREZA & TRANSPORTE (20)
+      { palavra: "SOL", silabas: ["SOL"], emoji: "☀️" },
+      { palavra: "LUA", silabas: ["LU", "A"], emoji: "🌙" },
+      { palavra: "ESTRELA", silabas: ["ES", "TRE", "LA"], emoji: "⭐" },
+      { palavra: "NUVEM", silabas: ["NU", "VEM"], emoji: "☁️" },
+      { palavra: "CHUVA", silabas: ["CHU", "VA"], emoji: "🌧️" },
+      { palavra: "FOGO", silabas: ["FO", "GO"], emoji: "🔥" },
+      { palavra: "TERRA", silabas: ["TER", "RA"], emoji: "🌍" },
+      { palavra: "PRAIA", silabas: ["PRA", "IA"], emoji: "🏖️" },
+      { palavra: "ÁRVORE", silabas: ["ÁR", "VO", "RE"], emoji: "🌳" },
+      { palavra: "FLOR", silabas: ["FLOR"], emoji: "🌸" },
+      { palavra: "CARRO", silabas: ["CAR", "RO"], emoji: "🚗" },
+      { palavra: "NAVIO", silabas: ["NA", "VIO"], emoji: "🚢" },
+      { palavra: "AVIÃO", silabas: ["A", "VI", "ÃO"], emoji: "✈️" },
+      { palavra: "TREM", silabas: ["TREM"], emoji: "🚂" },
+      { palavra: "FOGUETE", silabas: ["FO", "GUE", "TE"], emoji: "🚀" },
+      { palavra: "SUBMARINO", silabas: ["SUB", "MA", "RI", "NO"], emoji: "🤿" },
+      { palavra: "MOTO", silabas: ["MO", "TO"], emoji: "🏍️" },
+      { palavra: "ÔNIBUS", silabas: ["Ô", "NI", "BUS"], emoji: "🚌" },
+      { palavra: "BALÃO", silabas: ["BA", "LÃO"], emoji: "🎈" },
+      { palavra: "CORAÇÃO", silabas: ["CO", "RA", "ÇÃO"], emoji: "❤️" }
+    ];
+
+    const CORES_JELLY = ['jelly-blue', 'jelly-red', 'jelly-yellow', 'jelly-green', 'jelly-purple', 'jelly-orange'];
+
+    let listaPalavrasJogo = [];
+    let indicePalavraAtual = 0;
+    let palavraAtualObj = null;
+    let silabasPainel = [];
+    let selecaoAtual = [];
+    let audioCtx = null;
+
+    function iniciarJogo() {
+      const startScreen = document.getElementById('startScreen');
+      if (startScreen) startScreen.style.display = 'none';
+
+      toggleFullscreen();
+
+      listaPalavrasJogo = [...BANCO_COMPLETO_PALAVRAS].sort(() => Math.random() - 0.5);
+      indicePalavraAtual = 0;
+
+      document.getElementById('totalPalavrasNum').innerText = listaPalavrasJogo.length;
+      carregarPalavraAtual();
+    }
+
+    function carregarPalavraAtual() {
+      if (indicePalavraAtual >= listaPalavrasJogo.length) {
+        exibirFimDeJogo();
+        return;
+      }
+
+      palavraAtualObj = listaPalavrasJogo[indicePalavraAtual];
+      document.getElementById('palavraAtualNum').innerText = indicePalavraAtual + 1;
+      document.getElementById('targetEmoji').innerText = palavraAtualObj.emoji;
+
+      let todasSilabas = [...palavraAtualObj.silabas];
+
+      const outrasPalavras = BANCO_COMPLETO_PALAVRAS.filter(p => p.palavra !== palavraAtualObj.palavra);
+      while (todasSilabas.length < 6 && outrasPalavras.length > 0) {
+        const randIdx = Math.floor(Math.random() * outrasPalavras.length);
+        const randWord = outrasPalavras[randIdx];
+        const randSilaba = randWord.silabas[Math.floor(Math.random() * randWord.silabas.length)];
+        if (!todasSilabas.includes(randSilaba)) {
+          todasSilabas.push(randSilaba);
+        }
+      }
+
+      let idCounter = 0;
+      silabasPainel = todasSilabas.sort(() => Math.random() - 0.5).map(s => ({
+        id: `silaba_${idCounter++}`,
+        texto: s,
+        cor: CORES_JELLY[Math.floor(Math.random() * CORES_JELLY.length)]
+      }));
+
+      limparSelecao();
+      renderizarPainelSilabas(true);
+
+      setTimeout(() => {
+        falarPalavraDica();
+      }, 400);
+    }
+
+    function renderizarPainelSilabas(animarVirada = false) {
+      const grid = document.getElementById('syllablesGrid');
+      grid.innerHTML = '';
+
+      silabasPainel.forEach(item => {
+        if (selecaoAtual.some(sel => sel.id === item.id)) {
+          return;
+        }
+
+        const btn = document.createElement('button');
+        btn.id = item.id;
+        btn.className = `btn-jelly ${item.cor} text-white font-black text-2xl sm:text-3xl px-5 sm:px-8 py-3.5 sm:py-4 rounded-2xl flex items-center justify-center cursor-pointer min-w-[70px] sm:min-w-[95px]`;
+        btn.innerText = item.texto;
+
+        if (animarVirada) {
+          btn.classList.add('flip-card');
+        }
+
+        btn.onclick = () => clicarSilaba(item);
+        grid.appendChild(btn);
+      });
+    }
+
+    function clicarSilaba(item) {
+      tocarSom('clique');
+      falarTexto(item.texto);
+
+      selecaoAtual.push(item);
+
+      atualizarDisplayPalavra();
+      renderizarPainelSilabas(false);
+      verificarPalavra();
+    }
+
+    function clicarBotaoResposta() {
+      const textoMontado = selecaoAtual.map(item => item.texto).join('');
+      if (textoMontado.trim() !== "") {
+        tocarSom('clique');
+        falarTexto(textoMontado);
+      }
+    }
+
+    function atualizarDisplayPalavra() {
+      const display = document.getElementById('wordTextDisplay');
+      const textoFormatado = selecaoAtual.map(item => item.texto).join('');
+      display.innerText = textoFormatado;
+    }
+
+    function limparSelecao() {
+      selecaoAtual = [];
+      atualizarDisplayPalavra();
+      renderizarPainelSilabas(false);
+    }
+
+    function verificarPalavra() {
+      const textoMontado = selecaoAtual.map(s => s.texto).join('');
+
+      if (textoMontado === palavraAtualObj.palavra) {
+        tocarSom('vitoria');
+        falarTexto(palavraAtualObj.palavra);
+
+        document.getElementById('wordEmoji').innerText = palavraAtualObj.emoji;
+        document.getElementById('wordTitle').innerText = palavraAtualObj.palavra;
+        document.getElementById('wordSuccessModal').classList.remove('hidden');
+
+        dispararFogosComemoracao();
+
+        setTimeout(() => {
+          document.getElementById('wordSuccessModal').classList.add('hidden');
+          indicePalavraAtual++;
+          carregarPalavraAtual();
+        }, 1400);
+      }
+    }
+
+    function dispararFogosComemoracao() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 50,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    }
+
+    function exibirFimDeJogo() {
+      tocarSom('vitoria');
+      const modal = document.getElementById('phaseSuccessModal');
+      modal.classList.remove('hidden');
+    }
+
+    function falarTexto(texto) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(texto.toLowerCase());
+        msg.lang = 'pt-BR';
+        msg.rate = 0.85;
+        window.speechSynthesis.speak(msg);
+      }
+    }
+
+    function falarPalavraDica() {
+      if (palavraAtualObj) {
+        falarTexto(palavraAtualObj.palavra);
+      }
+    }
+
+    function tocarSom(tipo) {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (tipo === 'clique') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (tipo === 'vitoria') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          osc.frequency.setValueAtTime(783.99, now + 0.2);
+          osc.frequency.setValueAbruptamente(1046.50, now + 0.3);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        }
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

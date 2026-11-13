@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f19">
+  <title>Alfabetização Gelatina</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&display=swap');
+    
+    * {
+      font-family: 'Quicksand', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: #ffffff;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      margin: 0;
+    }
+
+    .btn-jelly {
+      position: relative;
+      border-radius: 1.5rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.4), inset 0 -4px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, background 0.2s ease;
+      overflow: hidden;
+    }
+
+    .btn-jelly::before {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 10px;
+      right: 10px;
+      height: 40%;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+      border-radius: 9999px;
+      pointer-events: none;
+    }
+
+    .btn-jelly:active {
+      transform: scale(0.88) translateY(2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 2px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .highlight-syllable {
+      color: #fbbf24;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    @keyframes confetefly {
+      0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+      30% { opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(1.6) rotate(540deg); opacity: 0; }
+    }
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      font-size: 32px;
+      animation: confetefly 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+  <!-- TELA INICIAL -->
+  <div id="screen-start" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 p-6 text-center">
+    <div class="mb-8 animate-bounce">
+      <div class="text-8xl mb-3">🍬✨</div>
+      <h1 class="text-5xl font-bold text-amber-300 drop-shadow-lg tracking-wider">ALFABETIZAÇÃO</h1>
+    </div>
+    <button onclick="startApp()" class="btn-jelly bg-emerald-500 text-white font-bold text-3xl px-14 py-7 border-2 border-emerald-300/60 flex items-center gap-3 cursor-pointer">
+      <span>INICIAR</span>
+    </button>
+  </div>
+
+  <!-- CONTAINER PRINCIPAL -->
+  <div id="app-container" class="hidden flex-col h-full w-full p-2 sm:p-3 gap-2">
+
+    <!-- ABAS PRINCIPAIS -->
+    <nav class="grid grid-cols-5 gap-1.5 shrink-0" id="mainnav">
+      <button class="nav-btn active btn-jelly bg-pink-500 text-white rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-pink-300/40 cursor-pointer" data-page="letras">
+        <span class="text-lg leading-none mb-0.5">🔤</span>Letras
+      </button>
+      <button class="nav-btn btn-jelly bg-slate-800 text-slate-300 rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-slate-700/50 cursor-pointer" data-page="familias">
+        <span class="text-lg leading-none mb-0.5">🧩</span>Sílabas
+      </button>
+      <button class="nav-btn btn-jelly bg-slate-800 text-slate-300 rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-slate-700/50 cursor-pointer" data-page="digrafos">
+        <span class="text-lg leading-none mb-0.5">👥</span>Dígrafos
+      </button>
+      <button class="nav-btn btn-jelly bg-slate-800 text-slate-300 rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-slate-700/50 cursor-pointer" data-page="encontros">
+        <span class="text-lg leading-none mb-0.5">🔗</span>Complexas
+      </button>
+      <button class="nav-btn btn-jelly bg-slate-800 text-slate-300 rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-slate-700/50 cursor-pointer" data-page="nasais">
+        <span class="text-lg leading-none mb-0.5">👃</span>Nasais
+      </button>
+    </nav>
+
+    <!-- PAINEL CENTRAL -->
+    <div class="bg-slate-900/70 border border-white/10 rounded-3xl p-2 sm:p-3 shadow-2xl flex-1 flex flex-col justify-between gap-2 overflow-hidden backdrop-blur-xl">
+      
+      <!-- ÁREA COM ROLAGEM -->
+      <div id="scroll-content" class="overflow-y-auto hide-scrollbar flex-1 space-y-2 w-full"></div>
+
+      <!-- PAINEL HERO INFERIOR -->
+      <div id="hero-slot" class="shrink-0 w-full"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const PHONETIC_MAP = {
+      "BA":"BÁ", "BE":"BÉ", "BI":"BÍ", "BO":"BÓ", "BU":"BÚ",
+      "CA":"CÁ", "CE":"CÉ", "CI":"CÍ", "CO":"CÓ", "CU":"CÚ",
+      "DA":"DÁ", "DE":"DÉ", "DI":"DÍ", "DO":"DÓ", "DU":"DÚ",
+      "FA":"FÁ", "FE":"FÉ", "FI":"FÍ", "FO":"FÓ", "FU":"FÚ",
+      "GA":"GÁ", "GE":"JÉ", "GI":"JÍ", "GO":"GÓ", "GU":"GÚ",
+      "JA":"JÁ", "JE":"JÉ", "JI":"JÍ", "JO":"JÓ", "JU":"JÚ",
+      "LA":"LÁ", "LE":"LÉ", "LI":"LÍ", "LO":"LÓ", "LU":"LÚ",
+      "MA":"MÁ", "ME":"MÉ", "MI":"MÍ", "MO":"MÓ", "MU":"MÚ",
+      "NA":"NÁ", "NE":"NÉ", "NI":"NÍ", "NO":"NÓ", "NU":"NÚ",
+      "PA":"PÁ", "PE":"PÉ", "PI":"PÍ", "PO":"PÓ", "PU":"PÚ",
+      "RA":"RÁ", "RE":"RÉ", "RI":"RÍ", "RO":"RÓ", "RU":"RÚ",
+      "SA":"SÁ", "SE":"SÉ", "SI":"SÍ", "SO":"SÓ", "SU":"SÚ",
+      "TA":"TÁ", "TE":"TÉ", "TI":"TÍ", "TO":"TÓ", "TU":"TÚ",
+      "VA":"VÁ", "VE":"VÉ", "VI":"VÍ", "VO":"VÓ", "VU":"VÚ",
+      "XA":"XÁ", "XE":"XÉ", "XI":"XÍ", "XO":"XÓ", "XU":"XÚ",
+      "ZA":"ZÁ", "ZE":"ZÉ", "ZI":"ZÍ", "ZO":"ZÓ", "ZU":"ZÚ",
+
+      "LHA": "Lhã", "LHE": "Lhê", "LHI": "Lhi", "LHO": "Lho", "LHU": "Lhu",
+      "NHA": "Nhã", "NHE": "Nhê", "NHI": "Nhi", "NHO": "Nho", "NHU": "Nhu",
+      "CHA": "Xá",   "CHE": "Xê",  "CHI": "Xi",  "CHO": "Xó",  "CHU": "Xu",
+      "RRA": "Rá",   "RRE": "Rê",  "RRI": "Rri", "RRO": "Rró", "RRU": "Rru",
+      "SSA": "Sá",   "SSE": "Sê",  "SSI": "Si",  "SSO": "Só",  "SSU": "Su",
+
+      "BRA": "Brá", "BRE": "Brê", "BRI": "Bri", "BRO": "Bró", "BRU": "Bru",
+      "CRA": "Crá", "CRE": "Crê", "CRI": "Cri", "CRO": "Cró", "CRU": "Cru",
+      "DRA": "Drá", "DRE": "Drê", "DRI": "Dri", "DRO": "Dró", "DRU": "Dru",
+      "FRA": "Frá", "FRE": "Frê", "FRI": "Fri", "FRO": "Fró", "FRU": "Fru",
+      "GRA": "Grá", "GRE": "Grê", "GRI": "Gri", "GRO": "Gró", "GRU": "Gru",
+      "PRA": "Prá", "PRE": "Prê", "PRI": "Pri", "PRO": "Pró", "PRU": "Pru",
+      "TRA": "Trá", "TRE": "Trê", "TRI": "Tri", "TRO": "Tró", "TRU": "Tru",
+      "BLA": "Blá", "BLE": "Blê", "BLI": "Bli", "BLO": "Bló", "BLU": "Blu",
+      "CLA": "Clá", "CLE": "Clê", "CLI": "Cli", "CLO": "Cló", "CLU": "Clu",
+      "FLA": "Flá", "FLE": "Flê", "FLI": "Fli", "FLO": "Fló", "FLU": "Flu",
+      "GLA": "Glá", "GLE": "Glê", "GLI": "Gli", "GLO": "Gló", "GLU": "Glu",
+      "PLA": "Plá", "PLE": "Plê", "PLI": "Pli", "PLO": "Pló", "PLU": "Plu",
+
+      "B":"BÊ", "C":"CÊ", "D":"DÊ", "F":"ÊFE", "G":"GÊ", "H":"AGÁ",
+      "J":"JOTA", "K":"CÁ", "L":"ÊLE", "M":"ÊME", "N":"ÊNE", "P":"PÊ",
+      "Q":"QUÊ", "R":"ÊRRE", "S":"ÊSSE", "T":"TÊ", "V":"VÊ", "W":"DÁBLIU",
+      "X":"XIS", "Y":"ÍPSILON", "Z":"ZÊ",
+
+      "AN":"Ân", "EN":"Ên", "IN":"În", "ON":"Ôn", "UN":"Ûn",
+      "AM":"Âm", "EM":"Êm", "IM":"Îm", "OM":"ÔM", "UM":"ÛM",
+      "ÃO":"Ãon", "ÃE":"Ãen", "ÕE":"Õen",
+      "ÃS": "Ãs", "ÃES": "Ães", "ÕES": "Ões",
+      "AZ": "Az", "EZ": "Ez", "IZ": "Iz", "OZ": "Oz", "UZ": "Uz",
+      "AL": "Al", "EL": "El", "IL": "Il", "OL": "Ol", "UL": "Ul",
+      "AR": "Ar", "ER": "Er", "IR": "Ir", "OR": "Or", "UR": "Ur",
+      "AX": "Ax", "EX": "Ex", "IX": "Ix", "OX": "Ox", "UX": "Ux"
+    };
+
+    const FAMILY_COLORS = [
+      'bg-red-500 text-white border-red-300/40',
+      'bg-orange-500 text-white border-orange-300/40',
+      'bg-amber-500 text-white border-amber-300/40',
+      'bg-emerald-500 text-white border-emerald-300/40',
+      'bg-teal-500 text-white border-teal-300/40',
+      'bg-cyan-500 text-white border-cyan-300/40',
+      'bg-blue-500 text-white border-blue-300/40',
+      'bg-indigo-500 text-white border-indigo-300/40',
+      'bg-purple-500 text-white border-purple-300/40',
+      'bg-pink-500 text-white border-pink-300/40',
+      'bg-rose-500 text-white border-rose-300/40',
+      'bg-violet-500 text-white border-violet-300/40',
+      'bg-fuchsia-500 text-white border-fuchsia-300/40',
+      'bg-sky-500 text-white border-sky-300/40',
+      'bg-lime-500 text-white border-lime-300/40',
+      'bg-emerald-600 text-white border-emerald-300/40'
+    ];
+
+    const ALPHABET = [
+      ["A","abelha","🐝"],["B","bola","⚽"],["C","casa","🏠"],["D","dado","🎲"],
+      ["E","elefante","🐘"],["F","foca","🦭"],["G","gato","🐱"],["H","hospital","🏥"],
+      ["I","igreja","⛪"],["J","janela","🪟"],["K","kiwi","🥝"],["L","lua","🌙"],
+      ["M","macaco","🐒"],["N","navio","🚢"],["O","ovo","🥚"],["P","pato","🦆"],
+      ["Q","queijo","🧀"],["R","rato","🐭"],["S","sapo","🐸"],["T","tatu","🦔"],
+      ["U","uva","🍇"],["V","vaca","🐄"],["W","waffle","🧇"],["X","xícara","☕"],
+      ["Y","yakisoba","🍜"],["Z","zebra","🦓"]
+    ];
+
+    const FAMILIAS = [
+      ["B", [["BA","baleia","🐋"],["BE","besouro","🪲"],["BI","bicicleta","🚲"],["BO","bola","⚽"],["BU","bule","🫖"]]],
+      ["C", [["CA","casa","🏠"],["CE","cebola","🧅"],["CI","cidade","🏙️"],["CO","copo","🥛"],["CU","cueca","🩲"]]],
+      ["D", [["DA","dado","🎲"],["DE","dedo","☝️"],["DI","dinossauro","🦖"],["DO","doce","🍬"],["DU","ducha","🚿"]]],
+      ["F", [["FA","fada","🧚"],["FE","ferro","🔩"],["FI","figo","🫒"],["FO","foca","🦭"],["FU","futebol","⚽"]]],
+      ["G", [["GA","gato","🐱"],["GE","gelo","🧊"],["GI","girafa","🦒"],["GO","gota","💧"],["GU","guerreiro","🛡️"]]],
+      ["J", [["JA","janela","🪟"],["JE","jegue","🫏"],["JI","jiló","🥒"],["JO","joaninha","🐞"],["JU","juiz","⚖️"]]],
+      ["L", [["LA","lata","🥫"],["LE","leão","🦁"],["LI","livro","📘"],["LO","lobo","🐺"],["LU","lua","🌙"]]],
+      ["M", [["MA","macaco","🐒"],["ME","mesa","🪑"],["MI","milho","🌽"],["MO","moeda","🪙"],["MU","muro","🧱"]]],
+      ["N", [["NA","navio","🚢"],["NE","neve","❄️"],["NI","ninho","🪺"],["NO","novelo","🧶"],["NU","nuvem","☁️"]]],
+      ["P", [["PA","pato","🦆"],["PE","peixe","🐟"],["PI","pipa","🪁"],["PO","pote","🥣"],["PU","pulga","🐜"]]],
+      ["Q", [["QUA","quadro","🖼️"],["QUE","queijo","🧀"],["QUI","quilo","⚖️"]]],
+      ["R", [["RA","rato","🐭"],["RE","rede","🥅"],["RI","rio","🏞️"],["RO","rosa","🌹"],["RU","rua","🛣️"]]],
+      ["S", [["SA","sapo","🐸"],["SE","selo","✉️"],["SI","sino","🔔"],["SO","sol","☀️"],["SU","suco","🧃"]]],
+      ["T", [["TA","tatu","🦔"],["TE","telefone","📞"],["TI","tigre","🐯"],["TO","tomate","🍅"],["TU","tubo","🧪"]]],
+      ["V", [["VA","vaca","🐄"],["VE","vela","🕯️"],["VI","violão","🎸"],["VO","vovó","👵"],["VU","vulcão","🌋"]]],
+      ["X", [["XA","xale","🧣"],["XE","xerife","🤠"],["XI","xícara","☕"],["XO","xodó","❤️"],["XU","chuchu","🥬"]]],
+      ["Z", [["ZA","zangão","🐝"],["ZE","zebra","🦓"],["ZI","zinco","🔩"],["ZO","zoológico","🦒"],["ZU","zumbido","🐝"]]]
+    ];
+
+    const DIGRAFOS = [
+      ["CH", [["CHA","chave","🔑"],["CHE","cheque","💶"],["CHI","chinelo","🩴"],["CHO","bolacha","🍪"],["CHU","chuva","🌧️"]]],
+      ["LH", [["LHA","toalha","🧺"],["LHE","bilhete","🎟️"],["LHI","velhinha","👵"],["LHO","milho","🌽"],["LHU","orelhuda","🐰"]]],
+      ["NH", [["NHA","galinha","🐔"],["NHE","banheiro","🚿"],["NHI","ninhada","🐣"],["NHO","ninho","🪺"],["NHU","nenhuma","🚫"]]],
+      ["RR", [["RRA","garrafa","🍾"],["RRE","torre","🏰"],["RRI","sorriso","😀"],["RRO","carro","🚗"],["RRU","verruga","🩹"]]],
+      ["SS", [["SSA","massa","🍝"],["SSE","pássaro","🐦"],["SSI","vassoura","🧹"],["SSO","osso","🦴"],["SSU","assunto","📝"]]]
+    ];
+
+    const ENCONTROS = [
+      ["BR", [["BRA","braço","💪"],["BRE","brejo","🐸"],["BRI","brinco","💍"],["BRO","broto","🌱"],["BRU","bruxa","🧙‍♀️"]]],
+      ["CR", [["CRA","cravo","🌺"],["CRE","creme","🍨"],["CRI","criança","🧒"],["CRO","crocodilo","🐊"],["CRU","cruz","✝️"]]],
+      ["DR", [["DRA","dragão","🐉"],["DRE","xadrez","♟️"],["DRI","madrinha","👩"],["DRO","drogaria","💊"],["DRU","madrugada","🌙"]]],
+      ["FR", [["FRA","fralda","👶"],["FRE","freio","🚲"],["FRI","frio","🥶"],["FRO","fronha","🛏️"],["FRU","fruta","🍎"]]],
+      ["GR", [["GRA","gravata","👔"],["GRE","greve","📢"],["GRI","grilo","🦗"],["GRO","grosso","📏"],["GRU","gruta","🏕️"]]],
+      ["PR", [["PRA","prato","🍽️"],["PRE","prego","🔨"],["PRI","princesa","👑"],["PRO","professor","👨‍🏫"],["PRU","prumada","📐"]]],
+      ["TR", [["TRA","trator","🚜"],["TRE","trem","🚂"],["TRI","trigo","🌾"],["TRO","troféu","🏆"],["TRU","trufa","🍬"]]],
+      ["BL", [["BLA","blusa","👚"],["BLE","blefe","🃏"],["BLI","blindado","🚐"],["BLO","bloco","🧱"],["BLU","blues","🎸"]]],
+      ["CL", [["CLA","clara","🥚"],["CLE","clematis","🌸"],["CLI","clima","🌤️"],["CLO","cloro","🧪"],["CLU","clube","⚽"]]],
+      ["FL", [["FLA","flauta","🪈"],["FLE","flecha","🏹"],["FLI","flanela","🧹"],["FLO","flor","🌸"],["FLU","fluido","💧"]]],
+      ["GL", [["GLA","gládio","⚔️"],["GLE","gleba","🌾"],["GLI","glicose","💉"],["GLO","globo","🌍"],["GLU","glúten","🌾"]]],
+      ["PL", [["PLA","planta","🌱"],["PLE","plebe","👥"],["PLI","plissado","👗"],["PLO","plumo","🪶"],["PLU","plutão","🪐"]]]
+    ];
+
+    const NASAIS = [
+      ["AN", "anjo", "👼"], ["EN", "entrada", "🚪"], ["IN", "índio", "🪶"], ["ON", "onça", "🐆"], ["UN", "unha", "💅"],
+      ["AM", "campo", "🌳"], ["EM", "tempo", "⏰"], ["IM", "ímã", "🧲"], ["OM", "ombro", "🧍"], ["UM", "umbigo", "🧍"],
+      ["ÃO", "pão", "🍞"], ["ÃE", "mãe", "👩"], ["ÕE", "aviões", "✈️"],
+      ["ÃS", "maçãs", "🍎"], ["ÃES", "pães", "🥖"], ["ÕES", "botões", "🔘"],
+      ["AZ", "raiz", "🌱"], ["EZ", "juiz", "⚖️"], ["IZ", "nariz", "👃"], ["OZ", "veloz", "⚡"], ["UZ", "luz", "💡"],
+      ["AL", "alma", "🤲"], ["EL", "anel", "💍"], ["IL", "funil", "🚰"], ["OL", "anzol", "🎣"], ["UL", "último", "⏱️"],
+      ["AR", "árvore", "🌳"], ["ER", "verde", "🟩"], ["IR", "circo", "🎪"], ["OR", "porta", "🚪"], ["UR", "urso", "🐻"],
+      ["AX", "táxi", "🚕"], ["EX", "extintor", "🧯"], ["IX", "fênix", "🔥"], ["OX", "óxido", "🧪"], ["UX", "uxuás", "🌴"]
+    ];
+
+    let page = "letras";
+    let activeGroupIndex = 0;
+    let activeItemIndex = 0;
+    let itemStates = {};
+
+    function startApp() {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+      }
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('app-container').classList.remove('hidden');
+      document.getElementById('app-container').classList.add('flex');
+      render();
+    }
+
+    function triggerConfetti(event, btnElement) {
+      const rect = btnElement.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+
+      const symbols = ['⭐', '✨', '🎈', '💖', '🌟', '🎨', '🍬'];
+      for (let i = 0; i < 12; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+        p.style.left = `${x}px`;
+        p.style.top = `${y}px`;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 80 + Math.random() * 120;
+        p.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+        p.style.setProperty('--dy', `${Math.sin(angle) * distance}px`);
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 1500);
+      }
+    }
+
+    function say(text, exampleWord = "") {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+
+      let phoneticText = PHONETIC_MAP[text.toUpperCase()] || text;
+      let finalText = exampleWord ? `${phoneticText}, ${exampleWord}` : phoneticText;
+
+      let utterance = new SpeechSynthesisUtterance(finalText);
+      utterance.lang = "pt-BR";
+      utterance.rate = 0.80;
+      utterance.pitch = 1.05;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function formatWordWithHighlight(word, syllable) {
+      if (!syllable) return word;
+      const lowerWord = word.toLowerCase();
+      const lowerSyl = syllable.toLowerCase();
+      const idx = lowerWord.indexOf(lowerSyl);
+      
+      if (idx !== -1) {
+        const start = word.slice(0, idx);
+        const match = word.slice(idx, idx + syllable.length);
+        const end = word.slice(idx + syllable.length);
+        return `${start.toUpperCase()}<span class="highlight-syllable">${match.toUpperCase()}</span>${end.toUpperCase()}`;
+      }
+      return word.toUpperCase();
+    }
+
+    function setPage(p) {
+      page = p;
+      activeGroupIndex = 0;
+      activeItemIndex = 0;
+      render();
+    }
+
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+      btn.onclick = (e) => {
+        document.querySelectorAll(".nav-btn").forEach(b => {
+          b.className = "nav-btn btn-jelly bg-slate-800 text-slate-300 rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-slate-700/50 cursor-pointer";
+        });
+        btn.className = "nav-btn active btn-jelly bg-pink-500 text-white rounded-2xl py-2.5 px-1 font-bold text-xs sm:text-sm flex flex-col items-center justify-center border border-pink-300/40 cursor-pointer";
+        setPage(btn.dataset.page);
+      };
+    });
+
+    function render() {
+      const scrollContent = document.getElementById("scroll-content");
+      scrollContent.innerHTML = "";
+
+      if (page === "letras" || page === "nasais") {
+        let currentItems = (page === "letras") ? ALPHABET : NASAIS;
+        
+        let html = `<div class="grid grid-cols-4 sm:grid-cols-6 gap-2 w-full p-1">`;
+        currentItems.forEach((item, i) => {
+          const stateKey = `${page}-0-${i}`;
+          if (!itemStates[stateKey]) {
+            itemStates[stateKey] = { isLower: false, clicked: false };
+          }
+          const st = itemStates[stateKey];
+          const colorClass = st.clicked ? 'bg-zinc-900 border-zinc-700 text-white shadow-inner' : FAMILY_COLORS[i % FAMILY_COLORS.length];
+          let displayText = st.isLower ? item[0].toLowerCase() : item[0];
+          const isSelected = (activeGroupIndex === 0 && activeItemIndex === i);
+
+          html += `
+            <button class="card-phono btn-jelly ${colorClass} border h-24 flex items-center justify-center cursor-pointer ${isSelected ? 'ring-4 ring-amber-400/80 scale-95' : ''}" data-g="0" data-i="${i}">
+              <span class="text-5xl sm:text-6xl font-bold drop-shadow-md leading-none">${displayText}</span>
+            </button>
+          `;
+        });
+        html += `</div>`;
+        scrollContent.innerHTML = html;
+
+        scrollContent.querySelectorAll(".card-phono").forEach(btn => {
+          btn.onclick = (e) => {
+            triggerConfetti(e, btn);
+            const g = +btn.dataset.g;
+            const i = +btn.dataset.i;
+            activeGroupIndex = g;
+            activeItemIndex = i;
+
+            const stateKey = `${page}-${g}-${i}`;
+            if (itemStates[stateKey].clicked && itemStates[stateKey].isLower) {
+              itemStates[stateKey].clicked = false;
+              itemStates[stateKey].isLower = false;
+            } else if (itemStates[stateKey].clicked) {
+              itemStates[stateKey].isLower = true;
+            } else {
+              itemStates[stateKey].clicked = true;
+              itemStates[stateKey].isLower = false;
+            }
+            
+            render();
+            say(currentItems[i][0]);
+          };
+        });
+
+      } else {
+        let groupList = (page === "familias") ? FAMILIAS : ((page === "digrafos") ? DIGRAFOS : ENCONTROS);
+
+        let html = `<div class="space-y-2 w-full p-1">`;
+        groupList.forEach((group, gIdx) => {
+          const items = group[1];
+          const groupColor = FAMILY_COLORS[gIdx % FAMILY_COLORS.length];
+
+          html += `<div class="grid grid-cols-5 gap-2 w-full">`;
+
+          items.forEach((item, iIdx) => {
+            const stateKey = `${page}-${gIdx}-${iIdx}`;
+            if (!itemStates[stateKey]) {
+              itemStates[stateKey] = { isLower: false, clicked: false };
+            }
+            const st = itemStates[stateKey];
+            const colorClass = st.clicked ? 'bg-zinc-900 border-zinc-700 text-white shadow-inner' : groupColor;
+            let displayText = st.isLower ? item[0].toLowerCase() : item[0];
+            const isSelected = (activeGroupIndex === gIdx && activeItemIndex === iIdx);
+
+            html += `
+              <button class="card-phono btn-jelly ${colorClass} border h-20 sm:h-24 flex items-center justify-center cursor-pointer ${isSelected ? 'ring-4 ring-amber-400/80 scale-95' : ''}" data-g="${gIdx}" data-i="${iIdx}">
+                <span class="text-4xl sm:text-5xl font-bold drop-shadow-md leading-none">${displayText}</span>
+              </button>
+            `;
+          });
+
+          html += `</div>`;
+        });
+        html += `</div>`;
+        scrollContent.innerHTML = html;
+
+        scrollContent.querySelectorAll(".card-phono").forEach(btn => {
+          btn.onclick = (e) => {
+            triggerConfetti(e, btn);
+            const g = +btn.dataset.g;
+            const i = +btn.dataset.i;
+            activeGroupIndex = g;
+            activeItemIndex = i;
+
+            const stateKey = `${page}-${g}-${i}`;
+            if (itemStates[stateKey].clicked && itemStates[stateKey].isLower) {
+              itemStates[stateKey].clicked = false;
+              itemStates[stateKey].isLower = false;
+            } else if (itemStates[stateKey].clicked) {
+              itemStates[stateKey].isLower = true;
+            } else {
+              itemStates[stateKey].clicked = true;
+              itemStates[stateKey].isLower = false;
+            }
+
+            render();
+            say(groupList[g][1][i][0]);
+          };
+        });
+      }
+
+      // PAINEL HERO INFERIOR
+      const heroSlot = document.getElementById("hero-slot");
+      let activeItem = null;
+
+      if (page === "letras") activeItem = ALPHABET[activeItemIndex];
+      else if (page === "nasais") activeItem = NASAIS[activeItemIndex];
+      else if (page === "familias") activeItem = FAMILIAS[activeGroupIndex]?.[1]?.[activeItemIndex];
+      else if (page === "digrafos") activeItem = DIGRAFOS[activeGroupIndex]?.[1]?.[activeItemIndex];
+      else if (page === "encontros") activeItem = ENCONTROS[activeGroupIndex]?.[1]?.[activeItemIndex];
+
+      if (activeItem) {
+        const highlightedWordHtml = formatWordWithHighlight(activeItem[1], activeItem[0]);
+        heroSlot.innerHTML = `
+          <button onclick="say('${activeItem[0]}', '${activeItem[1]}')" class="w-full btn-jelly bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-950 text-white rounded-3xl p-3.5 flex items-center justify-around border border-amber-400/40 shadow-xl cursor-pointer">
+            <span class="text-6xl sm:text-7xl leading-none drop-shadow-md">${activeItem[2]}</span>
+            <div class="flex flex-col items-center">
+              <span class="text-4xl sm:text-5xl font-bold text-amber-300 leading-none drop-shadow">${activeItem[0]}</span>
+              <span class="text-2xl sm:text-3xl font-bold tracking-wide mt-1">${highlightedWordHtml}</span>
+            </div>
+            <div class="w-6"></div>
+          </button>
+        `;
+      } else {
+        heroSlot.innerHTML = "";
+      }
+    }
+  </script>
+</body>
+</html>

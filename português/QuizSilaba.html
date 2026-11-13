@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizSila 🎨 Aprenda Brincando</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fontes: Fredoka -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Fredoka', cursive, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Fundo Animado Infantil */
+        body {
+            background: linear-gradient(-45deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb, #e0c3fc);
+            background-size: 400% 400%;
+            animation: gradientBG 12s ease infinite;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Botões Estilo 3D de Brinquedo */
+        .btn-3d {
+            transition: all 0.15s ease;
+            box-shadow: 0px 6px 0px rgba(0, 0, 0, 0.2);
+        }
+        .btn-3d:active {
+            transform: translateY(4px) !important;
+            box-shadow: 0px 2px 0px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Efeito de Gelatina Brilhante (Glossy Geli) para as Alternativas */
+        .btn-geli {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), inset 0 3px 6px rgba(255, 255, 255, 0.6), inset 0 -4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .btn-geli::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.05));
+            border-radius: 1rem 1rem 0 0;
+            pointer-events: none;
+        }
+        .btn-geli:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2), inset 0 2px 3px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Botão Iniciar Pulsante Gigante */
+        @keyframes pulse-start {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(255, 215, 0, 0.8), 0 10px 0 #d97706; }
+            50% { transform: scale(1.08); box-shadow: 0 0 45px rgba(255, 215, 0, 1), 0 12px 0 #b45309; }
+        }
+        .btn-start-anim {
+            animation: pulse-start 2s infinite ease-in-out;
+        }
+
+        /* Animação Flutuante */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: float 3.5s ease-in-out infinite;
+        }
+
+        /* Shake de Erro */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* Pop de Acerto */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: pop 0.3s ease-in-out;
+        }
+
+        /* Alternância dinâmica de cores do espaço que falta texto */
+        @keyframes colorShiftSlot {
+            0% { color: #ef4444; border-bottom-color: #ef4444; }
+            25% { color: #f59e0b; border-bottom-color: #f59e0b; }
+            50% { color: #10b981; border-bottom-color: #10b981; }
+            75% { color: #3b82f6; border-bottom-color: #3b82f6; }
+            100% { color: #8b5cf6; border-bottom-color: #8b5cf6; }
+        }
+        .missing-slot-anim {
+            animation: colorShiftSlot 2.5s infinite linear;
+        }
+
+        /* Canvas Confetes */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-gray-800 antialiased p-1 sm:p-3 justify-between">
+
+    <!-- Canvas para Efeito de Confetes -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- 1. TELA DE BOAS-VINDAS -->
+    <div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-600 via-pink-500 to-amber-400">
+        <div class="text-center animate-float mb-8">
+            <span class="text-7xl sm:text-9xl mb-2 block filter drop-shadow-lg">🎈</span>
+            <h1 class="text-5xl sm:text-7xl font-black text-white drop-shadow-lg tracking-wider">
+                QuizSila
+            </h1>
+            <p class="text-yellow-200 font-bold text-xl sm:text-2xl mt-2 drop-shadow">Todas as Famílias e Sons!</p>
+        </div>
+
+        <button id="start-game-btn" class="btn-start-anim bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 text-yellow-950 font-black text-4xl sm:text-6xl px-12 py-6 sm:px-16 sm:py-8 rounded-full border-8 border-white cursor-pointer transition transform active:scale-95">
+            INICIAR ▶
+        </button>
+    </div>
+
+    <!-- 2. CABEÇALHO DO JOGO -->
+    <header id="game-header" class="hidden max-w-5xl w-full mx-auto flex items-center justify-between bg-white/90 backdrop-blur-md rounded-full px-3 py-1 sm:px-5 sm:py-1.5 shadow-md border-2 sm:border-4 border-white mb-1">
+        <button id="home-btn" class="flex items-center gap-1 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black px-3 py-1 rounded-full btn-3d text-xs sm:text-sm cursor-pointer">
+            <span class="text-lg">🏠</span>
+            <span class="hidden sm:inline">Menu</span>
+        </button>
+
+        <div class="flex items-center gap-2 flex-1 max-w-xs mx-2">
+            <div class="w-full bg-gray-200 h-3.5 sm:h-4 rounded-full overflow-hidden border border-white shadow-inner">
+                <div id="progress-bar" class="bg-gradient-to-r from-green-400 to-emerald-500 h-full w-0 transition-all duration-500"></div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="fullscreen-btn" class="bg-purple-100 border border-purple-300 text-purple-800 p-1.5 rounded-full hover:bg-purple-200 transition cursor-pointer text-base sm:text-lg shadow" title="Tela Cheia">
+                ⛶
+            </button>
+
+            <div class="flex items-center gap-1 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full shadow">
+                <span class="text-base sm:text-lg">⭐</span>
+                <span id="score-count" class="font-black text-amber-800 text-base sm:text-lg">0</span>
+            </div>
+
+            <button id="tts-toggle" class="bg-blue-100 border border-blue-300 text-blue-600 p-1.5 rounded-full hover:bg-blue-200 transition cursor-pointer text-base sm:text-lg shadow" title="Voz do Jogo">
+                🔊
+            </button>
+        </div>
+    </header>
+
+    <!-- 3. CONTEÚDO PRINCIPAL DO JOGO -->
+    <main id="game-main" class="hidden max-w-5xl w-full mx-auto flex-1 flex flex-col justify-between items-center h-full">
+
+        <!-- TELA DE SELEÇÃO DE MODOS -->
+        <section id="menu-screen" class="w-full flex-1 flex flex-col items-center justify-center my-auto py-2 w-full h-full">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full flex-1 max-w-4xl px-2 py-2">
+                <!-- Modo 1: Alfabeto & Letras -->
+                <button id="mode-letras-btn" class="group bg-gradient-to-b from-pink-400 to-rose-600 border-4 border-white rounded-3xl p-4 text-white text-center btn-3d hover:scale-102 transition cursor-pointer flex flex-col items-center justify-center shadow-xl w-full h-full min-h-[140px]">
+                    <div class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-300 mb-1">🔤</div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white drop-shadow mb-1">Letras do Alfabeto</h3>
+                    <span class="bg-white/30 text-xs sm:text-sm font-bold px-3 py-1 rounded-full text-rose-50">A até Z</span>
+                </button>
+
+                <!-- Modo 2: Famílias Silábicas -->
+                <button id="mode-familias-btn" class="group bg-gradient-to-b from-amber-400 to-orange-600 border-4 border-white rounded-3xl p-4 text-white text-center btn-3d hover:scale-102 transition cursor-pointer flex flex-col items-center justify-center shadow-xl w-full h-full min-h-[140px]">
+                    <div class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-300 mb-1">🧩</div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white drop-shadow mb-1">Famílias Silábicas</h3>
+                    <span class="bg-white/30 text-xs sm:text-sm font-bold px-3 py-1 rounded-full text-orange-50">Ba, Ca, Da, Fa...</span>
+                </button>
+
+                <!-- Modo 3: Dígrafos & Complexas -->
+                <button id="mode-especiais-btn" class="group bg-gradient-to-b from-cyan-400 to-blue-600 border-4 border-white rounded-3xl p-4 text-white text-center btn-3d hover:scale-102 transition cursor-pointer flex flex-col items-center justify-center shadow-xl w-full h-full min-h-[140px]">
+                    <div class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-300 mb-1">🔗</div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white drop-shadow mb-1">Dígrafos & Complexas</h3>
+                    <span class="bg-white/30 text-xs sm:text-sm font-bold px-3 py-1 rounded-full text-blue-50">Ch, Lh, Nh, Br...</span>
+                </button>
+
+                <!-- Modo 4: Sons Nasais & Terminações -->
+                <button id="mode-nasais-btn" class="group bg-gradient-to-b from-emerald-400 to-teal-600 border-4 border-white rounded-3xl p-4 text-white text-center btn-3d hover:scale-102 transition cursor-pointer flex flex-col items-center justify-center shadow-xl w-full h-full min-h-[140px]">
+                    <div class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-300 mb-1">👃</div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white drop-shadow mb-1">Nasais & Terminações</h3>
+                    <span class="bg-white/30 text-xs sm:text-sm font-bold px-3 py-1 rounded-full text-teal-50">An, ÃO, Az, Ar...</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- TELA DO QUIZ -->
+        <section id="quiz-screen" class="hidden w-full flex-1 flex flex-col justify-between items-center px-1 pb-1">
+            <div id="question-card" class="w-full flex-1 flex flex-col items-center justify-center text-center relative p-1 bg-transparent my-auto">
+                <div id="word-emoji" class="text-7xl sm:text-9xl mb-1 sm:mb-2 animate-bounce filter drop-shadow-xl scale-110 origin-center">
+                    🐱
+                </div>
+
+                <div id="word-display" class="flex flex-wrap items-center justify-center tracking-normal px-2 py-1 min-h-[80px] my-1 w-full text-5xl sm:text-7xl font-black text-purple-900 drop-shadow-md">
+                    <!-- Gerado dinamicamente -->
+                </div>
+
+                <button id="speak-word-btn" class="mt-1 flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 text-white font-black p-3 rounded-full shadow-lg border-3 border-white cursor-pointer text-2xl sm:text-3xl btn-3d" title="Ouvir Palavra Inteira">
+                    <span>🔊</span>
+                </button>
+            </div>
+
+            <div id="options-grid" class="grid grid-cols-2 gap-3 w-full px-1 mb-1">
+                <!-- Botões gerados via JS -->
+            </div>
+        </section>
+
+        <!-- TELA DE VITÓRIA -->
+        <section id="victory-screen" class="hidden w-full max-w-md bg-white/95 backdrop-blur-lg border-4 border-yellow-300 rounded-3xl p-6 shadow-2xl text-center flex flex-col items-center my-auto">
+            <div class="text-7xl mb-2 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-black text-purple-800 mb-1">INCRÍVEL! 🎉</h2>
+            <p class="text-gray-600 font-bold mb-4 text-sm sm:text-base">Você mandou super bem!</p>
+            
+            <div class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-3 w-full mb-5 flex justify-around items-center">
+                <div class="text-center">
+                    <span class="text-xs font-bold text-gray-400 block uppercase">Estrelas</span>
+                    <span id="final-stars" class="text-2xl font-black text-amber-500">⭐ 0</span>
+                </div>
+            </div>
+
+            <button id="back-to-menu-btn" class="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-black py-3.5 rounded-2xl text-lg border-2 border-white shadow-lg btn-3d cursor-pointer">
+                VOLTAR AO INÍCIO 🚀
+            </button>
+        </section>
+
+    </main>
+
+    <script>
+        /* ==========================================================================
+           1. ESTADO GLOBAL DO JOGO
+           ========================================================================== */
+        let currentMode = 'letras';
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let ttsEnabled = true;
+        let audioCtx = null;
+        let currentQuestionData = null;
+        let isProcessingChoice = false;
+
+        /* ==========================================================================
+           2. DICIONÁRIO DE MAPEAMENTO FONÉTICO PARA CORREÇÃO DA SÍNTESE DE VOZ (TTS)
+           ========================================================================== */
+        const SPEECH_MAP = {
+            // Vogais e acentuações específicas
+            'CE': 'CÉ',
+            'CI': 'SI',
+            'GE': 'JÊ',
+            'GI': 'JÍ',
+            // Dígrafos e encontros consonantais
+            'CH': 'X',
+            'LH': 'Lhia',
+            'NH': 'Nhia',
+            'RR': 'R-R',
+            'SS': 'S-S',
+            'BRA': 'Brá', 'BRE': 'Brê', 'BRI': 'Brí', 'BRO': 'Bró', 'BRU': 'Brú',
+            'CRA': 'Crá', 'CRE': 'Crê', 'CRI': 'Crí', 'CRO': 'Cró', 'CRU': 'Crú',
+            'DRA': 'Drá', 'DRE': 'Drê', 'DRI': 'Drí', 'DRO': 'Dró', 'DRU': 'Drú',
+            'FRA': 'Frá', 'FRE': 'Frê', 'FRI': 'Frí', 'FRO': 'Fró', 'FRU': 'Frú',
+            'GRA': 'Grá', 'GRE': 'Grê', 'GRI': 'Grí', 'GRO': 'Gró', 'GRU': 'Grú',
+            'PRA': 'Prá', 'PRE': 'Prê', 'PRI': 'Prí', 'PRO': 'Pró', 'PRU': 'Prú',
+            'TRA': 'Trá', 'TRE': 'Trê', 'TRI': 'Trí', 'TRO': 'Tró', 'TRU': 'Trú',
+            'BLA': 'Blá', 'BLE': 'Blê', 'BLI': 'Blí', 'BLO': 'Bló', 'BLU': 'Blú',
+            'CLA': 'Clá', 'CLE': 'Clê', 'CLI': 'Clí', 'CLO': 'Cló', 'CLU': 'Clú',
+            'FLA': 'Flá', 'FLE': 'Flê', 'FLI': 'Flí', 'FLO': 'Fló', 'FLU': 'Flú',
+            'GLA': 'Glá', 'GLE': 'Glê', 'GLI': 'Glí', 'GLO': 'Gló', 'GLU': 'Glú',
+            'PLA': 'Plá', 'PLE': 'Plê', 'PLI': 'Plí', 'PLO': 'Pló', 'PLU': 'Plú',
+            'QUA': 'Kuá', 'QUE': 'Kê', 'QUI': 'Kí', 'QUO': 'Kuó',
+            // Sons Nasais e Terminações
+            'ÃO': 'Ãum', 'ÃS': 'Ãs', 'ÃES': 'A-ins', 'ÕES': 'O-ins', 'ÃE': 'Ãe',
+            'AN': 'An', 'EN': 'En', 'IN': 'In', 'ON': 'On', 'UN': 'Un',
+            'AM': 'Am', 'EM': 'Em', 'IM': 'Im', 'OM': 'Om', 'UM': 'Um',
+            'AZ': 'Az', 'EZ': 'Éz', 'IZ': 'Íz', 'OZ': 'Óz', 'UZ': 'Úz',
+            'AL': 'Au', 'EL': 'Éu', 'IL': 'Iu', 'OL': 'Ou', 'UL': 'Uu',
+            'AR': 'Ar', 'ER': 'Er', 'IR': 'Ir', 'OR': 'Or', 'UR': 'Ur',
+            'AX': 'Acs', 'EX': 'Ecs', 'IX': 'Ics', 'OX': 'Ocs', 'UX': 'Ucs'
+        };
+
+        function formatForSpeech(text) {
+            let cleanText = text.toUpperCase().trim();
+            if (SPEECH_MAP[cleanText]) {
+                return SPEECH_MAP[cleanText];
+            }
+            return cleanText;
+        }
+
+        /* ==========================================================================
+           3. BANCO DE DADOS INTEGRADO
+           ========================================================================== */
+        const QUIZ_DATA = {
+            letras: [
+                { word: 'ABELHA', displayWord: ['__', 'B', 'E', 'L', 'H', 'A'], missing: 'A', emoji: '🐝', options: ['A', 'E', 'I', 'O'] },
+                { word: 'BOLA', displayWord: ['__', 'O', 'L', 'A'], missing: 'B', emoji: '⚽', options: ['B', 'P', 'D', 'V'] },
+                { word: 'CASA', displayWord: ['__', 'A', 'S', 'A'], missing: 'C', emoji: '🏠', options: ['C', 'G', 'S', 'K'] },
+                { word: 'DADO', displayWord: ['__', 'A', 'D', 'O'], missing: 'D', emoji: '🎲', options: ['D', 'B', 'T', 'P'] },
+                { word: 'ELEFANTE', displayWord: ['__', 'L', 'E', 'F', 'A', 'N', 'T', 'E'], missing: 'E', emoji: '🐘', options: ['E', 'A', 'I', 'O'] },
+                { word: 'FOCA', displayWord: ['__', 'O', 'C', 'A'], missing: 'F', emoji: '🦭', options: ['F', 'V', 'P', 'B'] },
+                { word: 'GATO', displayWord: ['__', 'A', 'T', 'O'], missing: 'G', emoji: '🐱', options: ['G', 'C', 'J', 'Q'] },
+                { word: 'HOSPITAL', displayWord: ['__', 'O', 'S', 'P', 'I', 'T', 'A', 'L'], missing: 'H', emoji: '🏥', options: ['H', 'J', 'L', 'M'] },
+                { word: 'IGREJA', displayWord: ['__', 'G', 'R', 'E', 'J', 'A'], missing: 'I', emoji: '⛪', options: ['I', 'E', 'A', 'U'] },
+                { word: 'JANELA', displayWord: ['__', 'A', 'N', 'E', 'L', 'A'], missing: 'J', emoji: '🪟', options: ['J', 'G', 'X', 'Z'] },
+                { word: 'KIWI', displayWord: ['__', 'I', 'W', 'I'], missing: 'K', emoji: '🥝', options: ['K', 'C', 'Q', 'W'] },
+                { word: 'LUA', displayWord: ['__', 'U', 'A'], missing: 'L', emoji: '🌙', options: ['L', 'R', 'N', 'M'] },
+                { word: 'MACACO', displayWord: ['__', 'A', 'C', 'A', 'C', 'O'], missing: 'M', emoji: '🐒', options: ['M', 'N', 'P', 'B'] },
+                { word: 'NAVIO', displayWord: ['__', 'A', 'V', 'I', 'O'], missing: 'N', emoji: '🚢', options: ['N', 'M', 'L', 'R'] },
+                { word: 'OVO', displayWord: ['__', 'V', 'O'], missing: 'O', emoji: '🥚', options: ['O', 'A', 'U', 'I'] },
+                { word: 'PATO', displayWord: ['__', 'A', 'T', 'O'], missing: 'P', emoji: '🦆', options: ['P', 'B', 'T', 'D'] },
+                { word: 'QUEIJO', displayWord: ['__', 'U', 'E', 'I', 'J', 'O'], missing: 'Q', emoji: '🧀', options: ['Q', 'C', 'G', 'P'] },
+                { word: 'RATO', displayWord: ['__', 'A', 'T', 'O'], missing: 'R', emoji: '🐭', options: ['R', 'L', 'M', 'N'] },
+                { word: 'SAPO', displayWord: ['__', 'A', 'P', 'O'], missing: 'S', emoji: '🐸', options: ['S', 'Z', 'C', 'X'] },
+                { word: 'TATU', displayWord: ['__', 'A', 'T', 'U'], missing: 'T', emoji: '🦔', options: ['T', 'P', 'D', 'B'] },
+                { word: 'UVA', displayWord: ['__', 'V', 'A'], missing: 'U', emoji: '🍇', options: ['U', 'O', 'I', 'A'] },
+                { word: 'VACA', displayWord: ['__', 'A', 'C', 'A'], missing: 'V', emoji: '🐄', options: ['V', 'F', 'B', 'P'] },
+                { word: 'WAFFLE', displayWord: ['__', 'A', 'F', 'F', 'L', 'E'], missing: 'W', emoji: '🧇', options: ['W', 'V', 'U', 'M'] },
+                { word: 'XÍCARA', displayWord: ['__', 'Í', 'C', 'A', 'R', 'A'], missing: 'X', emoji: '☕', options: ['X', 'CH', 'Z', 'S'] },
+                { word: 'YAKISOBA', displayWord: ['__', 'A', 'K', 'I', 'S', 'O', 'B', 'A'], missing: 'Y', emoji: '🍜', options: ['Y', 'I', 'E', 'W'] },
+                { word: 'ZEBRA', displayWord: ['__', 'E', 'B', 'R', 'A'], missing: 'Z', emoji: '🦓', options: ['Z', 'S', 'X', 'J'] }
+            ],
+
+            familias: [
+                { word: 'BALEIA', displayWord: ['__', 'L', 'E', 'I', 'A'], missing: 'BA', emoji: '🐋', options: ['BA', 'BE', 'BO', 'PA'] },
+                { word: 'BESOURO', displayWord: ['__', 'S', 'O', 'U', 'R', 'O'], missing: 'BE', emoji: '🪲', options: ['BE', 'BA', 'BI', 'BU'] },
+                { word: 'BICICLETAS', displayWord: ['__', 'C', 'I', 'C', 'L', 'E', 'T', 'A'], missing: 'BI', emoji: '🚲', options: ['BI', 'BE', 'BO', 'PU'] },
+                { word: 'BOLA', displayWord: ['__', 'L', 'A'], missing: 'BO', emoji: '⚽', options: ['BO', 'BA', 'BU', 'PA'] },
+                { word: 'BULE', displayWord: ['__', 'L', 'E'], missing: 'BU', emoji: '🫖', options: ['BU', 'BO', 'BE', 'BA'] },
+                { word: 'CASA', displayWord: ['__', 'S', 'A'], missing: 'CA', emoji: '🏠', options: ['CA', 'CO', 'CU', 'TA'] },
+                { word: 'CEBOLA', displayWord: ['__', 'B', 'O', 'L', 'A'], missing: 'CE', emoji: '🧅', options: ['CE', 'CI', 'CA', 'SE'] },
+                { word: 'CIDADE', displayWord: ['__', 'D', 'A', 'D', 'E'], missing: 'CI', emoji: '🏙️', options: ['CI', 'CE', 'CA', 'SI'] },
+                { word: 'COPO', displayWord: ['__', 'P', 'O'], missing: 'CO', emoji: '🥛', options: ['CO', 'CA', 'CU', 'TO'] },
+                { word: 'CUECA', displayWord: ['__', 'E', 'C', 'A'], missing: 'CU', emoji: '🩲', options: ['CU', 'CO', 'CA', 'TU'] },
+                { word: 'DADO', displayWord: ['__', 'D', 'O'], missing: 'DA', emoji: '🎲', options: ['DA', 'DE', 'DI', 'TA'] },
+                { word: 'DEDO', displayWord: ['__', 'D', 'O'], missing: 'DE', emoji: '☝️', options: ['DE', 'DA', 'DO', 'TE'] },
+                { word: 'DINOSSAURO', displayWord: ['__', 'N', 'O', 'S', 'S', 'A', 'U', 'R', 'O'], missing: 'DI', emoji: '🦖', options: ['DI', 'DE', 'DO', 'DU'] },
+                { word: 'DOCE', displayWord: ['__', 'C', 'E'], missing: 'DO', emoji: '🍬', options: ['DO', 'DA', 'DE', 'DU'] },
+                { word: 'DUCHA', displayWord: ['__', 'C', 'H', 'A'], missing: 'DU', emoji: '🚿', options: ['DU', 'DO', 'DE', 'DA'] },
+                { word: 'FADA', displayWord: ['__', 'D', 'A'], missing: 'FA', emoji: '🧚', options: ['FA', 'FE', 'FI', 'VA'] },
+                { word: 'FERRO', displayWord: ['__', 'R', 'R', 'O'], missing: 'FE', emoji: '🔩', options: ['FE', 'FA', 'FO', 'VE'] },
+                { word: 'FIGO', displayWord: ['__', 'G', 'O'], missing: 'FI', emoji: '🫒', options: ['FI', 'FE', 'FO', 'VI'] },
+                { word: 'FOCA', displayWord: ['__', 'C', 'A'], missing: 'FO', emoji: '🦭', options: ['FO', 'FA', 'FE', 'FU'] },
+                { word: 'FUTEBOL', displayWord: ['__', 'T', 'E', 'B', 'O', 'L'], missing: 'FU', emoji: '⚽', options: ['FU', 'FO', 'FA', 'FE'] },
+                { word: 'GATO', displayWord: ['__', 'T', 'O'], missing: 'GA', emoji: '🐱', options: ['GA', 'GO', 'GU', 'KA'] },
+                { word: 'GELO', displayWord: ['__', 'L', 'O'], missing: 'GE', emoji: '🧊', options: ['GE', 'GI', 'GA', 'JE'] },
+                { word: 'GIRAFA', displayWord: ['__', 'R', 'A', 'F', 'A'], missing: 'GI', emoji: '🦒', options: ['GI', 'GE', 'GO', 'JI'] },
+                { word: 'GOTA', displayWord: ['__', 'T', 'A'], missing: 'GO', emoji: '💧', options: ['GO', 'GA', 'GU', 'GE'] },
+                { word: 'GUERREIRO', displayWord: ['__', 'E', 'R', 'R', 'E', 'I', 'R', 'O'], missing: 'GU', emoji: '🛡️', options: ['GU', 'GO', 'GA', 'QUA'] },
+                { word: 'JANELA', displayWord: ['__', 'N', 'E', 'L', 'A'], missing: 'JA', emoji: '🪟', options: ['JA', 'JE', 'JI', 'GA'] },
+                { word: 'JEGUE', displayWord: ['__', 'G', 'U', 'E'], missing: 'JE', emoji: '🫏', options: ['JE', 'JA', 'JI', 'GE'] },
+                { word: 'JILÓ', displayWord: ['__', 'L', 'Ó'], missing: 'JI', emoji: '🥒', options: ['JI', 'JE', 'JA', 'GI'] },
+                { word: 'JOANINHA', displayWord: ['__', 'A', 'N', 'I', 'N', 'H', 'A'], missing: 'JO', emoji: '🐞', options: ['JO', 'JU', 'JA', 'GO'] },
+                { word: 'JUIZ', displayWord: ['__', 'I', 'Z'], missing: 'JU', emoji: '⚖️', options: ['JU', 'JO', 'JA', 'GE'] },
+                { word: 'LATA', displayWord: ['__', 'T', 'A'], missing: 'LA', emoji: '🥫', options: ['LA', 'LE', 'LI', 'RA'] },
+                { word: 'LEÃO', displayWord: ['__', 'Ã', 'O'], missing: 'LE', emoji: '🦁', options: ['LE', 'LA', 'LI', 'LO'] },
+                { word: 'LIVRO', displayWord: ['__', 'V', 'R', 'O'], missing: 'LI', emoji: '📘', options: ['LI', 'LE', 'LU', 'LO'] },
+                { word: 'LOBO', displayWord: ['__', 'B', 'O'], missing: 'LO', emoji: '🐺', options: ['LO', 'LA', 'LU', 'LE'] },
+                { word: 'LUA', displayWord: ['__', 'A'], missing: 'LU', emoji: '🌙', options: ['LU', 'LO', 'LI', 'LE'] },
+                { word: 'MACACO', displayWord: ['__', 'C', 'A', 'C', 'O'], missing: 'MA', emoji: '🐒', options: ['MA', 'ME', 'MI', 'NA'] },
+                { word: 'MESA', displayWord: ['__', 'S', 'A'], missing: 'ME', emoji: '🪑', options: ['ME', 'MA', 'MI', 'NE'] },
+                { word: 'MILHO', displayWord: ['__', 'L', 'H', 'O'], missing: 'MI', emoji: '🌽', options: ['MI', 'ME', 'MO', 'MU'] },
+                { word: 'MOEDA', displayWord: ['__', 'E', 'D', 'A'], missing: 'MO', emoji: '🪙', options: ['MO', 'MA', 'MU', 'ME'] },
+                { word: 'MURO', displayWord: ['__', 'R', 'O'], missing: 'MU', emoji: '🧱', options: ['MU', 'MO', 'MA', 'ME'] },
+                { word: 'NAVIO', displayWord: ['__', 'V', 'I', 'O'], missing: 'NA', emoji: '🚢', options: ['NA', 'NE', 'NI', 'MA'] },
+                { word: 'NEVE', displayWord: ['__', 'V', 'E'], missing: 'NE', emoji: '❄️', options: ['NE', 'NA', 'NO', 'ME'] },
+                { word: 'NINHO', displayWord: ['__', 'N', 'H', 'O'], missing: 'NI', emoji: '🪺', options: ['NI', 'NE', 'NO', 'NU'] },
+                { word: 'NOVELO', displayWord: ['__', 'V', 'E', 'L', 'O'], missing: 'NO', emoji: '🧶', options: ['NO', 'NA', 'NU', 'NE'] },
+                { word: 'NUVEM', displayWord: ['__', 'V', 'E', 'M'], missing: 'NU', emoji: '☁️', options: ['NU', 'NO', 'NA', 'NE'] },
+                { word: 'PATO', displayWord: ['__', 'T', 'O'], missing: 'PA', emoji: '🦆', options: ['PA', 'PE', 'PI', 'BA'] },
+                { word: 'PEIXE', displayWord: ['__', 'I', 'X', 'E'], missing: 'PE', emoji: '🐟', options: ['PE', 'PA', 'PO', 'BE'] },
+                { word: 'PIPA', displayWord: ['__', 'P', 'A'], missing: 'PI', emoji: '🪁', options: ['PI', 'PE', 'PO', 'PU'] },
+                { word: 'POTE', displayWord: ['__', 'T', 'E'], missing: 'PO', emoji: '🥣', options: ['PO', 'PA', 'PU', 'PE'] },
+                { word: 'PULGA', displayWord: ['__', 'L', 'G', 'A'], missing: 'PU', emoji: '🐜', options: ['PU', 'PO', 'PA', 'PI'] },
+                { word: 'QUADRO', displayWord: ['__', 'D', 'R', 'O'], missing: 'QUA', emoji: '🖼️', options: ['QUA', 'QUE', 'QUI', 'PA'] },
+                { word: 'QUEIJO', displayWord: ['__', 'I', 'J', 'O'], missing: 'QUE', emoji: '🧀', options: ['QUE', 'QUA', 'QUI', 'CE'] },
+                { word: 'QUILO', displayWord: ['__', 'L', 'O'], missing: 'QUI', emoji: '⚖️', options: ['QUI', 'QUE', 'QUA', 'CI'] },
+                { word: 'RATO', displayWord: ['__', 'T', 'O'], missing: 'RA', emoji: '🐭', options: ['RA', 'RE', 'RI', 'LA'] },
+                { word: 'REDE', displayWord: ['__', 'D', 'E'], missing: 'RE', emoji: '🥅', options: ['RE', 'RA', 'RO', 'LE'] },
+                { word: 'RIO', displayWord: ['__', 'O'], missing: 'RI', emoji: '🏞️', options: ['RI', 'RE', 'RU', 'LI'] },
+                { word: 'ROSA', displayWord: ['__', 'S', 'A'], missing: 'RO', emoji: '🌹', options: ['RO', 'RA', 'RU', 'LO'] },
+                { word: 'RUA', displayWord: ['__', 'A'], missing: 'RU', emoji: '🛣️', options: ['RU', 'RO', 'RE', 'LU'] },
+                { word: 'SAPO', displayWord: ['__', 'P', 'O'], missing: 'SA', emoji: '🐸', options: ['SA', 'SE', 'SI', 'CA'] },
+                { word: 'SELO', displayWord: ['__', 'L', 'O'], missing: 'SE', emoji: '✉️', options: ['SE', 'SA', 'SO', 'CE'] },
+                { word: 'SINO', displayWord: ['__', 'N', 'O'], missing: 'SI', emoji: '🔔', options: ['SI', 'SE', 'SU', 'CI'] },
+                { word: 'SOL', displayWord: ['__', 'L'], missing: 'SO', emoji: '☀️', options: ['SO', 'SA', 'SU', 'CO'] },
+                { word: 'SUCO', displayWord: ['__', 'C', 'O'], missing: 'SU', emoji: '🧃', options: ['SU', 'SO', 'SA', 'SE'] },
+                { word: 'TATU', displayWord: ['__', 'T', 'U'], missing: 'TA', emoji: '🦔', options: ['TA', 'TE', 'TI', 'PA'] },
+                { word: 'TELEFONE', displayWord: ['__', 'L', 'E', 'F', 'O', 'N', 'E'], missing: 'TE', emoji: '📞', options: ['TE', 'TA', 'TO', 'PE'] },
+                { word: 'TIGRE', displayWord: ['__', 'G', 'R', 'E'], missing: 'TI', emoji: '🐯', options: ['TI', 'TE', 'TU', 'PI'] },
+                { word: 'TOMATE', displayWord: ['__', 'M', 'A', 'T', 'E'], missing: 'TO', emoji: '🍅', options: ['TO', 'TA', 'TU', 'PO'] },
+                { word: 'TUBO', displayWord: ['__', 'B', 'O'], missing: 'TU', emoji: '🧪', options: ['TU', 'TO', 'TA', 'PU'] },
+                { word: 'VACA', displayWord: ['__', 'C', 'A'], missing: 'VA', emoji: '🐄', options: ['VA', 'VE', 'VI', 'FA'] },
+                { word: 'VELA', displayWord: ['__', 'L', 'A'], missing: 'VE', emoji: '🕯️', options: ['VE', 'VA', 'VO', 'FE'] },
+                { word: 'VIOLÃO', displayWord: ['__', 'O', 'L', 'Ã', 'O'], missing: 'VI', emoji: '🎸', options: ['VI', 'VE', 'VU', 'FI'] },
+                { word: 'VOVÓ', displayWord: ['__', 'V', 'Ó'], missing: 'VO', emoji: '👵', options: ['VO', 'VA', 'VU', 'FO'] },
+                { word: 'VULCÃO', displayWord: ['__', 'L', 'C', 'Ã', 'O'], missing: 'VU', emoji: '🌋', options: ['VU', 'VO', 'VE', 'FU'] },
+                { word: 'XALE', displayWord: ['__', 'L', 'E'], missing: 'XA', emoji: '🧣', options: ['XA', 'XE', 'XI', 'CH'] },
+                { word: 'XERIFE', displayWord: ['__', 'R', 'I', 'F', 'E'], missing: 'XE', emoji: '🤠', options: ['XE', 'XA', 'XO', 'CH'] },
+                { word: 'XÍCARA', displayWord: ['__', 'C', 'A', 'R', 'A'], missing: 'XI', emoji: '☕', options: ['XI', 'XE', 'XU', 'CH'] },
+                { word: 'XODÓ', displayWord: ['__', 'D', 'Ó'], missing: 'XO', emoji: '❤️', options: ['XO', 'XA', 'XU', 'CH'] },
+                { word: 'CHUCHU', displayWord: ['__', 'U', 'C', 'H', 'U'], missing: 'XU', emoji: '🥬', options: ['XU', 'XO', 'XA', 'CH'] },
+                { word: 'ZANGÃO', displayWord: ['__', 'N', 'G', 'Ã', 'O'], missing: 'ZA', emoji: '🐝', options: ['ZA', 'ZE', 'ZI', 'SA'] },
+                { word: 'ZEBRA', displayWord: ['__', 'B', 'R', 'A'], missing: 'ZE', emoji: '🦓', options: ['ZE', 'ZA', 'ZO', 'SE'] },
+                { word: 'ZINCO', displayWord: ['__', 'N', 'C', 'O'], missing: 'ZI', emoji: '🔩', options: ['ZI', 'ZE', 'ZU', 'SI'] },
+                { word: 'ZOOLÓGICO', displayWord: ['__', 'O', 'L', 'Ó', 'G', 'I', 'C', 'O'], missing: 'ZO', emoji: '🦒', options: ['ZO', 'ZA', 'ZU', 'SO'] },
+                { word: 'ZUMBIDO', displayWord: ['__', 'M', 'B', 'I', 'D', 'O'], missing: 'ZU', emoji: '🐝', options: ['ZU', 'ZO', 'ZA', 'SU'] }
+            ],
+
+            especiais: [
+                { word: 'CHAVE', displayWord: ['__', 'V', 'E'], missing: 'CHA', emoji: '🔑', options: ['CHA', 'LHA', 'NHA', 'XAL'] },
+                { word: 'CHEQUE', displayWord: ['__', 'Q', 'U', 'E'], missing: 'CHE', emoji: '💶', options: ['CHE', 'CHI', 'CHO', 'XE'] },
+                { word: 'CHINELO', displayWord: ['__', 'N', 'E', 'L', 'O'], missing: 'CHI', emoji: '🩴', options: ['CHI', 'CHE', 'CHU', 'XI'] },
+                { word: 'BOLACHA', displayWord: ['B', 'O', 'L', 'A', '__'], missing: 'CHA', emoji: '🍪', options: ['CHA', 'CHO', 'LHA', 'NHA'] },
+                { word: 'CHUVA', displayWord: ['__', 'V', 'A'], missing: 'CHU', emoji: '🌧️', options: ['CHU', 'CHO', 'CHI', 'XU'] },
+                { word: 'TOALHA', displayWord: ['T', 'O', 'A', '__'], missing: 'LHA', emoji: '🧺', options: ['LHA', 'NHA', 'CHA', 'RRA'] },
+                { word: 'BILHETE', displayWord: ['B', 'I', '__', 'T', 'E'], missing: 'LHE', emoji: '🎟️', options: ['LHE', 'NHE', 'CHE', 'SSE'] },
+                { word: 'MILHO', displayWord: ['M', 'I', '__'], missing: 'LHO', emoji: '🌽', options: ['LHO', 'NHO', 'CHO', 'RRO'] },
+                { word: 'GALINHA', displayWord: ['G', 'A', 'L', 'I', '__'], missing: 'NHA', emoji: '🐔', options: ['NHA', 'LHA', 'CHA', 'RRA'] },
+                { word: 'BANHEIRO', displayWord: ['B', 'A', '__', 'E', 'I', 'R', 'O'], missing: 'NHE', emoji: '🚿', options: ['NHE', 'LHE', 'CHE', 'SSE'] },
+                { word: 'GARRAFA', displayWord: ['G', 'A', '__', 'F', 'A'], missing: 'RRA', emoji: '🍾', options: ['RRA', 'SSA', 'LHA', 'NHA'] },
+                { word: 'TORRE', displayWord: ['T', 'O', '__', 'E'], missing: 'RRE', emoji: '🏰', options: ['RRE', 'SSE', 'LHE', 'NHE'] },
+                { word: 'SORRISO', displayWord: ['S', 'O', '__', 'I', 'S', 'O'], missing: 'RRI', emoji: '😀', options: ['RRI', 'SSI', 'LHI', 'NHI'] },
+                { word: 'CARRO', displayWord: ['C', 'A', '__'], missing: 'RRO', emoji: '🚗', options: ['RRO', 'SSO', 'LHO', 'NHO'] },
+                { word: 'MASSA', displayWord: ['M', 'A', '__'], missing: 'SSA', emoji: '🍝', options: ['SSA', 'RRA', 'LHA', 'NHA'] },
+                { word: 'PÁSSARO', displayWord: ['P', 'Á', '__', 'R', 'O'], missing: 'SSE', emoji: '🐦', options: ['SSE', 'RRE', 'LHE', 'NHE'] },
+                { word: 'VASSOURA', displayWord: ['V', 'A', '__', 'O', 'U', 'R', 'A'], missing: 'SSI', emoji: '🧹', options: ['SSI', 'RRI', 'LHI', 'CHI'] },
+                { word: 'OSSO', displayWord: ['O', '__'], missing: 'SSO', emoji: '🦴', options: ['SSO', 'RRO', 'LHO', 'NHO'] },
+                { word: 'BRAÇO', displayWord: ['__', 'Ç', 'O'], missing: 'BRA', emoji: '💪', options: ['BRA', 'CRE', 'DRA', 'FRA'] },
+                { word: 'CRACÓVIA', displayWord: ['__', 'V', 'O'], missing: 'CRA', emoji: '🌺', options: ['CRA', 'BRA', 'TRA', 'PLA'] },
+                { word: 'DRAGÃO', displayWord: ['__', 'G', 'Ã', 'O'], missing: 'DRA', emoji: '🐉', options: ['DRA', 'BRA', 'FRA', 'GRA'] },
+                { word: 'FRALDA', displayWord: ['__', 'L', 'D', 'A'], missing: 'FRA', emoji: '👶', options: ['FRA', 'BRA', 'TRA', 'CRA'] },
+                { word: 'GRAVATA', displayWord: ['__', 'V', 'A', 'T', 'A'], missing: 'GRA', emoji: '👔', options: ['GRA', 'BRA', 'TRA', 'PRA'] },
+                { word: 'PRATO', displayWord: ['__', 'T', 'O'], missing: 'PRA', emoji: '🍽️', options: ['PRA', 'BRA', 'TRA', 'GRA'] },
+                { word: 'TRATOR', displayWord: ['__', 'T', 'O', 'R'], missing: 'TRA', emoji: '🚜', options: ['TRA', 'BRA', 'PRA', 'GRA'] },
+                { word: 'BLUSA', displayWord: ['__', 'S', 'A'], missing: 'BLA', emoji: '👚', options: ['BLA', 'CLA', 'FLA', 'GLA'] },
+                { word: 'CLARA', displayWord: ['__', 'R', 'A'], missing: 'CLA', emoji: '🥚', options: ['CLA', 'BLA', 'FLA', 'PLA'] },
+                { word: 'FLAUTA', displayWord: ['__', 'U', 'T', 'A'], missing: 'FLA', emoji: '🪈', options: ['FLA', 'CLA', 'BLA', 'GLA'] },
+                { word: 'GLOBO', displayWord: ['__', 'B', 'O'], missing: 'GLO', emoji: '🌍', options: ['GLO', 'PLO', 'BLA', 'CLA'] },
+                { word: 'PLANTA', displayWord: ['__', 'N', 'T', 'A'], missing: 'PLA', emoji: '🌱', options: ['PLA', 'BLA', 'CLA', 'FLA'] }
+            ],
+
+            nasais: [
+                { word: 'ANJO', displayWord: ['__', 'J', 'O'], missing: 'AN', emoji: '👼', options: ['AN', 'EN', 'IN', 'AM'] },
+                { word: 'ENTRADA', displayWord: ['__', 'T', 'R', 'A', 'D', 'A'], missing: 'EN', emoji: '🚪', options: ['EN', 'AN', 'IN', 'EM'] },
+                { word: 'ÍNDIO', displayWord: ['__', 'D', 'I', 'O'], missing: 'IN', emoji: '🪶', options: ['IN', 'EN', 'ON', 'IM'] },
+                { word: 'ONÇA', displayWord: ['__', 'Ç', 'A'], missing: 'ON', emoji: '🐆', options: ['ON', 'UN', 'AN', 'OM'] },
+                { word: 'UNHA', displayWord: ['__', 'H', 'A'], missing: 'UN', emoji: '💅', options: ['UN', 'ON', 'IN', 'UM'] },
+                { word: 'CAMPO', displayWord: ['__', 'P', 'O'], missing: 'AM', emoji: '🌳', options: ['AM', 'EM', 'IM', 'AN'] },
+                { word: 'TEMPO', displayWord: ['__', 'P', 'O'], missing: 'EM', emoji: '⏰', options: ['EM', 'AM', 'UM', 'EN'] },
+                { word: 'ÍMÃ', displayWord: ['__', 'Ã'], missing: 'IM', emoji: '🧲', options: ['IM', 'EM', 'UM', 'IN'] },
+                { word: 'OMBRO', displayWord: ['__', 'B', 'R', 'O'], missing: 'OM', emoji: '🧍', options: ['OM', 'UM', 'AM', 'ON'] },
+                { word: 'UMBIGO', displayWord: ['__', 'B', 'I', 'G', 'O'], missing: 'UM', emoji: '🧍', options: ['UM', 'OM', 'AM', 'UN'] },
+                { word: 'PÃO', displayWord: ['P', '__'], missing: 'ÃO', emoji: '🍞', options: ['ÃO', 'ÃE', 'ÕE', 'AN'] },
+                { word: 'MÃE', displayWord: ['M', '__'], missing: 'ÃE', emoji: '👩', options: ['ÃE', 'ÃO', 'ÕE', 'EN'] },
+                { word: 'AVIÕES', displayWord: ['A', 'V', 'I', '__'], missing: 'ÕE', emoji: '✈️', options: ['ÕE', 'ÃO', 'ÃE', 'ON'] },
+                { word: 'MAÇÃS', displayWord: ['M', 'A', 'Ç', '__'], missing: 'ÃS', emoji: '🍎', options: ['ÃS', 'ÃES', 'ÕES', 'AN'] },
+                { word: 'PÃES', displayWord: ['P', '__'], missing: 'ÃES', emoji: '🥖', options: ['ÃES', 'ÃS', 'ÕES', 'EN'] },
+                { word: 'BOTÕES', displayWord: ['B', 'O', 'T', '__'], missing: 'ÕES', emoji: '🔘', options: ['ÕES', 'ÃES', 'ÃS', 'ON'] },
+                { word: 'RAIZ', displayWord: ['R', 'A', '__'], missing: 'AZ', emoji: '🌱', options: ['AZ', 'EZ', 'IZ', 'AL'] },
+                { word: 'JUIZ', displayWord: ['J', 'U', '__'], missing: 'EZ', emoji: '⚖️', options: ['EZ', 'AZ', 'IZ', 'EL'] },
+                { word: 'NARIZ', displayWord: ['N', 'A', 'R', '__'], missing: 'IZ', emoji: '👃', options: ['IZ', 'OZ', 'UZ', 'IL'] },
+                { word: 'VELOZ', displayWord: ['V', 'E', 'L', '__'], missing: 'OZ', emoji: '⚡', options: ['OZ', 'UZ', 'AZ', 'OL'] },
+                { word: 'LUZ', displayWord: ['L', '__'], missing: 'UZ', emoji: '💡', options: ['UZ', 'OZ', 'EZ', 'UL'] },
+                { word: 'ALMA', displayWord: ['__', 'M', 'A'], missing: 'AL', emoji: '🤲', options: ['AL', 'EL', 'IL', 'AR'] },
+                { word: 'ANEL', displayWord: ['A', 'N', 'E', '__'], missing: 'EL', emoji: '💍', options: ['EL', 'AL', 'IL', 'ER'] },
+                { word: 'FUNIL', displayWord: ['F', 'U', 'N', 'I', '__'], missing: 'IL', emoji: '🚰', options: ['IL', 'OL', 'UL', 'IR'] },
+                { word: 'ANZOL', displayWord: ['A', 'N', 'Z', 'O', '__'], missing: 'OL', emoji: '🎣', options: ['OL', 'AL', 'UL', 'OR'] },
+                { word: 'ÚLTIMO', displayWord: ['__', 'T', 'I', 'M', 'O'], missing: 'UL', emoji: '⏱️', options: ['UL', 'OL', 'EL', 'UR'] },
+                { word: 'ÁRVORE', displayWord: ['__', 'V', 'O', 'R', 'E'], missing: 'AR', emoji: '🌳', options: ['AR', 'ER', 'IR', 'AL'] },
+                { word: 'VERDE', displayWord: ['V', '__', 'D', 'E'], missing: 'ER', emoji: '🟩', options: ['ER', 'AR', 'IR', 'EL'] },
+                { word: 'CIRCO', displayWord: ['C', '__', 'C', 'O'], missing: 'IR', emoji: '🎪', options: ['IR', 'OR', 'UR', 'IL'] },
+                { word: 'PORTA', displayWord: ['P', '__', 'T', 'A'], missing: 'OR', emoji: '🚪', options: ['OR', 'AR', 'UR', 'OL'] },
+                { word: 'URSO', displayWord: ['__', 'S', 'O'], missing: 'UR', emoji: '🐻', options: ['UR', 'OR', 'ER', 'UL'] },
+                { word: 'TÁXI', displayWord: ['T', '__', 'X', 'I'], missing: 'AX', emoji: '🚕', options: ['AX', 'EX', 'IX', 'AR'] },
+                { word: 'EXTINTOR', displayWord: ['__', 'T', 'I', 'N', 'T', 'O', 'R'], missing: 'EX', emoji: '🧯', options: ['EX', 'AX', 'OX', 'ER'] },
+                { word: 'FÊNIX', displayWord: ['F', 'Ê', 'N', '__'], missing: 'IX', emoji: '🔥', options: ['IX', 'EX', 'UX', 'IR'] },
+                { word: 'ÓXIDO', displayWord: ['__', 'X', 'I', 'D', 'O'], missing: 'OX', emoji: '🧪', options: ['OX', 'EX', 'AX', 'OR'] },
+                { word: 'UXUÁS', displayWord: ['__', 'U', 'Á', 'S'], missing: 'UX', emoji: '🌴', options: ['UX', 'IX', 'EX', 'UR'] }
+            ]
+        };
+
+        /* ==========================================================================
+           4. SISTEMA DE ÁUDIO SINTETIZADO E TTS
+           ========================================================================== */
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSuccessSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        function playErrorSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.linearRampToValueAtTime(140, now + 0.25);
+
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+
+        function speakText(text, callback = null) {
+            if (!ttsEnabled || !('speechSynthesis' in window)) {
+                if (callback) callback();
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            
+            // Aplica o mapeamento fonético para que sílabas e dígrafos sejam lidos perfeitamente
+            const phoneticText = formatForSpeech(text);
+            const utterance = new SpeechSynthesisUtterance(phoneticText);
+            
+            utterance.lang = 'pt-BR';
+            utterance.rate = 0.85; // Levemente mais pausado para clareza pedagógica infantil
+            utterance.pitch = 1.1;
+
+            utterance.onend = () => { if (callback) callback(); };
+            utterance.onerror = () => { if (callback) callback(); };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /* ==========================================================================
+           5. GERENCIAMENTO DE TELA CHEIA (FULLSCREEN)
+           ========================================================================== */
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) {
+                    docEl.requestFullscreen().catch(() => {});
+                } else if (docEl.webkitRequestFullscreen) {
+                    docEl.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. CONTROLADOR DE TELAS E NAVEGAÇÃO
+           ========================================================================== */
+        const startScreen = document.getElementById('start-screen');
+        const gameHeader = document.getElementById('game-header');
+        const gameMain = document.getElementById('game-main');
+        const menuScreen = document.getElementById('menu-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const victoryScreen = document.getElementById('victory-screen');
+
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            initAudio();
+            toggleFullscreen();
+            
+            startScreen.classList.add('hidden');
+            gameHeader.classList.remove('hidden');
+            gameMain.classList.remove('hidden');
+            
+            showMenu();
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            initAudio();
+            toggleFullscreen();
+        });
+
+        document.getElementById('home-btn').addEventListener('click', () => {
+            initAudio();
+            showMenu();
+        });
+
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+            initAudio();
+            showMenu();
+        });
+
+        function showMenu() {
+            window.speechSynthesis.cancel();
+            menuScreen.classList.remove('hidden');
+            quizScreen.classList.add('hidden');
+            victoryScreen.classList.add('hidden');
+        }
+
+        document.getElementById('mode-letras-btn').addEventListener('click', () => startGame('letras'));
+        document.getElementById('mode-familias-btn').addEventListener('click', () => startGame('familias'));
+        document.getElementById('mode-especiais-btn').addEventListener('click', () => startGame('especiais'));
+        document.getElementById('mode-nasais-btn').addEventListener('click', () => startGame('nasais'));
+
+        function startGame(mode) {
+            initAudio();
+            currentMode = mode;
+            currentQuestionIndex = 0;
+            
+            menuScreen.classList.add('hidden');
+            victoryScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+
+            loadQuestion();
+        }
+
+        /* ==========================================================================
+           7. LÓGICA DAS PERGUNTAS E INTERAÇÃO
+           ========================================================================== */
+        function loadQuestion() {
+            isProcessingChoice = false;
+            const list = QUIZ_DATA[currentMode];
+            
+            if (currentQuestionIndex >= list.length) {
+                showVictory();
+                return;
+            }
+
+            const q = list[currentQuestionIndex];
+            currentQuestionData = q;
+
+            const percent = (currentQuestionIndex / list.length) * 100;
+            document.getElementById('progress-bar').style.width = percent + '%';
+
+            document.getElementById('word-emoji').innerText = q.emoji || '⭐';
+            const wordDisplayEl = document.getElementById('word-display');
+            const optionsGrid = document.getElementById('options-grid');
+
+            wordDisplayEl.innerHTML = '';
+            
+            q.displayWord.forEach(part => {
+                const box = document.createElement('span');
+                if (part === '__') {
+                    box.id = 'missing-slot';
+                    box.className = 'missing-slot-anim border-b-4 sm:border-b-8 px-0.5 mx-0.5 transition-all duration-300 inline-block text-center';
+                    box.innerText = '__';
+                } else {
+                    box.className = 'inline-block px-0.5';
+                    box.innerText = part;
+                }
+                wordDisplayEl.appendChild(box);
+            });
+
+            document.getElementById('speak-word-btn').onclick = () => speakText(q.word);
+            speakText(q.word);
+
+            optionsGrid.innerHTML = '';
+            const options = [...q.options].sort(() => Math.random() - 0.5);
+
+            const geliColors = [
+                'from-pink-400 to-rose-600 border-pink-300 text-white',
+                'from-amber-400 to-orange-600 border-amber-300 text-white',
+                'from-cyan-400 to-blue-600 border-cyan-300 text-white',
+                'from-emerald-400 to-teal-600 border-emerald-300 text-white'
+            ];
+
+            options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                const colorClass = geliColors[index % geliColors.length];
+                
+                let fontSizeClass = 'text-5xl sm:text-7xl';
+                if (opt.length > 3) {
+                    fontSizeClass = 'text-3xl sm:text-5xl';
+                } else if (opt.length > 2) {
+                    fontSizeClass = 'text-4xl sm:text-6xl';
+                }
+
+                btn.className = `bg-gradient-to-b ${colorClass} border-4 rounded-3xl btn-geli cursor-pointer flex items-center justify-center shadow-lg w-full aspect-square p-2`;
+                btn.innerHTML = `<span class="opt-text font-black ${fontSizeClass} drop-shadow-lg text-center leading-none">${opt}</span>`;
+
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!isProcessingChoice) {
+                        handleOptionClick(opt, q, btn);
+                    }
+                });
+
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        function handleOptionClick(selectedOpt, questionData, buttonEl) {
+            isProcessingChoice = true;
+            initAudio();
+
+            const textSpan = buttonEl.querySelector('.opt-text');
+            const missingSlot = document.getElementById('missing-slot');
+
+            let soundToSpeak = selectedOpt;
+            if (selectedOpt === questionData.missing && questionData.speakMissing) {
+                soundToSpeak = questionData.speakMissing;
+            }
+
+            textSpan.style.visibility = 'hidden';
+            
+            missingSlot.classList.remove('missing-slot-anim', 'border-b-4', 'border-b-8');
+            missingSlot.classList.add('text-green-600', 'animate-pop');
+            missingSlot.innerText = selectedOpt;
+
+            speakText(soundToSpeak, () => {
+                if (selectedOpt === questionData.missing) {
+                    playSuccessSound();
+                    triggerConfetti();
+
+                    buttonEl.className = 'bg-gradient-to-b from-green-400 to-emerald-600 border-4 border-green-200 text-white rounded-3xl btn-geli cursor-pointer flex items-center justify-center shadow-lg w-full aspect-square p-2';
+
+                    score += 10;
+                    document.getElementById('score-count').innerText = score;
+
+                    speakText(questionData.word, () => {
+                        setTimeout(() => {
+                            document.getElementById('word-display').innerHTML = `
+                                <span class="text-6xl sm:text-8xl font-black text-emerald-500 drop-shadow-[0_5px_5px_rgba(0,0,0,0.3)] animate-pop tracking-wider">
+                                    ${questionData.word}
+                                </span>
+                            `;
+
+                            setTimeout(() => {
+                                currentQuestionIndex++;
+                                loadQuestion();
+                            }, 1200);
+                        }, 200);
+                    });
+
+                } else {
+                    playErrorSound();
+                    buttonEl.classList.add('animate-shake');
+
+                    setTimeout(() => {
+                        missingSlot.innerText = '__';
+                        missingSlot.classList.remove('text-green-600', 'animate-pop');
+                        missingSlot.classList.add('missing-slot-anim', 'border-b-4', 'border-b-8');
+
+                        textSpan.style.visibility = 'visible';
+                        buttonEl.classList.remove('animate-shake');
+                        isProcessingChoice = false;
+                    }, 500);
+                }
+            });
+        }
+
+        function showVictory() {
+            playSuccessSound();
+            triggerConfetti();
+            
+            quizScreen.classList.add('hidden');
+            victoryScreen.classList.remove('hidden');
+
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('final-stars').innerText = `⭐ ${score}`;
+
+            speakText('Parabéns! Você completou os desafios!');
+        }
+
+        /* ==========================================================================
+           8. TOGGLE TTS & EFEITO DE CONFETES
+           ========================================================================== */
+        const ttsToggleBtn = document.getElementById('tts-toggle');
+        ttsToggleBtn.addEventListener('click', () => {
+            ttsEnabled = !ttsEnabled;
+            if (ttsEnabled) {
+                ttsToggleBtn.innerText = '🔊';
+                ttsToggleBtn.classList.remove('bg-gray-200', 'text-gray-500');
+                ttsToggleBtn.classList.add('bg-blue-100', 'text-blue-600');
+                speakText('Voz ligada!');
+            } else {
+                window.speechSynthesis.cancel();
+                ttsToggleBtn.innerText = '🔇';
+                ttsToggleBtn.classList.remove('bg-blue-100', 'text-blue-600');
+                ttsToggleBtn.classList.add('bg-gray-200', 'text-gray-500');
+            }
+        });
+
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f43f5e', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
+
+            for (let i = 0; i < 70; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: (Math.random() - 0.7) * 14,
+                    size: Math.random() * 10 + 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 100
+                });
+            }
+
+            function animateConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+
+                particles.forEach(p => {
+                    if (p.life > 0) {
+                        alive = true;
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.3;
+                        p.life -= 2;
+
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+
+                if (alive) {
+                    requestAnimationFrame(animateConfetti);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            animateConfetti();
+        }
+    </script>
+</body>
+</html>
