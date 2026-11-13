@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dominó Royal 2D - Corrigido</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #03060c;
+            color: #f3f4f6;
+            overscroll-behavior: none;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            background: #092c18;
+        }
+        .glass-panel {
+            background: rgba(10, 15, 26, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+        }
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.18) 0%, rgba(255, 255, 255, 0.04) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .glass-btn:hover, .glass-btn:active {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.35) 0%, rgba(255, 255, 255, 0.12) 100%);
+            border-color: rgba(255, 215, 0, 0.8);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #ffffff 0%, #ffd700 40%, #e6a100 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+        }
+        .pulse-glow {
+            animation: pulseGlow 1.8s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. MENU INICIAL -->
+    <div id="intro-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-zinc-950 to-amber-950/50 transition-opacity duration-500">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-8 text-center relative overflow-hidden border border-amber-500/40 shadow-2xl">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-400 to-yellow-200 flex items-center justify-center shadow-lg shadow-amber-500/30 transform rotate-6 border border-amber-200/50">
+                <i class="fa-solid fa-crown text-3xl text-slate-950"></i>
+            </div>
+            <h1 class="text-3xl font-black tracking-wider mb-1 gradient-text">DOMINÓ ROYAL 2D</h1>
+            <p class="text-amber-200/80 text-xs tracking-wide uppercase mb-6 font-semibold">Edição Luxo: 28 Peças (Duplo-6 Completo)</p>
+
+            <div class="space-y-4 mb-7 text-left">
+                <div>
+                    <label class="block text-[11px] font-bold text-amber-300 uppercase tracking-wider mb-2">Modo de Jogo</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-mode-classic" onclick="setGameMode('classic')" class="mode-btn p-3 rounded-xl border border-amber-500/60 bg-amber-500/20 text-amber-200 text-xs font-semibold flex flex-col items-center gap-1 shadow-inner">
+                            <i class="fa-solid fa-chess-board text-sm"></i>
+                            <span>Tradicional</span>
+                        </button>
+                        <button type="button" id="btn-mode-fives" onclick="setGameMode('fives')" class="mode-btn p-3 rounded-xl border border-white/10 bg-white/5 text-slate-400 text-xs font-semibold flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span>All Fives (5s)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-amber-300 uppercase tracking-wider mb-2">Nível da IA</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-diff-easy" onclick="setAIDifficulty('easy')" class="diff-btn p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 text-xs font-semibold text-center">
+                            Normal
+                        </button>
+                        <button type="button" id="btn-diff-smart" onclick="setAIDifficulty('smart')" class="diff-btn p-2.5 rounded-xl border border-emerald-500/60 bg-emerald-500/20 text-emerald-200 text-xs font-semibold text-center">
+                            Inteligente
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" onclick="launchGameFullscreen()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-sm tracking-wider shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-play text-base"></i>
+                <span>ENTRAR NO TABULEIRO ROYAL</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. CANVAS HTML5 2D -->
+    <div id="canvas-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- 3. INTERFACE DE JOGO -->
+    <div id="game-ui" class="hidden absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 md:p-5">
+        <div class="flex justify-between items-start w-full">
+            <div class="glass-panel rounded-2xl p-2.5 px-4 flex items-center gap-4 text-xs border-amber-500/30 pointer-events-auto shadow-lg">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse shadow-sm shadow-emerald-400"></span>
+                    <span class="font-bold text-slate-100">Você: <b id="player-score-hud" class="text-amber-400">0</b> <span class="text-slate-400 font-normal">(<span id="player-count-hud">7</span>)</span></span>
+                </div>
+                <div class="h-4 w-px bg-amber-500/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span>
+                    <span class="font-bold text-slate-100">IA: <b id="ai-score-hud" class="text-amber-400">0</b> <span class="text-slate-400 font-normal">(<span id="ai-count-hud">7</span>)</span></span>
+                </div>
+                <div id="fives-hud" class="hidden flex items-center gap-2 pl-2 border-l border-amber-500/20">
+                    <span class="text-amber-400 font-bold"><i class="fa-solid fa-star text-[10px]"></i> Soma 5s: <b id="fives-sum-hud" class="text-amber-300">0</b></span>
+                </div>
+            </div>
+
+            <!-- MENU FLUTUANTE -->
+            <div class="relative flex flex-col items-end pointer-events-auto">
+                <button type="button" onclick="toggleControlBar()" id="control-toggle-btn" class="glass-btn w-11 h-11 rounded-2xl flex items-center justify-center text-amber-300 hover:text-white shadow-xl text-lg active:scale-95">
+                    <i id="toggle-icon" class="fa-solid fa-gear"></i>
+                </button>
+
+                <div id="retractable-control-bar" class="hidden transition-all duration-200 transform origin-top-right mt-2 glass-panel rounded-2xl p-2 flex flex-col gap-2 min-w-[190px] z-30 shadow-2xl">
+                    <button type="button" onclick="startNewRound()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right text-amber-400"></i>
+                        <span>Reiniciar Rodada</span>
+                    </button>
+                    <button type="button" onclick="toggleGameModeQuick()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chess-board text-purple-400"></i>
+                        <span>Modo: <b id="hud-mode-name" class="text-purple-300">Tradicional</b></span>
+                    </button>
+                    <button type="button" onclick="toggleAIDifficultyQuick()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-brain text-emerald-400"></i>
+                        <span>IA: <b id="hud-diff-name" class="text-emerald-300">Inteligente</b></span>
+                    </button>
+                    <div class="px-2 py-1.5 rounded-xl bg-black/20 border border-amber-500/20">
+                        <div class="flex items-center justify-between text-[11px] text-amber-200 mb-1">
+                            <span><i class="fa-solid fa-magnifying-glass-plus mr-1"></i>Zoom</span>
+                            <b id="zoom-value">100%</b>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="adjustZoom(-0.1)" class="glass-btn rounded-lg w-8 h-8 text-amber-200">−</button>
+                            <input id="zoom-slider" type="range" min="70" max="150" step="5" value="100" oninput="setZoomLevel(this.value)" class="w-full accent-amber-400">
+                            <button type="button" onclick="adjustZoom(0.1)" class="glass-btn rounded-lg w-8 h-8 text-amber-200">+</button>
+                        </div>
+                        <button type="button" onclick="resetZoomAndPan()" class="w-full text-[10px] text-slate-400 mt-1">Centralizar Vista</button>
+                    </div>
+                    <button type="button" onclick="toggleAudio()" id="audio-btn" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-volume-high text-amber-400"></i>
+                        <span id="audio-status-text">Sons: ON</span>
+                    </button>
+                    <div class="h-px bg-amber-500/20 my-0.5"></div>
+                    <button type="button" onclick="returnToMenu()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-rose-300 hover:bg-rose-500/20 flex items-center gap-2">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Menu Inicial</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENSAGEM FLUTUANTE -->
+        <div id="game-message-container" role="status" aria-live="polite" class="fixed left-1/2 top-[76px] -translate-x-1/2 pointer-events-none transition-all duration-200 transform scale-95 opacity-0 z-30 max-w-[min(88vw,420px)]">
+            <div id="game-message" class="glass-panel px-3 py-1.5 rounded-xl border-amber-500/30 text-center text-[10px] md:text-xs font-semibold text-amber-100 shadow-lg">
+                Selecione uma peça e toque na extremidade desejada no tabuleiro
+            </div>
+        </div>
+
+        <!-- BOTÕES DE COMPRAR / PASSAR -->
+        <div class="flex flex-col items-center pointer-events-auto gap-2 w-full max-w-4xl mx-auto mb-2">
+            <div class="flex items-center justify-center gap-3">
+                <button type="button" id="draw-btn" onclick="openBoneyardModal()" class="hidden pulse-glow px-5 py-2.5 rounded-2xl text-xs font-bold text-amber-200 bg-amber-500/20 border border-amber-500/60 hover:bg-amber-500/35 flex items-center gap-2 transition-all shadow-xl">
+                    <i class="fa-solid fa-layer-group text-amber-400 text-sm"></i>
+                    <span>Comprar do Dorme (<b id="boneyard-count">14</b>)</span>
+                </button>
+                <button type="button" id="pass-btn" onclick="playerPassTurn()" class="hidden glass-btn px-5 py-2.5 rounded-2xl text-xs font-bold text-rose-300 border-rose-500/50 hover:bg-rose-500/25 flex items-center gap-2 shadow-xl">
+                    <i class="fa-solid fa-forward"></i>
+                    <span>Passar a Vez</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DO DORME -->
+    <div id="boneyard-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 text-center border-amber-500/40 shadow-2xl">
+            <h3 class="text-xl font-extrabold text-amber-400 mb-1">Comprar do Dorme</h3>
+            <p class="text-slate-300 text-xs mb-4">Escolha uma peça virada até encontrar uma que sirva no tabuleiro</p>
+            
+            <div id="boneyard-grid" class="grid grid-cols-7 gap-2 my-4 p-3 bg-slate-900/60 rounded-2xl border border-amber-500/20">
+            </div>
+
+            <button type="button" onclick="closeBoneyardModal()" class="px-5 py-2.5 rounded-xl glass-btn text-xs font-bold text-slate-300 hover:text-white">
+                Fechar
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL FIM DE JOGO -->
+    <div id="game-over-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 text-center border-amber-500/40 shadow-2xl">
+            <div id="modal-icon" class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-3xl border border-amber-500/40">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 id="modal-title" class="text-2xl font-extrabold text-white mb-2">Vitória!</h2>
+            <p id="modal-desc" class="text-slate-300 text-xs mb-6">Você venceu esta rodada.</p>
+
+            <div class="bg-slate-900/80 rounded-2xl p-4 mb-6 space-y-2 text-xs border border-amber-500/20">
+                <div class="flex justify-between text-slate-400">
+                    <span>Sua Pontuação:</span>
+                    <b id="modal-player-score" class="text-emerald-400">0</b>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>Pontuação da IA:</span>
+                    <b id="modal-ai-score" class="text-amber-400">0</b>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="nextRound()" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 font-extrabold text-slate-950 text-xs transition-all shadow-lg">
+                    Próxima Rodada
+                </button>
+                <button type="button" onclick="returnToMenu()" class="py-3.5 px-5 rounded-2xl glass-btn font-semibold text-slate-300 text-xs hover:text-white">
+                    Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAME_CONFIG = {
+            mode: 'classic',
+            difficulty: 'smart',
+            audioEnabled: true
+        };
+
+        let gameState = {
+            boneyard: [],
+            playerHand: [],
+            aiHand: [],
+            boardChain: [],
+            openEnds: { left: null, right: null, top: null, bottom: null },
+            spinnerPieceId: null,
+            turn: 'player',
+            roundActive: false,
+            scores: { player: 0, ai: 0 },
+            selectedPieceId: null,
+            consecutivePasses: 0,
+            roundWinner: null,
+            openingPieceId: null,
+            forcedDrawPieceId: null,
+            spinnerValue: null,
+            spinnerSidesCovered: { left: false, right: false },
+            spinnerBranchesOpen: false,
+            nextStarter: null
+        };
+
+        let audioCtx = null;
+        let aiTurnTimer = null;
+        let turnCheckTimer = null;
+        let roundEndTimer = null;
+        let boneyardPromptTimer = null;
+        let messageTimer = null;
+
+        const PIECE_W = 46;
+        const PIECE_H = 92;
+
+        let cameraZoom = 1.0;
+        let panOffset = { x: 0, y: 0 };
+        let isPanDragging = false;
+        let startPanMouse = { x: 0, y: 0 };
+
+        let isPieceDragging = false;
+        let draggedPiece = null;
+        let dragPos = { x: 0, y: 0 };
+
+        let canvas, ctx;
+        let indicators = [];
+
+        function init2D() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+
+            window.addEventListener('resize', resizeCanvas);
+            
+            canvas.addEventListener('pointerdown', handlePointerDown);
+            canvas.addEventListener('pointermove', handlePointerMove);
+            canvas.addEventListener('pointerup', handlePointerUp);
+            canvas.addEventListener('pointercancel', handlePointerUp);
+            
+            canvas.addEventListener('wheel', e => {
+                e.preventDefault();
+                adjustZoom(e.deltaY < 0 ? 0.08 : -0.08);
+            }, { passive: false });
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function playSound(type) {
+            if (!GAME_CONFIG.audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+
+                if (type === 'snap') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.09);
+                } else if (type === 'select') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(780, now + 0.04);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                } else if (type === 'score') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(650, now);
+                    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'invalid' || type === 'pass') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    const startHz = type === 'invalid' ? 190 : 340;
+                    osc.frequency.setValueAtTime(startHz, now);
+                    osc.frequency.exponentialRampToValueAtTime(type === 'invalid' ? 120 : 250, now + 0.11);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                }
+            } catch (e) {}
+        }
+
+        const PIP_PALETTE = {
+            1: { base: '#ffffff', light: '#ffffff', dark: '#cbd5e1', outline: '#94a3b8' },
+            2: { base: '#ff6b35', light: '#ffa07a', dark: '#d94814', outline: '#9a3412' },
+            3: { base: '#00b4d8', light: '#90e0ef', dark: '#0077b6', outline: '#03045e' },
+            4: { base: '#10b981', light: '#6ee7b7', dark: '#047857', outline: '#065f46' },
+            5: { base: '#ffb703', light: '#ffdda1', dark: '#d48b00', outline: '#854d0e' },
+            6: { base: '#ef4444', light: '#fca5a5', dark: '#b91c1c', outline: '#7f1d1d' }
+        };
+
+        function drawPip(ctx, cx, cy, radius, value) {
+            if (value === 0) return;
+            const colors = PIP_PALETTE[value] || PIP_PALETTE[1];
+            ctx.save();
+            
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 1, 0, Math.PI * 2);
+            ctx.fillStyle = '#050508';
+            ctx.fill();
+
+            const grad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.1, cx, cy, radius);
+            grad.addColorStop(0, colors.light);
+            grad.addColorStop(0.6, colors.base);
+            grad.addColorStop(1, colors.dark);
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            ctx.strokeStyle = colors.outline;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawDominoFace(ctx, w, h, v1, v2) {
+            const halfH = h / 2;
+            const r = Math.min(w, halfH) * 0.14;
+
+            function drawHalf(val, offsetY) {
+                const cx = w / 2;
+                const cy = offsetY + halfH / 2;
+                const left = w * 0.28;
+                const right = w * 0.72;
+                const top = offsetY + halfH * 0.26;
+                const bottom = offsetY + halfH * 0.74;
+
+                const positions = {
+                    1: [[cx, cy]],
+                    2: [[left, top], [right, bottom]],
+                    3: [[left, top], [cx, cy], [right, bottom]],
+                    4: [[left, top], [right, top], [left, bottom], [right, bottom]],
+                    5: [[left, top], [right, top], [cx, cy], [left, bottom], [right, bottom]],
+                    6: [[left, top], [right, top], [left, cy], [right, cy], [left, bottom], [right, bottom]]
+                };
+
+                if (positions[val]) {
+                    positions[val].forEach(([px, py]) => drawPip(ctx, px, py, r, val));
+                }
+            }
+
+            drawHalf(v1, 0);
+            drawHalf(v2, halfH);
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.1, halfH);
+            ctx.lineTo(w * 0.9, halfH);
+            ctx.stroke();
+
+            const spinGrad = ctx.createRadialGradient(w/2, halfH, 0, w/2, halfH, 3.5);
+            spinGrad.addColorStop(0, '#ffe899');
+            spinGrad.addColorStop(0.7, '#d4af37');
+            spinGrad.addColorStop(1, '#856404');
+            ctx.beginPath();
+            ctx.arc(w / 2, halfH, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = spinGrad;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function renderDominoTile(ctx, x, y, width, height, angle, piece, isFaceUp = true, isSelected = false) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            const w = width;
+            const h = height;
+            const cornerRadius = 6;
+
+            ctx.shadowColor = isSelected ? 'rgba(250, 204, 21, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = isSelected ? 18 : 12;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 6;
+
+            ctx.beginPath();
+            ctx.roundRect(-w / 2, -h / 2, w, h, cornerRadius);
+            ctx.fillStyle = '#111116';
+            ctx.fill();
+
+            ctx.shadowColor = 'transparent';
+
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = isSelected ? '#facc15' : 'rgba(212, 175, 55, 0.4)';
+            ctx.stroke();
+
+            if (isFaceUp) {
+                ctx.save();
+                ctx.translate(-w / 2, -h / 2);
+                drawDominoFace(ctx, w, h, piece.v1, piece.v2);
+                ctx.restore();
+            } else {
+                ctx.save();
+                ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+                ctx.beginPath();
+                ctx.arc(0, 0, Math.min(w, h) * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        function renderLoop() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2 + panOffset.x, canvas.height / 2 + panOffset.y);
+            ctx.scale(cameraZoom, cameraZoom);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            const gridStep = 80;
+            for (let x = -2000; x <= 2000; x += gridStep) {
+                ctx.beginPath(); ctx.moveTo(x, -2000); ctx.lineTo(x, 2000); ctx.stroke();
+            }
+            for (let y = -2000; y <= 2000; y += gridStep) {
+                ctx.beginPath(); ctx.moveTo(-2000, y); ctx.lineTo(2000, y); ctx.stroke();
+            }
+
+            gameState.boardChain.forEach(item => {
+                renderDominoTile(ctx, item.pos2D.x, item.pos2D.y, PIECE_W, PIECE_H, item.angle, item.piece, true, false);
+            });
+
+            indicators.forEach(ind => {
+                ctx.save();
+                ctx.translate(ind.pos2D.x, ind.pos2D.y);
+                ctx.beginPath();
+                ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+                ctx.fill();
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            ctx.restore();
+
+            const aiHand = gameState.aiHand;
+            const aiSpacing = 36;
+            const aiStartX = (canvas.width - (aiHand.length - 1) * aiSpacing) / 2;
+            aiHand.forEach((p, i) => {
+                renderDominoTile(ctx, aiStartX + i * aiSpacing, 45, PIECE_W * 0.7, PIECE_H * 0.7, Math.PI, p, false, false);
+            });
+
+            const playerHand = gameState.playerHand;
+            const pSpacing = 58;
+            const pStartX = (canvas.width - (playerHand.length - 1) * pSpacing) / 2;
+            const pY = canvas.height - 70;
+
+            playerHand.forEach((p, i) => {
+                if (isPieceDragging && draggedPiece && draggedPiece.id === p.id) return;
+                const isSelected = gameState.selectedPieceId === p.id;
+                const px = pStartX + i * pSpacing;
+                const py = isSelected ? pY - 18 : pY;
+                renderDominoTile(ctx, px, py, PIECE_W, PIECE_H, 0, p, true, isSelected);
+                p.handBounds = { x: px - PIECE_W / 2, y: py - PIECE_H / 2, w: PIECE_W, h: PIECE_H };
+            });
+
+            if (isPieceDragging && draggedPiece) {
+                renderDominoTile(ctx, dragPos.x, dragPos.y, PIECE_W * 1.05, PIECE_H * 1.05, 0, draggedPiece, true, true);
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        function toggleControlBar() {
+            const bar = document.getElementById('retractable-control-bar');
+            const icon = document.getElementById('toggle-icon');
+            if (bar.classList.contains('hidden')) {
+                bar.classList.remove('hidden');
+                icon.className = 'fa-solid fa-xmark text-rose-400';
+            } else {
+                bar.classList.add('hidden');
+                icon.className = 'fa-solid fa-gear text-amber-300';
+            }
+        }
+
+        function setGameMode(mode) {
+            GAME_CONFIG.mode = mode;
+            document.getElementById('btn-mode-classic').className = `mode-btn p-3 rounded-xl border ${mode === 'classic' ? 'border-amber-500/60 bg-amber-500/20 text-amber-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold flex flex-col items-center gap-1`;
+            document.getElementById('btn-mode-fives').className = `mode-btn p-3 rounded-xl border ${mode === 'fives' ? 'border-amber-500/60 bg-amber-500/20 text-amber-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold flex flex-col items-center gap-1`;
+            document.getElementById('hud-mode-name').innerText = mode === 'classic' ? 'Tradicional' : 'All Fives';
+            document.getElementById('fives-hud').style.display = mode === 'fives' ? 'flex' : 'none';
+        }
+
+        function toggleGameModeQuick() {
+            setGameMode(GAME_CONFIG.mode === 'classic' ? 'fives' : 'classic');
+            startNewRound();
+        }
+
+        function setAIDifficulty(diff) {
+            GAME_CONFIG.difficulty = diff;
+            document.getElementById('btn-diff-easy').className = `diff-btn p-2.5 rounded-xl border ${diff === 'easy' ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold text-center`;
+            document.getElementById('btn-diff-smart').className = `diff-btn p-2.5 rounded-xl border ${diff === 'smart' ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold text-center`;
+            document.getElementById('hud-diff-name').innerText = diff === 'easy' ? 'Normal' : 'Inteligente';
+        }
+
+        function toggleAIDifficultyQuick() {
+            setAIDifficulty(GAME_CONFIG.difficulty === 'easy' ? 'smart' : 'easy');
+        }
+
+        function toggleAudio() {
+            GAME_CONFIG.audioEnabled = !GAME_CONFIG.audioEnabled;
+            document.getElementById('audio-status-text').innerText = `Sons: ${GAME_CONFIG.audioEnabled ? 'ON' : 'OFF'}`;
+        }
+
+        function setZoomLevel(val) {
+            cameraZoom = Math.max(0.5, Math.min(1.8, Number(val) / 100));
+            document.getElementById('zoom-slider').value = Math.round(cameraZoom * 100);
+            document.getElementById('zoom-value').innerText = `${Math.round(cameraZoom * 100)}%`;
+        }
+        function adjustZoom(delta) { setZoomLevel((cameraZoom + delta) * 100); }
+        function resetZoomAndPan() { setZoomLevel(100); panOffset = { x: 0, y: 0 }; }
+
+        function launchGameFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+            document.getElementById('intro-screen').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('intro-screen').classList.add('hidden');
+                document.getElementById('game-ui').classList.remove('hidden');
+                init2D();
+                startNewGame();
+            }, 400);
+        }
+
+        function returnToMenu() {
+            gameState.roundActive = false;
+            clearTimeout(aiTurnTimer);
+            clearTimeout(boneyardPromptTimer);
+            clearTimeout(messageTimer);
+            clearTimeout(turnCheckTimer);
+            clearTimeout(roundEndTimer);
+            document.getElementById('retractable-control-bar').classList.add('hidden');
+            document.getElementById('toggle-icon').className = 'fa-solid fa-gear text-amber-300';
+            document.getElementById('game-over-modal').classList.add('hidden');
+            document.getElementById('boneyard-modal').classList.add('hidden');
+            document.getElementById('draw-btn').classList.add('hidden');
+            document.getElementById('pass-btn').classList.add('hidden');
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden', 'opacity-0');
+        }
+
+        function startNewGame() {
+            gameState.scores = { player: 0, ai: 0 };
+            gameState.nextStarter = Math.random() < 0.5 ? 'player' : 'ai';
+            updateScoreUI();
+            startNewRound();
+        }
+
+        function startNewRound() {
+            clearTimeout(aiTurnTimer);
+            clearTimeout(turnCheckTimer);
+            clearTimeout(roundEndTimer);
+            clearTimeout(boneyardPromptTimer);
+            clearTimeout(messageTimer);
+            
+            indicators = [];
+            panOffset = { x: 0, y: 0 };
+            cameraZoom = 1.0;
+            isPieceDragging = false;
+            draggedPiece = null;
+
+            gameState.boardChain = [];
+            gameState.openEnds = { left: null, right: null, top: null, bottom: null };
+            gameState.spinnerPieceId = null;
+            gameState.selectedPieceId = null;
+            gameState.consecutivePasses = 0;
+            gameState.roundWinner = null;
+            gameState.openingPieceId = null;
+            gameState.forcedDrawPieceId = null;
+            gameState.spinnerValue = null;
+            gameState.spinnerSidesCovered = { left: false, right: false };
+            gameState.spinnerBranchesOpen = false;
+            gameState.roundActive = true;
+
+            document.getElementById('boneyard-modal').classList.add('hidden');
+            document.getElementById('game-over-modal').classList.add('hidden');
+            document.getElementById('draw-btn').classList.add('hidden');
+            document.getElementById('pass-btn').classList.add('hidden');
+            document.getElementById('fives-sum-hud').innerText = '0';
+
+            // Garante a geração exata de todas as 28 peças (de 0-0 até 6-6, incluindo quinas e senas)
+            let allPieces = [];
+            let count = 0;
+            for (let i = 0; i <= 6; i++) {
+                for (let j = i; j <= 6; j++) {
+                    allPieces.push({ id: count++, v1: i, v2: j, isDouble: i === j });
+                }
+            }
+
+            // Embaralhamento Fisher-Yates
+            for (let i = allPieces.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
+            }
+
+            const handSize = GAME_CONFIG.mode === 'fives' ? 9 : 7;
+            gameState.playerHand = allPieces.slice(0, handSize);
+            gameState.aiHand = allPieces.slice(handSize, handSize * 2);
+            gameState.boneyard = allPieces.slice(handSize * 2);
+
+            determineFirstTurn();
+            updateUI();
+            checkTurnPossibleMoves();
+        }
+
+        function determineFirstTurn() {
+            if (GAME_CONFIG.mode === 'fives') {
+                gameState.turn = gameState.nextStarter || (Math.random() < 0.5 ? 'player' : 'ai');
+                gameState.openingPieceId = null;
+                gameState.nextStarter = null;
+                showMessage(gameState.turn === 'player' ? 'Sua vez de abrir a rodada.' : 'A IA abre a rodada.');
+                return;
+            }
+
+            const pDouble = gameState.playerHand.filter(p => p.isDouble).sort((a, b) => b.v1 - a.v1)[0];
+            const aiDouble = gameState.aiHand.filter(p => p.isDouble).sort((a, b) => b.v1 - a.v1)[0];
+
+            if (pDouble || aiDouble) {
+                if (pDouble && (!aiDouble || pDouble.v1 >= aiDouble.v1)) {
+                    gameState.turn = 'player';
+                    gameState.openingPieceId = pDouble.id;
+                    showMessage('Sua vez! Abra com a maior carroça.');
+                } else {
+                    gameState.turn = 'ai';
+                    gameState.openingPieceId = aiDouble.id;
+                    showMessage('A IA abre com a maior carroça.');
+                }
+                return;
+            }
+
+            const pMax = gameState.playerHand.reduce((best, p) => !best || p.v1 + p.v2 > best.v1 + best.v2 ? p : best, null);
+            const aiMax = gameState.aiHand.reduce((best, p) => !best || p.v1 + p.v2 > best.v1 + best.v2 ? p : best, null);
+
+            if (pMax.v1 + pMax.v2 > aiMax.v1 + aiMax.v2) {
+                gameState.turn = 'player';
+                gameState.openingPieceId = pMax.id;
+                showMessage('Sua vez! Abra com sua peça de maior valor.');
+            } else {
+                gameState.turn = 'ai';
+                gameState.openingPieceId = aiMax.id;
+                showMessage('A IA abre com a peça de maior valor.');
+            }
+        }
+
+        function screenToBoardCoords(screenX, screenY) {
+            return {
+                x: (screenX - canvas.width / 2 - panOffset.x) / cameraZoom,
+                y: (screenY - canvas.height / 2 - panOffset.y) / cameraZoom
+            };
+        }
+
+        function handlePointerDown(e) {
+            if (!gameState.roundActive) return;
+
+            const mx = e.clientX;
+            const my = e.clientY;
+
+            const boardPos = screenToBoardCoords(mx, my);
+            if (gameState.selectedPieceId !== null) {
+                const clickedInd = indicators.find(ind => {
+                    const dx = ind.pos2D.x - boardPos.x;
+                    const dy = ind.pos2D.y - boardPos.y;
+                    return Math.hypot(dx, dy) < 30;
+                });
+
+                if (clickedInd) {
+                    const piece = gameState.playerHand.find(p => p.id === gameState.selectedPieceId);
+                    if (piece) {
+                        executeSnapMove(piece, clickedInd.side, 'player');
+                        return;
+                    }
+                }
+            }
+
+            if (gameState.turn === 'player') {
+                const touchedPiece = gameState.playerHand.find(p => {
+                    const b = p.handBounds;
+                    return b && mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h;
+                });
+
+                if (touchedPiece) {
+                    playSound('select');
+                    gameState.selectedPieceId = touchedPiece.id;
+                    highlightValidEndpointsForPiece(touchedPiece);
+                    isPieceDragging = true;
+                    draggedPiece = touchedPiece;
+                    dragPos = { x: mx, y: my };
+                    return;
+                }
+            }
+
+            isPanDragging = true;
+            startPanMouse = { x: mx - panOffset.x, y: my - panOffset.y };
+        }
+
+        function handlePointerMove(e) {
+            const mx = e.clientX;
+            const my = e.clientY;
+
+            if (isPieceDragging) {
+                dragPos = { x: mx, y: my };
+            } else if (isPanDragging) {
+                panOffset = { x: mx - startPanMouse.x, y: my - startPanMouse.y };
+            }
+        }
+
+        function handlePointerUp(e) {
+            if (isPieceDragging && draggedPiece) {
+                const boardPos = screenToBoardCoords(e.clientX, e.clientY);
+                const nearestInd = indicators.find(ind => {
+                    const dx = ind.pos2D.x - boardPos.x;
+                    const dy = ind.pos2D.y - boardPos.y;
+                    return Math.hypot(dx, dy) < 45;
+                });
+
+                if (nearestInd) {
+                    executeSnapMove(draggedPiece, nearestInd.side, 'player');
+                }
+            }
+
+            isPieceDragging = false;
+            draggedPiece = null;
+            isPanDragging = false;
+        }
+
+        function getValidMovesForPiece(piece) {
+            if (!piece) return [];
+            if (gameState.forcedDrawPieceId !== null && piece.id !== gameState.forcedDrawPieceId) return [];
+
+            if (gameState.boardChain.length === 0) {
+                return gameState.openingPieceId === null || piece.id === gameState.openingPieceId ? [{ side: 'first' }] : [];
+            }
+
+            const valid = [];
+            const hasSpinner = GAME_CONFIG.mode === 'fives' && gameState.spinnerPieceId !== null;
+
+            if (hasSpinner && gameState.spinnerBranchesOpen) {
+                const topStarted = gameState.openEnds.top && !gameState.openEnds.top.isSpinnerStub;
+                const bottomStarted = gameState.openEnds.bottom && !gameState.openEnds.bottom.isSpinnerStub;
+                const requiredBranches = [];
+                if (!topStarted) requiredBranches.push('top');
+                if (!bottomStarted) requiredBranches.push('bottom');
+                const allowedSides = requiredBranches.length ? requiredBranches : ['left', 'right', 'top', 'bottom'];
+                allowedSides.forEach(side => {
+                    const end = gameState.openEnds[side];
+                    if (end && (piece.v1 === end.val || piece.v2 === end.val)) valid.push({ side });
+                });
+                return valid;
+            }
+
+            ['left', 'right'].forEach(side => {
+                const end = gameState.openEnds[side];
+                if (end && (piece.v1 === end.val || piece.v2 === end.val)) valid.push({ side });
+            });
+            return valid;
+        }
+
+        function highlightValidEndpointsForPiece(piece) {
+            indicators = [];
+            const valid = getValidMovesForPiece(piece);
+
+            if (valid.length === 0) {
+                showMessage("Esta peça não se encaixa nas pontas!", 1500);
+                return;
+            }
+
+            if (gameState.boardChain.length === 0) {
+                indicators.push({ pos2D: { x: 0, y: 0 }, side: 'first' });
+                showMessage("Toque no anel dourado central para abrir o jogo.");
+            } else {
+                valid.forEach(v => {
+                    const placement = calculateNextPlacement2D(piece, v.side);
+                    indicators.push({ pos2D: placement.pos2D, side: v.side });
+                });
+                showMessage("Toque ou arraste a peça para uma ponta válida.");
+            }
+        }
+
+        function calculateNextPlacement2D(piece, side) {
+            const pieceLength = PIECE_H;
+            const pieceWidth = PIECE_W;
+
+            if (gameState.boardChain.length === 0) {
+                return {
+                    pos2D: { x: 0, y: 0 },
+                    angle: piece.isDouble ? 0 : Math.PI / 2,
+                    dir: { x: -1, y: 0 },
+                    openVal: piece.v1,
+                    matchingVal: piece.v2,
+                    span: piece.isDouble ? pieceWidth / 2 : pieceLength / 2
+                };
+            }
+
+            const end = gameState.openEnds[side];
+            const openVal = end.val;
+            let dir = { ...end.dir };
+
+            const newHalfSpan = piece.isDouble ? pieceWidth / 2 : pieceLength / 2;
+            const offsetDist = end.span + newHalfSpan;
+            let nextX = end.pos2D.x + dir.x * offsetDist;
+            let nextY = end.pos2D.y + dir.y * offsetDist;
+
+            let dirAngle = Math.atan2(dir.y, dir.x);
+            let angle = piece.isDouble ? dirAngle : dirAngle + Math.PI / 2;
+
+            // CORREÇÃO DE INVERSÃO: Garante que a metade que corresponde à ponta existente fique virada para dentro
+            const needInvert = !piece.isDouble && piece.v1 === openVal && piece.v2 !== openVal;
+            if (needInvert) {
+                angle += Math.PI;
+            }
+
+            const newOpenVal = piece.v1 === openVal ? piece.v2 : piece.v1;
+
+            return {
+                pos2D: { x: nextX, y: nextY },
+                angle: angle,
+                dir: dir,
+                openVal: piece.isDouble ? openVal : newOpenVal,
+                matchingVal: openVal,
+                span: newHalfSpan
+            };
+        }
+
+        function executeSnapMove(piece, side, playerType) {
+            if (!gameState.roundActive || gameState.turn !== playerType || !piece) return;
+
+            indicators = [];
+            playSound('snap');
+
+            if (playerType === 'player') {
+                gameState.playerHand = gameState.playerHand.filter(p => p.id !== piece.id);
+            } else {
+                gameState.aiHand = gameState.aiHand.filter(p => p.id !== piece.id);
+            }
+
+            let placement = calculateNextPlacement2D(piece, side);
+
+            if (gameState.boardChain.length === 0) {
+                gameState.openingPieceId = null;
+                gameState.boardChain.push({ piece, ...placement });
+                gameState.openEnds.left = { val: piece.v1, pos2D: { ...placement.pos2D }, dir: { x: -1, y: 0 }, span: piece.isDouble ? PIECE_W / 2 : PIECE_H / 2, isSpinnerStub: piece.isDouble && GAME_CONFIG.mode === 'fives' };
+                gameState.openEnds.right = { val: piece.v2, pos2D: { ...placement.pos2D }, dir: { x: 1, y: 0 }, span: piece.isDouble ? PIECE_W / 2 : PIECE_H / 2, isSpinnerStub: piece.isDouble && GAME_CONFIG.mode === 'fives' };
+
+                if (piece.isDouble && GAME_CONFIG.mode === 'fives' && gameState.spinnerPieceId === null) {
+                    gameState.spinnerPieceId = piece.id;
+                    gameState.spinnerValue = piece.v1;
+                    gameState.spinnerSidesCovered = { left: false, right: false };
+                    gameState.openEnds.top = { val: piece.v1, pos2D: { ...placement.pos2D }, dir: { x: 0, y: -1 }, span: PIECE_H / 2, isSpinnerStub: true };
+                    gameState.openEnds.bottom = { val: piece.v1, pos2D: { ...placement.pos2D }, dir: { x: 0, y: 1 }, span: PIECE_H / 2, isSpinnerStub: true };
+                }
+            } else {
+                gameState.boardChain.push({ piece, ...placement });
+                const previousEnd = gameState.openEnds[side];
+                gameState.openEnds[side] = {
+                    val: placement.openVal,
+                    pos2D: { ...placement.pos2D },
+                    dir: { ...placement.dir },
+                    span: piece.isDouble ? PIECE_W / 2 : PIECE_H / 2,
+                    isDoubleEnd: piece.isDouble,
+                    isSpinnerStub: false
+                };
+
+                if (gameState.spinnerPieceId !== null && (side === 'left' || side === 'right') && previousEnd && previousEnd.isSpinnerStub) {
+                    gameState.spinnerSidesCovered[side] = true;
+                    if (gameState.spinnerSidesCovered.left && gameState.spinnerSidesCovered.right) {
+                        gameState.spinnerBranchesOpen = true;
+                    }
+                }
+
+                if (GAME_CONFIG.mode === 'fives' && piece.isDouble && gameState.spinnerPieceId === null) {
+                    gameState.spinnerPieceId = piece.id;
+                    gameState.spinnerValue = piece.v1;
+                    gameState.spinnerSidesCovered = { left: side === 'right', right: side === 'left' };
+                    gameState.spinnerBranchesOpen = false;
+                    gameState.openEnds[side].isSpinnerStub = true;
+                    gameState.openEnds.top = { val: piece.v1, pos2D: { ...placement.pos2D }, dir: { x: 0, y: -1 }, span: PIECE_H / 2, isSpinnerStub: true };
+                    gameState.openEnds.bottom = { val: piece.v1, pos2D: { ...placement.pos2D }, dir: { x: 0, y: 1 }, span: PIECE_H / 2, isSpinnerStub: true };
+                }
+            }
+
+            gameState.selectedPieceId = null;
+            gameState.forcedDrawPieceId = null;
+            gameState.consecutivePasses = 0;
+
+            if (GAME_CONFIG.mode === 'fives') {
+                processAllFivesScore(playerType);
+            }
+
+            updateUI();
+
+            if (checkRoundEnd(playerType)) return;
+
+            gameState.turn = (playerType === 'player') ? 'ai' : 'player';
+            checkTurnPossibleMoves();
+        }
+
+        function getAllFivesOpenEndTotal() {
+            let total = 0;
+            ['left', 'right'].forEach(side => {
+                const end = gameState.openEnds[side];
+                if (end && !end.isSpinnerStub) total += end.val * (end.isDoubleEnd ? 2 : 1);
+            });
+
+            if (gameState.spinnerPieceId !== null && !gameState.spinnerBranchesOpen) {
+                total += 2 * gameState.spinnerValue;
+            }
+
+            if (gameState.spinnerBranchesOpen) {
+                ['top', 'bottom'].forEach(side => {
+                    const end = gameState.openEnds[side];
+                    if (end && !end.isSpinnerStub) total += end.val * (end.isDoubleEnd ? 2 : 1);
+                });
+            }
+            return total;
+        }
+
+        function processAllFivesScore(playerType) {
+            const sum = getAllFivesOpenEndTotal();
+            document.getElementById('fives-sum-hud').innerText = sum;
+            if (sum > 0 && sum % 5 === 0) {
+                playSound('score');
+                gameState.scores[playerType] += sum;
+                updateScoreUI();
+                showMessage(`+${sum} pontos no All Fives!`, 2000);
+            }
+        }
+
+        function getBoneyardReserve() {
+            return GAME_CONFIG.mode === 'classic' ? 2 : 0;
+        }
+
+        function getDrawableBoneyardCount() {
+            return Math.max(0, gameState.boneyard.length - getBoneyardReserve());
+        }
+
+        function canDrawFromBoneyard() {
+            return getDrawableBoneyardCount() > 0;
+        }
+
+        function openBoneyardModal() {
+            if (!gameState.roundActive || gameState.turn !== 'player' || !canDrawFromBoneyard() || getAllValidMoves(gameState.playerHand).length > 0) return;
+            const grid = document.getElementById('boneyard-grid');
+            grid.innerHTML = '';
+
+            gameState.boneyard.slice(0, getDrawableBoneyardCount()).forEach((p, idx) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = "w-full h-16 bg-slate-800 border-2 border-amber-400/60 rounded-xl hover:scale-105 transition-transform flex items-center justify-center text-amber-400 font-bold text-lg shadow-md";
+                card.innerHTML = `<i class="fa-solid fa-gem"></i>`;
+                card.onclick = () => pickFromBoneyardModal(idx);
+                grid.appendChild(card);
+            });
+
+            document.getElementById('boneyard-modal').classList.remove('hidden');
+        }
+
+        function pickFromBoneyardModal(index) {
+            if (gameState.turn !== 'player' || !gameState.roundActive || !canDrawFromBoneyard()) return;
+
+            const drawn = gameState.boneyard.splice(index, 1)[0];
+            gameState.playerHand.push(drawn);
+            playSound('select');
+            updateUI();
+            closeBoneyardModal();
+
+            const moves = getValidMovesForPiece(drawn);
+            if (moves.length > 0) {
+                gameState.forcedDrawPieceId = drawn.id;
+                showMessage('Peça comprada: jogue esta peça agora.');
+                gameState.selectedPieceId = drawn.id;
+                highlightValidEndpointsForPiece(drawn);
+            } else if (canDrawFromBoneyard()) {
+                showMessage('Esta peça não encaixa. Compre outra.');
+                clearTimeout(boneyardPromptTimer);
+                boneyardPromptTimer = setTimeout(openBoneyardModal, 450);
+            } else {
+                document.getElementById('draw-btn').classList.add('hidden');
+                document.getElementById('pass-btn').classList.remove('hidden');
+                showMessage('Sem peças disponíveis e nenhuma encaixa. Passe a vez.');
+            }
+        }
+
+        function closeBoneyardModal() {
+            document.getElementById('boneyard-modal').classList.add('hidden');
+        }
+
+        function getAllValidMoves(hand) {
+            const moves = [];
+            hand.forEach(piece => {
+                const valid = getValidMovesForPiece(piece);
+                valid.forEach(v => moves.push({ piece, side: v.side }));
+            });
+            return moves;
+        }
+
+        function checkTurnPossibleMoves() {
+            if (!gameState.roundActive) return;
+
+            if (gameState.turn === 'player') {
+                const moves = getAllValidMoves(gameState.playerHand);
+                if (moves.length === 0) {
+                    if (canDrawFromBoneyard()) {
+                        document.getElementById('draw-btn').classList.remove('hidden');
+                        document.getElementById('pass-btn').classList.add('hidden');
+                        showMessage("Sem peças válidas. Escolha no dorme!");
+                        openBoneyardModal();
+                    } else {
+                        document.getElementById('draw-btn').classList.add('hidden');
+                        document.getElementById('pass-btn').classList.remove('hidden');
+                        showMessage("Sem jogadas. Passe a vez.");
+                    }
+                } else {
+                    document.getElementById('draw-btn').classList.add('hidden');
+                    document.getElementById('pass-btn').classList.add('hidden');
+                    showMessage("Sua vez! Selecione uma peça na sua mão.");
+                }
+            } else {
+                document.getElementById('draw-btn').classList.add('hidden');
+                document.getElementById('pass-btn').classList.add('hidden');
+                showMessage("Vez da IA...");
+                clearTimeout(aiTurnTimer);
+                aiTurnTimer = setTimeout(playAITurn, 800);
+            }
+        }
+
+        function playAITurn() {
+            if (!gameState.roundActive || gameState.turn !== 'ai') return;
+
+            let validMoves = getAllValidMoves(gameState.aiHand);
+
+            while (validMoves.length === 0 && canDrawFromBoneyard()) {
+                const drawn = gameState.boneyard.shift();
+                gameState.aiHand.push(drawn);
+                playSound('select');
+                updateUI();
+                validMoves = getAllValidMoves(gameState.aiHand);
+            }
+
+            if (validMoves.length > 0) {
+                const chosen = chooseAIMove(validMoves);
+                executeSnapMove(chosen.piece, chosen.side, 'ai');
+            } else {
+                showMessage("A IA passou a vez.");
+                gameState.consecutivePasses++;
+                if (checkRoundEnd('ai')) return;
+                gameState.turn = 'player';
+                clearTimeout(turnCheckTimer);
+                turnCheckTimer = setTimeout(checkTurnPossibleMoves, 700);
+            }
+        }
+
+        function chooseAIMove(moves) {
+            if (GAME_CONFIG.difficulty === 'easy') {
+                return moves[Math.floor(Math.random() * moves.length)];
+            }
+
+            return moves.map(move => {
+                const p = move.piece;
+                const pipWeight = (p.v1 + p.v2) * 2;
+                const doubleBonus = p.isDouble ? 2 : 0;
+                return { ...move, heuristic: pipWeight + doubleBonus + Math.random() };
+            }).sort((a, b) => b.heuristic - a.heuristic)[0];
+        }
+
+        function playerPassTurn() {
+            if (gameState.turn !== 'player' || !gameState.roundActive) return;
+            if (getAllValidMoves(gameState.playerHand).length > 0 || canDrawFromBoneyard()) {
+                showMessage('Só é permitido passar quando o dorme estiver vazio e não houver encaixe.');
+                return;
+            }
+            playSound('pass');
+            showMessage("Você passou a vez.");
+            gameState.consecutivePasses++;
+            if (checkRoundEnd('player')) return;
+            gameState.turn = 'ai';
+            checkTurnPossibleMoves();
+        }
+
+        function handPipTotal(hand) {
+            return hand.reduce((total, piece) => total + piece.v1 + piece.v2, 0);
+        }
+
+        function roundToNearestFive(value) {
+            return Math.round(value / 5) * 5;
+        }
+
+        function checkRoundEnd(lastPlayerType) {
+            const playerEmpty = gameState.playerHand.length === 0;
+            const aiEmpty = gameState.aiHand.length === 0;
+            const noMoves = getAllValidMoves(gameState.playerHand).length === 0 && getAllValidMoves(gameState.aiHand).length === 0;
+            const isBlocked = !canDrawFromBoneyard() && noMoves && gameState.consecutivePasses >= 2;
+
+            if (!playerEmpty && !aiEmpty && !isBlocked) return false;
+
+            gameState.roundActive = false;
+            document.getElementById('draw-btn').classList.add('hidden');
+            document.getElementById('pass-btn').classList.add('hidden');
+
+            const playerPips = handPipTotal(gameState.playerHand);
+            const aiPips = handPipTotal(gameState.aiHand);
+            let winner = playerEmpty ? 'player' : (aiEmpty ? 'ai' : (playerPips < aiPips ? 'player' : (aiPips < playerPips ? 'ai' : 'draw')));
+            let points = 0;
+
+            if (winner !== 'draw') {
+                if (GAME_CONFIG.mode === 'fives') {
+                    const losingPips = winner === 'player' ? aiPips : playerPips;
+                    points = roundToNearestFive(losingPips);
+                } else if (isBlocked) {
+                    points = Math.abs(playerPips - aiPips);
+                } else {
+                    points = winner === 'player' ? aiPips : playerPips;
+                }
+                gameState.scores[winner] += points;
+            }
+
+            gameState.roundPoints = points;
+            gameState.nextStarter = isBlocked || winner === 'draw' ? null : winner;
+            updateScoreUI();
+            clearTimeout(roundEndTimer);
+            roundEndTimer = setTimeout(() => showGameOverModal(winner, isBlocked), 700);
+            return true;
+        }
+
+        function showGameOverModal(winner, isBlocked = false) {
+            const modal = document.getElementById('game-over-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            title.innerText = winner === 'player' ? 'Vitória!' : (winner === 'ai' ? 'A IA venceu' : 'Rodada empatada');
+            const points = gameState.roundPoints || 0;
+            const reason = isBlocked ? 'Jogo fechado/bloqueado: venceu quem ficou com menos pontos nas peças.' : 'Um jogador baixou todas as peças.';
+            desc.innerText = winner === 'draw' ? `${reason} Empate: nenhum ponto somado.` : `${reason} ${points} pontos foram adicionados ao placar ${winner === 'player' ? 'do jogador' : 'da IA'}.`;
+            document.getElementById('modal-player-score').innerText = gameState.scores.player;
+            document.getElementById('modal-ai-score').innerText = gameState.scores.ai;
+            modal.classList.remove('hidden');
+        }
+
+        function nextRound() {
+            document.getElementById('game-over-modal').classList.add('hidden');
+            startNewRound();
+        }
+
+        function updateUI() {
+            document.getElementById('player-count-hud').innerText = gameState.playerHand.length;
+            document.getElementById('ai-count-hud').innerText = gameState.aiHand.length;
+            document.getElementById('boneyard-count').innerText = getDrawableBoneyardCount();
+        }
+
+        function updateScoreUI() {
+            document.getElementById('player-score-hud').innerText = gameState.scores.player;
+            document.getElementById('ai-score-hud').innerText = gameState.scores.ai;
+        }
+
+        function showMessage(text, duration = 2600) {
+            const container = document.getElementById('game-message-container');
+            const msg = document.getElementById('game-message');
+            if (!container || !msg) return;
+            msg.textContent = text;
+            container.style.opacity = '1';
+            container.style.transform = 'translateX(-50%) scale(1)';
+            clearTimeout(messageTimer);
+            messageTimer = setTimeout(() => {
+                container.style.opacity = '0';
+                container.style.transform = 'translateX(-50%) scale(0.97)';
+                messageTimer = null;
+            }, Math.max(1800, duration));
+        }
+    </script>
+</body>
+</html>

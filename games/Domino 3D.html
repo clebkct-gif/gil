@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dominó Royal 3D - Tradicional & All Fives</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #03060c;
+            color: #f3f4f6;
+            overscroll-behavior: none;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .glass-panel {
+            background: rgba(10, 15, 26, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+        }
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.18) 0%, rgba(255, 255, 255, 0.04) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .glass-btn:hover, .glass-btn:active {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.35) 0%, rgba(255, 255, 255, 0.12) 100%);
+            border-color: rgba(255, 215, 0, 0.8);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #ffffff 0%, #ffd700 40%, #e6a100 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+        }
+        .pulse-glow {
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        /* Estilo da Interface */
+        #game-ui .glass-panel { color: #f3f4f6; }
+        #game-ui input[type="range"] { accent-color: #facc15; }
+        #game-ui button:focus-visible { outline: 3px solid #eab308; outline-offset: 2px; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. TELA DE APRESENTAÇÃO / MENU INICIAL -->
+    <div id="intro-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-zinc-950 to-amber-950/50 transition-opacity duration-500">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-8 text-center relative overflow-hidden border border-amber-500/40 shadow-2xl">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-400 to-yellow-200 flex items-center justify-center shadow-lg shadow-amber-500/30 transform rotate-6 border border-amber-200/50">
+                <i class="fa-solid fa-crown text-3xl text-slate-950"></i>
+            </div>
+            <h1 class="text-3xl font-black tracking-wider mb-1 gradient-text">DOMINÓ ROYAL 3D</h1>
+            <p class="text-amber-200/80 text-xs tracking-wide uppercase mb-6 font-semibold">Edição Luxo: Peças Pretas & Pips Coloridos</p>
+
+            <div class="space-y-4 mb-7 text-left">
+                <div>
+                    <label class="block text-[11px] font-bold text-amber-300 uppercase tracking-wider mb-2">Modo de Jogo</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-mode-classic" onclick="setGameMode('classic')" class="mode-btn p-3 rounded-xl border border-amber-500/60 bg-amber-500/20 text-amber-200 text-xs font-semibold flex flex-col items-center gap-1 shadow-inner">
+                            <i class="fa-solid fa-chess-board text-sm"></i>
+                            <span>Tradicional</span>
+                        </button>
+                        <button type="button" id="btn-mode-fives" onclick="setGameMode('fives')" class="mode-btn p-3 rounded-xl border border-white/10 bg-white/5 text-slate-400 text-xs font-semibold flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-star text-sm"></i>
+                            <span>All Fives (5s)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-amber-300 uppercase tracking-wider mb-2">Nível da IA</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-diff-easy" onclick="setAIDifficulty('easy')" class="diff-btn p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 text-xs font-semibold text-center">
+                            Normal
+                        </button>
+                        <button type="button" id="btn-diff-smart" onclick="setAIDifficulty('smart')" class="diff-btn p-2.5 rounded-xl border border-emerald-500/60 bg-emerald-500/20 text-emerald-200 text-xs font-semibold text-center">
+                            Inteligente
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" onclick="launchGameFullscreen()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-sm tracking-wider shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-play text-base"></i>
+                <span>ENTRAR NO TABULEIRO ROYAL</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. CANVAS THREE.JS -->
+    <div id="canvas-container"></div>
+
+    <!-- 3. INTERFACE DE JOGO LIMPA (SEM BARRA DE TEXTO INFERIOR) -->
+    <div id="game-ui" class="hidden absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 md:p-5">
+        
+        <!-- TOPO: STATUS + MENU FLUTUANTE RETRÁTIL -->
+        <div class="flex justify-between items-start w-full">
+            
+            <!-- Placar & Informações Compactas -->
+            <div class="glass-panel rounded-2xl p-2.5 px-4 flex items-center gap-4 text-xs border-amber-500/30 pointer-events-auto shadow-lg">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse shadow-sm shadow-emerald-400"></span>
+                    <span class="font-bold text-slate-100">Você: <b id="player-score-hud" class="text-amber-400">0</b> <span class="text-slate-400 font-normal">(<span id="player-count-hud">7</span>)</span></span>
+                </div>
+                <div class="h-4 w-px bg-amber-500/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span>
+                    <span class="font-bold text-slate-100">IA: <b id="ai-score-hud" class="text-amber-400">0</b> <span class="text-slate-400 font-normal">(<span id="ai-count-hud">7</span>)</span></span>
+                </div>
+                <div id="fives-hud" class="hidden flex items-center gap-2 pl-2 border-l border-amber-500/20">
+                    <span class="text-amber-400 font-bold"><i class="fa-solid fa-star text-[10px]"></i> Soma 5s: <b id="fives-sum-hud" class="text-amber-300">0</b></span>
+                </div>
+            </div>
+
+            <!-- MENU FLUTUANTE RETRÁTIL -->
+            <div class="relative flex flex-col items-end pointer-events-auto">
+                <button type="button" onclick="toggleControlBar()" id="control-toggle-btn" class="glass-btn w-11 h-11 rounded-2xl flex items-center justify-center text-amber-300 hover:text-white shadow-xl text-lg active:scale-95">
+                    <i id="toggle-icon" class="fa-solid fa-gear"></i>
+                </button>
+
+                <div id="retractable-control-bar" class="hidden transition-all duration-200 transform origin-top-right mt-2 glass-panel rounded-2xl p-2 flex flex-col gap-2 min-w-[190px] z-30 shadow-2xl">
+                    <button type="button" onclick="startNewRound()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right text-amber-400"></i>
+                        <span>Reiniciar Rodada</span>
+                    </button>
+                    <button type="button" onclick="toggleGameModeQuick()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chess-board text-purple-400"></i>
+                        <span>Modo: <b id="hud-mode-name" class="text-purple-300">Tradicional</b></span>
+                    </button>
+                    <button type="button" onclick="toggleAIDifficultyQuick()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-brain text-emerald-400"></i>
+                        <span>IA: <b id="hud-diff-name" class="text-emerald-300">Inteligente</b></span>
+                    </button>
+                    <div class="px-2 py-1.5 rounded-xl bg-black/20 border border-amber-500/20">
+                        <div class="flex items-center justify-between text-[11px] text-amber-200 mb-1">
+                            <span><i class="fa-solid fa-magnifying-glass-plus mr-1"></i>Zoom do tabuleiro</span>
+                            <b id="zoom-value">100%</b>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="adjustZoom(-0.1)" aria-label="Diminuir zoom" class="glass-btn rounded-lg w-8 h-8 text-amber-200">−</button>
+                            <input id="zoom-slider" type="range" min="70" max="150" step="5" value="100" oninput="setZoomLevel(this.value)" class="w-full accent-amber-400" aria-label="Controle de zoom">
+                            <button type="button" onclick="adjustZoom(0.1)" aria-label="Aumentar zoom" class="glass-btn rounded-lg w-8 h-8 text-amber-200">+</button>
+                        </div>
+                        <button type="button" onclick="resetZoom()" class="w-full text-[10px] text-slate-400 mt-1">Restaurar zoom</button>
+                    </div>
+                    <button type="button" onclick="toggleAudio()" id="audio-btn" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-volume-high text-amber-400"></i>
+                        <span id="audio-status-text">Sons: ON</span>
+                    </button>
+                    <div class="h-px bg-amber-500/20 my-0.5"></div>
+                    <button type="button" onclick="returnToMenu()" class="glass-btn w-full px-3 py-2 rounded-xl text-xs font-semibold text-rose-300 hover:bg-rose-500/20 flex items-center gap-2">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Menu Inicial</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENSAGEM FLUTUANTE DE ORIENTAÇÃO AO JOGADOR -->
+        <div id="game-message-container" role="status" aria-live="polite" class="fixed left-1/2 top-[76px] -translate-x-1/2 pointer-events-none transition-all duration-200 transform scale-95 opacity-0 z-30 max-w-[min(88vw,420px)]">
+            <div id="game-message" class="glass-panel px-3 py-1.5 rounded-xl border-amber-500/30 text-center text-[10px] md:text-xs font-semibold text-amber-100 shadow-lg">
+                Selecione uma peça e toque na extremidade desejada no tabuleiro
+            </div>
+        </div>
+
+        <!-- CONTROLES FLUTUANTES COMPACTOS (COMPRAR / PASSAR) -->
+        <div class="flex flex-col items-center pointer-events-auto gap-2 w-full max-w-4xl mx-auto mb-2">
+            <div class="flex items-center justify-center gap-3">
+                <button type="button" id="draw-btn" onclick="openBoneyardModal()" class="hidden pulse-glow px-5 py-2.5 rounded-2xl text-xs font-bold text-amber-200 bg-amber-500/20 border border-amber-500/60 hover:bg-amber-500/35 flex items-center gap-2 transition-all shadow-xl">
+                    <i class="fa-solid fa-layer-group text-amber-400 text-sm"></i>
+                    <span>Comprar do Dorme (<b id="boneyard-count">14</b>)</span>
+                </button>
+                <button type="button" id="pass-btn" onclick="playerPassTurn()" class="hidden glass-btn px-5 py-2.5 rounded-2xl text-xs font-bold text-rose-300 border-rose-500/50 hover:bg-rose-500/25 flex items-center gap-2 shadow-xl">
+                    <i class="fa-solid fa-forward"></i>
+                    <span>Passar a Vez</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MODAL DE SELEÇÃO DO DORME (DRAW FROM THE BONEYARD) -->
+    <div id="boneyard-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 text-center border-amber-500/40 shadow-2xl">
+            <h3 class="text-xl font-extrabold text-amber-400 mb-1">Comprar do Dorme</h3>
+            <p class="text-slate-300 text-xs mb-4">Escolha uma peça virada até encontrar uma que sirva no tabuleiro</p>
+            
+            <div id="boneyard-grid" class="grid grid-cols-7 gap-2 my-4 p-3 bg-slate-900/60 rounded-2xl border border-amber-500/20">
+            </div>
+
+            <button type="button" onclick="closeBoneyardModal()" class="px-5 py-2.5 rounded-xl glass-btn text-xs font-bold text-slate-300 hover:text-white">
+                Fechar
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL FIM DE JOGO -->
+    <div id="game-over-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 text-center border-amber-500/40 shadow-2xl">
+            <div id="modal-icon" class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-3xl border border-amber-500/40">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 id="modal-title" class="text-2xl font-extrabold text-white mb-2">Vitória!</h2>
+            <p id="modal-desc" class="text-slate-300 text-xs mb-6">Você venceu esta rodada.</p>
+
+            <div class="bg-slate-900/80 rounded-2xl p-4 mb-6 space-y-2 text-xs border border-amber-500/20">
+                <div class="flex justify-between text-slate-400">
+                    <span>Sua Pontuação:</span>
+                    <b id="modal-player-score" class="text-emerald-400">0</b>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>Pontuação da IA:</span>
+                    <b id="modal-ai-score" class="text-amber-400">0</b>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="nextRound()" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 font-extrabold text-slate-950 text-xs transition-all shadow-lg">
+                    Próxima Rodada
+                </button>
+                <button type="button" onclick="returnToMenu()" class="py-3.5 px-5 rounded-2xl glass-btn font-semibold text-slate-300 text-xs hover:text-white">
+                    Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAME_CONFIG = {
+            mode: 'classic', // 'classic' ou 'fives'
+            difficulty: 'smart',
+            audioEnabled: true
+        };
+
+        let gameState = {
+            boneyard: [],
+            playerHand: [],
+            aiHand: [],
+            boardChain: [],
+            openEnds: { left: null, right: null, top: null, bottom: null },
+            spinnerPieceId: null,
+            turn: 'player',
+            roundActive: false,
+            scores: { player: 0, ai: 0 },
+            selectedPieceId: null,
+            consecutivePasses: 0,
+            roundWinner: null,
+            openingPieceId: null,
+            forcedDrawPieceId: null,
+            spinnerValue: null,
+            spinnerSidesCovered: { left: false, right: false },
+            spinnerBranchesOpen: false,
+            nextStarter: null
+        };
+
+        let audioCtx = null;
+        let aiTurnTimer = null;
+        let turnCheckTimer = null;
+        let roundEndTimer = null;
+        let boneyardPromptTimer = null;
+        let messageTimer = null;
+        let activePointerId = null;
+
+        function playSound(type) {
+            if (!GAME_CONFIG.audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+
+                if (type === 'snap') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.09);
+                } else if (type === 'select') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(780, now + 0.04);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                } else if (type === 'score') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(650, now);
+                    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'invalid' || type === 'pass') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    const startHz = type === 'invalid' ? 190 : 340;
+                    osc.frequency.setValueAtTime(startHz, now);
+                    osc.frequency.exponentialRampToValueAtTime(type === 'invalid' ? 120 : 250, now + 0.11);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                }
+            } catch (e) {}
+        }
+
+        function toggleControlBar() {
+            const bar = document.getElementById('retractable-control-bar');
+            const icon = document.getElementById('toggle-icon');
+            if (bar.classList.contains('hidden')) {
+                bar.classList.remove('hidden');
+                icon.className = 'fa-solid fa-xmark text-rose-400';
+            } else {
+                bar.classList.add('hidden');
+                icon.className = 'fa-solid fa-gear text-amber-300';
+            }
+        }
+
+        function setGameMode(mode) {
+            GAME_CONFIG.mode = mode;
+            document.getElementById('btn-mode-classic').className = `mode-btn p-3 rounded-xl border ${mode === 'classic' ? 'border-amber-500/60 bg-amber-500/20 text-amber-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold flex flex-col items-center gap-1`;
+            document.getElementById('btn-mode-fives').className = `mode-btn p-3 rounded-xl border ${mode === 'fives' ? 'border-amber-500/60 bg-amber-500/20 text-amber-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold flex flex-col items-center gap-1`;
+            document.getElementById('hud-mode-name').innerText = mode === 'classic' ? 'Tradicional' : 'All Fives';
+            document.getElementById('fives-hud').style.display = mode === 'fives' ? 'flex' : 'none';
+        }
+
+        function toggleGameModeQuick() {
+            setGameMode(GAME_CONFIG.mode === 'classic' ? 'fives' : 'classic');
+            startNewRound();
+        }
+
+        function setAIDifficulty(diff) {
+            GAME_CONFIG.difficulty = diff;
+            document.getElementById('btn-diff-easy').className = `diff-btn p-2.5 rounded-xl border ${diff === 'easy' ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold text-center`;
+            document.getElementById('btn-diff-smart').className = `diff-btn p-2.5 rounded-xl border ${diff === 'smart' ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-400'} text-xs font-semibold text-center`;
+            document.getElementById('hud-diff-name').innerText = diff === 'easy' ? 'Normal' : 'Inteligente';
+        }
+
+        function toggleAIDifficultyQuick() {
+            setAIDifficulty(GAME_CONFIG.difficulty === 'easy' ? 'smart' : 'easy');
+        }
+
+        function toggleAudio() {
+            GAME_CONFIG.audioEnabled = !GAME_CONFIG.audioEnabled;
+            document.getElementById('audio-status-text').innerText = `Sons: ${GAME_CONFIG.audioEnabled ? 'ON' : 'OFF'}`;
+        }
+
+        function launchGameFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+            document.getElementById('intro-screen').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('intro-screen').classList.add('hidden');
+                document.getElementById('game-ui').classList.remove('hidden');
+                init3D();
+                startNewGame();
+            }, 400);
+        }
+
+        function returnToMenu() {
+            gameState.roundActive = false;
+            clearTimeout(aiTurnTimer);
+            clearTimeout(boneyardPromptTimer);
+            clearTimeout(messageTimer);
+            clearTimeout(turnCheckTimer);
+            clearTimeout(roundEndTimer);
+            document.getElementById('retractable-control-bar').classList.add('hidden');
+            document.getElementById('toggle-icon').className = 'fa-solid fa-gear text-amber-300';
+            document.getElementById('game-over-modal').classList.add('hidden');
+            document.getElementById('boneyard-modal').classList.add('hidden');
+            document.getElementById('draw-btn').classList.add('hidden');
+            document.getElementById('pass-btn').classList.add('hidden');
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden', 'opacity-0');
+        }
+
+        /* --- MOTOR THREE.JS --- */
+        let scene, camera, renderer;
+        let dominoMeshes = new Map();
+        let indicatorMeshes = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+
+        let goldMaterial, rubyMaterial, emeraldMaterial, onyxBodyMaterial;
+
+        const TILE_W = 1.05;
+        const TILE_H = 0.24;
+        const TILE_L = 2.10;
+
+        let isDragging = false;
+        let draggedMesh = null;
+        let dragPlane = new THREE.Plane();
+        let planeIntersection = new THREE.Vector3();
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            if (container.children.length > 0) return;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1d);
+
+            camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 20, 11);
+            camera.zoom = userZoomLevel;
+            camera.updateProjectionMatrix();
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            createPBRMaterials();
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.85);
+            scene.add(ambient);
+
+            const mainLight = new THREE.DirectionalLight(0xfff5ea, 1.5);
+            mainLight.position.set(8, 22, 10);
+            mainLight.castShadow = true;
+            scene.add(mainLight);
+
+            // Tabuleiro de Feltro Verde Real para dar destaque às peças pretas
+            const tableGeo = new THREE.BoxGeometry(36, 1, 24);
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x0c4a25, roughness: 0.85 });
+            const table = new THREE.Mesh(tableGeo, tableMat);
+            table.position.y = -0.5;
+            table.receiveShadow = true;
+            scene.add(table);
+
+            window.addEventListener('resize', onResize);
+            
+            const dom = renderer.domElement;
+            dom.addEventListener('pointerdown', onPointerDown);
+            dom.addEventListener('pointermove', onPointerMove);
+            dom.addEventListener('pointerup', onPointerUp);
+            dom.addEventListener('pointercancel', onPointerUp);
+            dom.addEventListener('wheel', event => {
+                event.preventDefault();
+                adjustZoom(event.deltaY < 0 ? 0.05 : -0.05);
+            }, { passive: false });
+            dom.addEventListener('touchstart', event => {
+                if (event.touches.length === 2) {
+                    const dx = event.touches[0].clientX - event.touches[1].clientX;
+                    const dy = event.touches[0].clientY - event.touches[1].clientY;
+                    pinchStartDistance = Math.hypot(dx, dy);
+                    pinchStartZoom = userZoomLevel;
+                }
+            }, { passive: true });
+            dom.addEventListener('touchmove', event => {
+                if (event.touches.length === 2 && pinchStartDistance > 0) {
+                    const dx = event.touches[0].clientX - event.touches[1].clientX;
+                    const dy = event.touches[0].clientY - event.touches[1].clientY;
+                    const distance = Math.hypot(dx, dy);
+                    setZoomLevel(pinchStartZoom * distance / pinchStartDistance * 100);
+                    event.preventDefault();
+                }
+            }, { passive: false });
+            ['touchend', 'touchcancel'].forEach(type => dom.addEventListener(type, () => { pinchStartDistance = 0; }, { passive: true }));
+
+            animate();
+        }
+
+        function createPBRMaterials() {
+            // Corpo da peça em Ônix / Polímero Negro de Alto Brilho
+            onyxBodyMaterial = new THREE.MeshPhysicalMaterial({ 
+                color: 0x111116, 
+                roughness: 0.15, 
+                metalness: 0.1, 
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            });
+            goldMaterial = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.25 });
+            rubyMaterial = new THREE.MeshPhysicalMaterial({ color: 0xef4444, roughness: 0.3, metalness: 0.05 });
+            emeraldMaterial = new THREE.MeshPhysicalMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.05 });
+        }
+
+        function generateDominoFaceTexture(v1, v2) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // Fundo da Peça: Preto Deep Onyx com textura suave e borda sutil
+            ctx.fillStyle = '#111116';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#22222b';
+            ctx.lineWidth = 12;
+            ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+            // Paleta Tradicional de Bolinhas Coloridas de Dominó
+            // 1: Branco / 2: Laranja / 3: Azul Celeste / 4: Verde Esmeralda / 5: Amarelo Canário / 6: Vermelho Carmim
+            const pipPalette = {
+                1: { base: '#ffffff', light: '#ffffff', dark: '#cbd5e1', outline: '#94a3b8' },
+                2: { base: '#ff6b35', light: '#ffa07a', dark: '#d94814', outline: '#9a3412' },
+                3: { base: '#00b4d8', light: '#90e0ef', dark: '#0077b6', outline: '#03045e' },
+                4: { base: '#10b981', light: '#6ee7b7', dark: '#047857', outline: '#065f46' },
+                5: { base: '#ffb703', light: '#ffdda1', dark: '#d48b00', outline: '#854d0e' },
+                6: { base: '#ef4444', light: '#fca5a5', dark: '#b91c1c', outline: '#7f1d1d' }
+            };
+
+            function drawPip(cx, cy, radius, value) {
+                if (value === 0) return;
+                const colors = pipPalette[value] || pipPalette[1];
+                ctx.save();
+                
+                // Brilho e Sombra 3D da Bolinha Escavada
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 4;
+                
+                // Borda de contraste externo
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius + 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000';
+                ctx.fill();
+                ctx.shadowColor = 'transparent';
+
+                // Preenchimento com Gradiente Radial Maravilhoso
+                const grad = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.38, radius * 0.1, cx, cy, radius);
+                grad.addColorStop(0, colors.light);
+                grad.addColorStop(0.55, colors.base);
+                grad.addColorStop(1, colors.dark);
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Contorno marcante
+                ctx.strokeStyle = colors.outline;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            function drawHalfPips(val, offsetY) {
+                const cx = 256, cy = offsetY + 230;
+                const left = 140, right = 372, top = offsetY + 100, bottom = offsetY + 360, r = 36;
+                const positions = {
+                    1: [[cx, cy]],
+                    2: [[left, top], [right, bottom]],
+                    3: [[left, top], [cx, cy], [right, bottom]],
+                    4: [[left, top], [right, top], [left, bottom], [right, bottom]],
+                    5: [[left, top], [right, top], [cx, cy], [left, bottom], [right, bottom]],
+                    6: [[left, top], [right, top], [left, cy], [right, cy], [left, bottom], [right, bottom]]
+                };
+
+                if (positions[val]) {
+                    positions[val].forEach(([px, py]) => drawPip(px, py, r, val));
+                }
+            }
+
+            drawHalfPips(v1, 0);
+            drawHalfPips(v2, 512);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = 16;
+            return texture;
+        }
+
+        function createDominoMesh(piece) {
+            const group = new THREE.Group();
+
+            const bodyGeo = new THREE.BoxGeometry(TILE_W - 0.08, TILE_H - 0.04, TILE_L - 0.08);
+            const bodyMesh = new THREE.Mesh(bodyGeo, onyxBodyMaterial);
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            group.add(bodyMesh);
+
+            // Moldura dourada metálica clássica no contorno lateral
+            const goldFrameGeo = new THREE.BoxGeometry(TILE_W, TILE_H * 0.4, TILE_L);
+            const goldFrameMesh = new THREE.Mesh(goldFrameGeo, goldMaterial);
+            goldFrameMesh.position.y = -0.04;
+            group.add(goldFrameMesh);
+
+            const faceTexture = generateDominoFaceTexture(piece.v1, piece.v2);
+            const faceMat = new THREE.MeshPhysicalMaterial({ map: faceTexture, roughness: 0.15, metalness: 0.05, clearcoat: 1.0 });
+            const faceGeo = new THREE.PlaneGeometry(TILE_W - 0.06, TILE_L - 0.06);
+            const faceMesh = new THREE.Mesh(faceGeo, faceMat);
+            faceMesh.rotation.x = -Math.PI / 2;
+            faceMesh.position.y = TILE_H / 2 + 0.005;
+            group.add(faceMesh);
+
+            const dividerGroup = new THREE.Group();
+            dividerGroup.position.y = TILE_H / 2 + 0.012;
+            const goldLineGeo = new THREE.BoxGeometry(TILE_W * 0.88, 0.02, 0.04);
+            dividerGroup.add(new THREE.Mesh(goldLineGeo, goldMaterial));
+
+            const gemGeo = new THREE.BoxGeometry(0.07, 0.03, 0.04);
+            [-0.34, -0.20, 0.20, 0.34].forEach((xPos, idx) => {
+                const gemMesh = new THREE.Mesh(gemGeo, idx % 2 === 0 ? rubyMaterial : emeraldMaterial);
+                gemMesh.position.set(xPos, 0.01, 0);
+                dividerGroup.add(gemMesh);
+            });
+
+            const centerSpinMesh = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 16), goldMaterial);
+            centerSpinMesh.position.set(0, 0.02, 0);
+            dividerGroup.add(centerSpinMesh);
+
+            group.add(dividerGroup);
+            group.userData = { pieceId: piece.id, piece: piece };
+            return group;
+        }
+
+        function clearIndicators() {
+            indicatorMeshes.forEach(m => scene.remove(m));
+            indicatorMeshes = [];
+        }
+
+        function createEndIndicator(pos, side) {
+            const geo = new THREE.RingGeometry(0.3, 0.65, 32);
+            geo.rotateX(-Math.PI / 2);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            mesh.position.y = 0.12;
+            mesh.userData = { isIndicator: true, side: side };
+            scene.add(mesh);
+            indicatorMeshes.push(mesh);
+        }
+
+        /* --- REGRAS DO JOGO E CÁLCULO DE PONTUAÇÃO (ALL FIVES) --- */
+        function startNewGame() {
+            gameState.scores = { player: 0, ai: 0 };
+            gameState.nextStarter = Math.random() < 0.5 ? 'player' : 'ai';
+            updateScoreUI();
+            startNewRound();
+        }
+
+        function startNewRound() {
+            clearTimeout(aiTurnTimer);
+            clearTimeout(turnCheckTimer);
+            clearTimeout(roundEndTimer);
+            clearTimeout(boneyardPromptTimer);
+            clearTimeout(messageTimer);
+            boneyardPromptTimer = null;
+            messageTimer = null;
+            activePointerId = null;
+            isDragging = false;
+            draggedMesh = null;
+            dominoMeshes.forEach(m => scene.remove(m));
+            dominoMeshes.clear();
+            clearIndicators();
+
+            gameState.boardChain = [];
+            gameState.openEnds = { left: null, right: null, top: null, bottom: null };
+            gameState.spinnerPieceId = null;
+            gameState.selectedPieceId = null;
+            gameState.consecutivePasses = 0;
+            gameState.roundWinner = null;
+            gameState.openingPieceId = null;
+            gameState.forcedDrawPieceId = null;
+            gameState.spinnerValue = null;
+            gameState.spinnerSidesCovered = { left: false, right: false };
+            gameState.spinnerBranchesOpen = false;
+            gameState.roundActive = true;
+            document.getElementById('boneyard-modal').classList.add('hidden');
+            document.getElementById('game-over-modal').classList.add('hidden');
+            document.getElementById('draw-btn').classList.add('hidden');
+            document.getElementById('pass-btn').classList.add('hidden');
+            document.getElementById('fives-sum-hud').innerText = '0';
+
+            let allPieces = [];
+            let count = 0;
+            for (let i = 0; i <= 6; i++) {
+                for (let j = i; j <= 6; j++) {
+                    allPieces.push({ id: count++, v1: i, v2: j, isDouble: i === j });
+                }
+            }
+
+            for (let i = allPieces.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
+            }
+
+            const handSize = GAME_CONFIG.mode === 'fives' ? 9 : 7;
+            gameState.playerHand = allPieces.slice(0, handSize);
+            gameState.aiHand = allPieces.slice(handSize, handSize * 2);
+            gameState.boneyard = allPieces.slice(handSize * 2);
+
+            const activePieceIds = new Set([...gameState.playerHand, ...gameState.aiHand].map(p => p.id));
+            allPieces.forEach(p => {
+                const mesh = createDominoMesh(p);
+                mesh.visible = activePieceIds.has(p.id); // peças do dorme não ficam soltas/empilhadas no centro do tabuleiro
+                scene.add(mesh);
+                dominoMeshes.set(p.id, mesh);
+            });
+
+            determineFirstTurn();
+            updateHandPositions();
+            updateUI();
+            updateCameraZoom();
+            checkTurnPossibleMoves();
+        }
+
+        // A maior carroça abre a rodada. Se ninguém tiver duplo, sai a maior peça.
+        function determineFirstTurn() {
+            if (GAME_CONFIG.mode === 'fives') {
+                gameState.turn = gameState.nextStarter || (Math.random() < 0.5 ? 'player' : 'ai');
+                gameState.openingPieceId = null; // All Fives permite abrir com qualquer peça.
+                gameState.nextStarter = null;
+                showMessage(gameState.turn === 'player' ? 'Sua vez de abrir a rodada.' : 'A IA abre a rodada.');
+                return;
+            }
+            const pDouble = gameState.playerHand.filter(p => p.isDouble).sort((a, b) => b.v1 - a.v1)[0];
+            const aiDouble = gameState.aiHand.filter(p => p.isDouble).sort((a, b) => b.v1 - a.v1)[0];
+            if (pDouble || aiDouble) {
+                if (pDouble && (!aiDouble || pDouble.v1 >= aiDouble.v1)) {
+                    gameState.turn = 'player';
+                    gameState.openingPieceId = pDouble.id;
+                    showMessage('Sua vez! Abra com a maior carroça.');
+                } else {
+                    gameState.turn = 'ai';
+                    gameState.openingPieceId = aiDouble.id;
+                    showMessage('A IA abre com a maior carroça.');
+                }
+                return;
+            }
+            const pMax = gameState.playerHand.reduce((best, p) => !best || p.v1 + p.v2 > best.v1 + best.v2 ? p : best, null);
+            const aiMax = gameState.aiHand.reduce((best, p) => !best || p.v1 + p.v2 > best.v1 + best.v2 ? p : best, null);
+            if (pMax.v1 + pMax.v2 > aiMax.v1 + aiMax.v2 || (pMax.v1 + pMax.v2 === aiMax.v1 + aiMax.v2 && Math.random() < 0.5)) {
+                gameState.turn = 'player';
+                gameState.openingPieceId = pMax.id;
+                showMessage('Sua vez! Abra com sua peça de maior valor.');
+            } else {
+                gameState.turn = 'ai';
+                gameState.openingPieceId = aiMax.id;
+                showMessage('A IA abre com a peça de maior valor.');
+            }
+        }
+
+        let userZoomLevel = 1;
+        let pinchStartDistance = 0;
+        let pinchStartZoom = 1;
+
+        function setZoomLevel(value) {
+            userZoomLevel = Math.max(0.7, Math.min(1.5, Number(value) / 100));
+            if (camera) {
+                camera.zoom = userZoomLevel;
+                camera.updateProjectionMatrix();
+            }
+            const slider = document.getElementById('zoom-slider');
+            const label = document.getElementById('zoom-value');
+            if (slider) slider.value = String(Math.round(userZoomLevel * 100));
+            if (label) label.textContent = `${Math.round(userZoomLevel * 100)}%`;
+        }
+        function adjustZoom(delta) { setZoomLevel((userZoomLevel + delta) * 100); }
+        function resetZoom() { setZoomLevel(100); }
+
+        function updateCameraZoom() {
+            if (!camera) return;
+            const chainLen = gameState.boardChain.length;
+            const targetY = 18 + chainLen * 0.75;
+            const targetZ = 10 + chainLen * 0.45;
+            animateCamera(targetY, targetZ, 400);
+        }
+
+        function animateCamera(ty, tz, duration = 300) {
+            const startY = camera.position.y;
+            const startZ = camera.position.z;
+            let startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+
+                camera.position.y = THREE.MathUtils.lerp(startY, ty, ease);
+                camera.position.z = THREE.MathUtils.lerp(startZ, tz, ease);
+                camera.lookAt(0, 0, 0);
+
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function updateHandPositions() {
+            const pLen = gameState.playerHand.length;
+            const pSpacing = 1.25;
+            const pStartX = -((pLen - 1) * pSpacing) / 2;
+
+            gameState.playerHand.forEach((p, idx) => {
+                const mesh = dominoMeshes.get(p.id);
+                if (mesh && mesh !== draggedMesh) {
+                    const isSelected = gameState.selectedPieceId === p.id;
+                    animateMesh(mesh, pStartX + idx * pSpacing, isSelected ? 0.4 : 0.12, 5.8, 0, 0, 0, 200);
+                }
+            });
+
+            const aiLen = gameState.aiHand.length;
+            const aiSpacing = 1.25;
+            const aiStartX = -((aiLen - 1) * aiSpacing) / 2;
+
+            gameState.aiHand.forEach((p, idx) => {
+                const mesh = dominoMeshes.get(p.id);
+                if (mesh) {
+                    animateMesh(mesh, aiStartX + idx * aiSpacing, 0.12, -6.6, Math.PI, 0, 0, 200);
+                }
+            });
+        }
+
+        function selectPlayerPiece(pieceId) {
+            if (!gameState.roundActive || gameState.turn !== 'player') return;
+
+            const playerPiece = gameState.playerHand.find(p => p.id === pieceId);
+            if (!playerPiece) return;
+
+            playSound('select');
+            gameState.selectedPieceId = playerPiece.id;
+            highlightValidEndpointsForPiece(playerPiece);
+            updateHandPositions();
+        }
+
+        function animateMesh(mesh, tx, ty, tz, rx, ry, rz, duration = 300) {
+            const startPos = mesh.position.clone();
+            const startRot = mesh.rotation.clone();
+            const endPos = new THREE.Vector3(tx, ty, tz);
+            const endRot = new THREE.Euler(rx, ry, rz);
+
+            let startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+
+                mesh.position.lerpVectors(startPos, endPos, ease);
+                mesh.rotation.x = THREE.MathUtils.lerp(startRot.x, endRot.x, ease);
+                mesh.rotation.y = THREE.MathUtils.lerp(startRot.y, endRot.y, ease);
+                mesh.rotation.z = THREE.MathUtils.lerp(startRot.z, endRot.z, ease);
+
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        /* --- MECÂNICA DE SELEÇÃO E TOQUE EM EXTREMIDADES (TOQUE DIRETO NO TABULEIRO + DRAG & DROP) --- */
+        function getSideOfBoardPiece(pieceId) {
+            const sides = ['left', 'right', 'top', 'bottom'];
+            for (let s of sides) {
+                const end = gameState.openEnds[s];
+                if (end) {
+                    const boardPiece = gameState.boardChain.find(b => {
+                        const dist = b.pos.distanceTo(end.pos);
+                        return dist < 0.2;
+                    });
+                    if (boardPiece && boardPiece.piece.id === pieceId) {
+                        return s;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function onPointerDown(event) {
+            if (!gameState.roundActive || gameState.turn !== 'player' || (event.button !== undefined && event.button !== 0)) return;
+            if (isDragging) return;
+            if (event.cancelable) event.preventDefault();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // 1. Verificar toque em Indicadores Anelares Dourados
+            const indicatorIntersects = raycaster.intersectObjects(indicatorMeshes);
+            if (indicatorIntersects.length > 0 && gameState.selectedPieceId !== null) {
+                const side = indicatorIntersects[0].object.userData.side;
+                const piece = gameState.playerHand.find(p => p.id === gameState.selectedPieceId);
+                if (piece) {
+                    executeSnapMove(piece, side, 'player');
+                    return;
+                }
+            }
+
+            // 2. Verificar toque em peças da Mesa (extremidades abertas) para jogada por clique direto
+            const boardMeshes = gameState.boardChain.map(b => dominoMeshes.get(b.piece.id)).filter(Boolean);
+            const boardIntersects = raycaster.intersectObjects(boardMeshes, true);
+            if (boardIntersects.length > 0 && gameState.selectedPieceId !== null) {
+                let clickedBoardMesh = boardIntersects[0].object;
+                while (clickedBoardMesh.parent && !clickedBoardMesh.userData.pieceId) {
+                    clickedBoardMesh = clickedBoardMesh.parent;
+                }
+                const bPieceId = clickedBoardMesh.userData.pieceId;
+                if (bPieceId !== undefined) {
+                    const sideMatched = getSideOfBoardPiece(bPieceId);
+                    if (sideMatched) {
+                        const selPiece = gameState.playerHand.find(p => p.id === gameState.selectedPieceId);
+                        if (selPiece) {
+                            executeSnapMove(selPiece, sideMatched, 'player');
+                            return;
+                        }
+                    } else {
+                        playSound('invalid');
+                        showMessage('Esta peça do tabuleiro não é uma extremidade livre!');
+                        return;
+                    }
+                }
+            }
+
+            // 3. Verificar toque em peças da mão do Jogador (Seleção & Arraste)
+            const playerMeshes = gameState.playerHand.map(p => dominoMeshes.get(p.id)).filter(Boolean);
+            const intersects = raycaster.intersectObjects(playerMeshes, true);
+
+            if (intersects.length > 0) {
+                let clickedMesh = intersects[0].object;
+                while (clickedMesh.parent && !clickedMesh.userData.pieceId) {
+                    clickedMesh = clickedMesh.parent;
+                }
+                const pieceId = clickedMesh.userData.pieceId;
+                if (pieceId !== undefined) {
+                    selectPlayerPiece(pieceId);
+                    isDragging = true;
+                    activePointerId = event.pointerId ?? null;
+                    draggedMesh = clickedMesh;
+                    if (event.pointerId !== undefined && renderer?.domElement?.setPointerCapture) {
+                        try { renderer.domElement.setPointerCapture(event.pointerId); } catch (e) {}
+                    }
+                    draggedMesh.position.y = 0.6;
+                    dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0.6, 0));
+                }
+            }
+        }
+
+        function onPointerMove(event) {
+            if (activePointerId !== null && event.pointerId !== activePointerId) return;
+            if (isDragging && event.cancelable) event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (isDragging && draggedMesh) {
+                raycaster.setFromCamera(mouse, camera);
+                if (raycaster.ray.intersectPlane(dragPlane, planeIntersection)) {
+                    draggedMesh.position.x = planeIntersection.x;
+                    draggedMesh.position.z = planeIntersection.z;
+                }
+
+                indicatorMeshes.forEach(ind => {
+                    const dist = draggedMesh.position.distanceTo(ind.position);
+                    if (dist < 1.6) {
+                        ind.scale.set(1.4, 1.4, 1.4);
+                    } else {
+                        ind.scale.set(1, 1, 1);
+                    }
+                });
+            }
+        }
+
+        function onPointerUp(event) {
+            if (activePointerId !== null && event?.pointerId !== undefined && event.pointerId !== activePointerId) return;
+            if (isDragging && draggedMesh) {
+                const piece = draggedMesh.userData.piece;
+                let nearestIndicator = null;
+                let minDist = 1.6;
+
+                indicatorMeshes.forEach(ind => {
+                    const dist = draggedMesh.position.distanceTo(ind.position);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestIndicator = ind;
+                    }
+                });
+
+                if (nearestIndicator && piece) {
+                    const side = nearestIndicator.userData.side;
+                    executeSnapMove(piece, side, 'player');
+                } else {
+                    updateHandPositions();
+                }
+            }
+
+            const releasedPointerId = activePointerId;
+            isDragging = false;
+            draggedMesh = null;
+            activePointerId = null;
+            if (releasedPointerId !== null && renderer?.domElement?.hasPointerCapture?.(releasedPointerId)) {
+                try { renderer.domElement.releasePointerCapture(releasedPointerId); } catch (e) {}
+            }
+        }
+
+        /* --- VERIFICAÇÃO DE ENCAIXES VÁLIDOS --- */
+        function getValidMovesForPiece(piece) {
+            if (!piece) return [];
+            // Ao comprar uma peça que já pode ser jogada, ela deve ser usada imediatamente.
+            if (gameState.forcedDrawPieceId !== null && piece.id !== gameState.forcedDrawPieceId) return [];
+
+            if (gameState.boardChain.length === 0) {
+                return gameState.openingPieceId === null || piece.id === gameState.openingPieceId ? [{ side: 'first' }] : [];
+            }
+
+            const valid = [];
+            const hasSpinner = GAME_CONFIG.mode === 'fives' && gameState.spinnerPieceId !== null;
+            if (hasSpinner && gameState.spinnerBranchesOpen) {
+                const topStarted = gameState.openEnds.top && !gameState.openEnds.top.isSpinnerStub;
+                const bottomStarted = gameState.openEnds.bottom && !gameState.openEnds.bottom.isSpinnerStub;
+                // Formação do cruzamento: após ocupar os dois lados principais, os dois
+                // braços do spinner devem ser iniciados antes de voltar às pontas externas.
+                const requiredBranches = [];
+                if (!topStarted) requiredBranches.push('top');
+                if (!bottomStarted) requiredBranches.push('bottom');
+                const allowedSides = requiredBranches.length ? requiredBranches : ['left', 'right', 'top', 'bottom'];
+                allowedSides.forEach(side => {
+                    const end = gameState.openEnds[side];
+                    if (end && (piece.v1 === end.val || piece.v2 === end.val)) valid.push({ side });
+                });
+                return valid;
+            }
+
+            ['left', 'right'].forEach(side => {
+                const end = gameState.openEnds[side];
+                if (end && (piece.v1 === end.val || piece.v2 === end.val)) valid.push({ side });
+            });
+            return valid;
+        }
+
+        function highlightValidEndpointsForPiece(piece) {
+            clearIndicators();
+            const valid = getValidMovesForPiece(piece);
+
+            if (valid.length === 0) {
+                showMessage("Esta peça não se encaixa nas pontas!", 1500);
+                return;
+            }
+
+            if (gameState.boardChain.length === 0) {
+                createEndIndicator(new THREE.Vector3(0, 0, 0), 'first');
+                showMessage("Toque no centro ou arraste a peça.");
+            } else {
+                valid.forEach(v => {
+                    const targetData = calculateNextPlacement(piece, v.side);
+                    createEndIndicator(targetData.pos, v.side);
+                });
+                showMessage("Toque na ponta no tabuleiro (ou no anel) para jogar.");
+            }
+        }
+
+        function calculateNextPlacement(piece, side) {
+            const newHalfSpan = piece.isDouble ? TILE_W / 2 : TILE_L / 2;
+            if (gameState.boardChain.length === 0) {
+                // A linha principal corre no eixo X: peças comuns ficam no sentido do eixo,
+                // enquanto carroças ficam atravessadas.
+                const rotY = piece.isDouble ? 0 : Math.PI / 2;
+                return {
+                    pos: new THREE.Vector3(0, 0.1, 0),
+                    rotY,
+                    dir: new THREE.Vector2(-1, 0),
+                    openVal: piece.v1,
+                    matchingVal: piece.v2,
+                    span: newHalfSpan
+                };
+            }
+
+            const end = gameState.openEnds[side];
+            if (!end) return null;
+            const openVal = end.val;
+            let currentDir = end.dir.clone();
+            const matchingVal = piece.v1 === openVal ? piece.v1 : piece.v2;
+            const newOpenVal = piece.v1 === openVal ? piece.v2 : piece.v1;
+            const offsetDistance = (end.span || TILE_L / 2) + newHalfSpan;
+            let nextPos2D = new THREE.Vector2(end.pos.x, end.pos.z).add(currentDir.clone().multiplyScalar(offsetDistance));
+
+            // Curva suave de segurança antes de ultrapassar a área útil do tampo.
+            if (Math.abs(nextPos2D.x) > 11.5) {
+                currentDir = new THREE.Vector2(0, side === 'left' ? -1 : 1);
+                nextPos2D = new THREE.Vector2(end.pos.x, end.pos.z).add(currentDir.clone().multiplyScalar(offsetDistance));
+            } else if (Math.abs(nextPos2D.y) > 8.5) {
+                currentDir = new THREE.Vector2(side === 'left' ? 1 : -1, 0);
+                nextPos2D = new THREE.Vector2(end.pos.x, end.pos.z).add(currentDir.clone().multiplyScalar(offsetDistance));
+            }
+
+            // O eixo longo da peça comum acompanha a direção da cadeia; a carroça fica transversal.
+            const directionAngle = Math.atan2(-currentDir.y, currentDir.x);
+            let rotY = piece.isDouble ? directionAngle : directionAngle + Math.PI / 2;
+
+            // A textura sempre desenha v1 na primeira metade e v2 na segunda.
+            // Ao encaixar, a metade que coincide com a ponta existente precisa ficar
+            // voltada para a cadeia. Se o valor correspondente estiver em v2, gira-se
+            // a peça em 180 graus no próprio plano para não inverter os números.
+            const matchingIsSecondHalf = !piece.isDouble && piece.v2 === openVal && piece.v1 !== openVal;
+            if (matchingIsSecondHalf) rotY += Math.PI;
+
+            return {
+                pos: new THREE.Vector3(nextPos2D.x, 0.1, nextPos2D.y),
+                rotY,
+                dir: currentDir,
+                openVal: piece.isDouble ? openVal : newOpenVal,
+                matchingVal,
+                span: newHalfSpan
+            };
+        }
+
+        /* --- EXECUTAR JOGADA E PROCESSAR PONTUAÇÃO (ALL FIVES) --- */
+        function executeSnapMove(piece, side, playerType) {
+            if (!gameState.roundActive || gameState.turn !== playerType || !piece || !getValidMovesForPiece(piece).some(move => move.side === side)) {
+                playSound('invalid');
+                showMessage('Jogada não permitida nesta extremidade!');
+                return;
+            }
+            clearIndicators();
+            playSound('snap');
+
+            if (playerType === 'player') {
+                gameState.playerHand = gameState.playerHand.filter(p => p.id !== piece.id);
+            } else {
+                gameState.aiHand = gameState.aiHand.filter(p => p.id !== piece.id);
+            }
+
+            let placement = calculateNextPlacement(piece, side);
+
+            if (gameState.boardChain.length === 0) {
+                gameState.openingPieceId = null;
+                gameState.boardChain.push({ piece, ...placement });
+                gameState.openEnds.left = { val: piece.v1, pos: placement.pos.clone(), dir: new THREE.Vector2(-1, 0), span: piece.isDouble ? TILE_W / 2 : TILE_L / 2, isSpinnerStub: piece.isDouble && GAME_CONFIG.mode === 'fives' };
+                gameState.openEnds.right = { val: piece.v2, pos: placement.pos.clone(), dir: new THREE.Vector2(1, 0), span: piece.isDouble ? TILE_W / 2 : TILE_L / 2, isSpinnerStub: piece.isDouble && GAME_CONFIG.mode === 'fives' };
+
+                if (piece.isDouble && GAME_CONFIG.mode === 'fives' && gameState.spinnerPieceId === null) {
+                    gameState.spinnerPieceId = piece.id;
+                    gameState.spinnerValue = piece.v1;
+                    gameState.spinnerSidesCovered = { left: false, right: false };
+                    gameState.openEnds.top = { val: piece.v1, pos: placement.pos.clone(), dir: new THREE.Vector2(0, -1), span: TILE_L / 2, isSpinnerStub: true };
+                    gameState.openEnds.bottom = { val: piece.v1, pos: placement.pos.clone(), dir: new THREE.Vector2(0, 1), span: TILE_L / 2, isSpinnerStub: true };
+                }
+            } else {
+                gameState.boardChain.push({ piece, ...placement });
+                const previousEnd = gameState.openEnds[side];
+                gameState.openEnds[side] = {
+                    val: placement.openVal,
+                    pos: placement.pos.clone(),
+                    dir: placement.dir.clone(),
+                    span: piece.isDouble ? TILE_W / 2 : TILE_L / 2,
+                    isDoubleEnd: piece.isDouble,
+                    isSpinnerStub: false
+                };
+
+                if (gameState.spinnerPieceId !== null && (side === 'left' || side === 'right') && previousEnd && previousEnd.isSpinnerStub) {
+                    gameState.spinnerSidesCovered[side] = true;
+                    if (gameState.spinnerSidesCovered.left && gameState.spinnerSidesCovered.right) {
+                        gameState.spinnerBranchesOpen = true;
+                    }
+                }
+                // Se a abertura não foi uma carroça, o primeiro duplo que surgir na cadeia
+                // assume o papel de spinner. O lado já conectado conta como ocupado.
+                if (GAME_CONFIG.mode === 'fives' && piece.isDouble && gameState.spinnerPieceId === null) {
+                    gameState.spinnerPieceId = piece.id;
+                    gameState.spinnerValue = piece.v1;
+                    gameState.spinnerSidesCovered = { left: side === 'right', right: side === 'left' };
+                    gameState.spinnerBranchesOpen = false;
+                    gameState.openEnds[side].isSpinnerStub = true;
+                    gameState.openEnds.top = { val: piece.v1, pos: placement.pos.clone(), dir: new THREE.Vector2(0, -1), span: TILE_L / 2, isSpinnerStub: true };
+                    gameState.openEnds.bottom = { val: piece.v1, pos: placement.pos.clone(), dir: new THREE.Vector2(0, 1), span: TILE_L / 2, isSpinnerStub: true };
+                }
+                // Um duplo posterior não cria outro spinner nem novas ramificações.
+                if (side === 'top' || side === 'bottom') {
+                    gameState.openEnds[side].isDoubleEnd = piece.isDouble;
+                }
+            }
+
+            gameState.selectedPieceId = null;
+            gameState.forcedDrawPieceId = null;
+            gameState.consecutivePasses = 0;
+
+            // Regra Específica do Modo All Fives (5s)
+            if (GAME_CONFIG.mode === 'fives') {
+                processAllFivesScore(playerType);
+            }
+
+            const mesh = dominoMeshes.get(piece.id);
+            if (mesh) mesh.visible = true;
+            animateMesh(mesh, placement.pos.x, placement.pos.y, placement.pos.z, 0, placement.rotY, 0, 300);
+
+            updateHandPositions();
+            updateUI();
+            updateCameraZoom();
+
+            if (checkRoundEnd(playerType)) return;
+
+            gameState.turn = (playerType === 'player') ? 'ai' : 'player';
+            checkTurnPossibleMoves();
+        }
+
+        function getAllFivesOpenEndTotal() {
+            let total = 0;
+            ['left', 'right'].forEach(side => {
+                const end = gameState.openEnds[side];
+                if (end && !end.isSpinnerStub) total += end.val * (end.isDoubleEnd ? 2 : 1);
+            });
+
+            // O spinner conta como duas metades até que ambos os lados principais
+            // tenham sido cobertos; depois deixa de pontuar.
+            if (gameState.spinnerPieceId !== null && !gameState.spinnerBranchesOpen) {
+                total += 2 * gameState.spinnerValue;
+            }
+
+            if (gameState.spinnerBranchesOpen) {
+                ['top', 'bottom'].forEach(side => {
+                    const end = gameState.openEnds[side];
+                    if (end && !end.isSpinnerStub) total += end.val * (end.isDoubleEnd ? 2 : 1);
+                });
+            }
+            return total;
+        }
+
+        function processAllFivesScore(playerType) {
+            const sum = getAllFivesOpenEndTotal();
+            document.getElementById('fives-sum-hud').innerText = sum;
+            if (sum > 0 && sum % 5 === 0) {
+                playSound('score');
+                gameState.scores[playerType] += sum;
+                updateScoreUI();
+                showMessage(`+${sum} pontos no All Fives!`, 2000);
+            }
+        }
+
+        // No dominó tradicional de compra, as duas últimas peças ficam reservadas
+        // no dorme (regra de Draw Dominoes). No All Fives, compra-se até esgotar.
+        function getBoneyardReserve() {
+            return GAME_CONFIG.mode === 'classic' ? 2 : 0;
+        }
+
+        function getDrawableBoneyardCount() {
+            return Math.max(0, gameState.boneyard.length - getBoneyardReserve());
+        }
+
+        function canDrawFromBoneyard() {
+            return getDrawableBoneyardCount() > 0;
+        }
+
+        function openBoneyardModal() {
+            if (!gameState.roundActive || gameState.turn !== 'player' || !canDrawFromBoneyard() || getAllValidMoves(gameState.playerHand).length > 0) return;
+            const grid = document.getElementById('boneyard-grid');
+            grid.innerHTML = '';
+
+            gameState.boneyard.slice(0, getDrawableBoneyardCount()).forEach((p, idx) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = "w-full h-16 bg-slate-800 border-2 border-amber-400/60 rounded-xl hover:scale-105 transition-transform flex items-center justify-center text-amber-400 font-bold text-lg shadow-md";
+                card.innerHTML = `<i class="fa-solid fa-gem"></i>`;
+                card.onclick = () => pickFromBoneyardModal(idx);
+                grid.appendChild(card);
+            });
+
+            document.getElementById('boneyard-modal').classList.remove('hidden');
+        }
+
+        function pickFromBoneyardModal(index) {
+            if (gameState.turn !== 'player' || !gameState.roundActive || !canDrawFromBoneyard()) return;
+            // Proteção adicional: não é permitido comprar se já existe jogada válida.
+            if (getAllValidMoves(gameState.playerHand).length > 0) {
+                closeBoneyardModal();
+                showMessage('Você já tem uma peça que pode ser jogada.');
+                checkTurnPossibleMoves();
+                return;
+            }
+
+            const drawn = gameState.boneyard.splice(index, 1)[0];
+            gameState.playerHand.push(drawn);
+            const drawnMesh = dominoMeshes.get(drawn.id);
+            if (drawnMesh) drawnMesh.visible = true;
+            playSound('select');
+            updateHandPositions();
+            updateUI();
+            closeBoneyardModal();
+
+            const moves = getValidMovesForPiece(drawn);
+            if (moves.length > 0) {
+                gameState.forcedDrawPieceId = drawn.id;
+                showMessage('Peça comprada: jogue esta peça agora.');
+                selectPlayerPiece(drawn.id);
+            } else if (canDrawFromBoneyard()) {
+                showMessage('Esta peça não encaixa. Compre outra.');
+                clearTimeout(boneyardPromptTimer);
+                boneyardPromptTimer = setTimeout(() => {
+                    boneyardPromptTimer = null;
+                    openBoneyardModal();
+                }, 450);
+            } else {
+                document.getElementById('draw-btn').classList.add('hidden');
+                document.getElementById('pass-btn').classList.remove('hidden');
+                showMessage('Não há mais peças disponíveis e nenhuma encaixa. Passe a vez.');
+            }
+        }
+
+        function closeBoneyardModal() {
+            document.getElementById('boneyard-modal').classList.add('hidden');
+        }
+
+        function getAllValidMoves(hand) {
+            const moves = [];
+            hand.forEach(piece => {
+                const valid = getValidMovesForPiece(piece);
+                valid.forEach(v => moves.push({ piece, side: v.side }));
+            });
+            return moves;
+        }
+
+        function checkTurnPossibleMoves() {
+            if (!gameState.roundActive) return;
+
+            if (gameState.turn === 'player') {
+                const moves = getAllValidMoves(gameState.playerHand);
+                if (moves.length === 0) {
+                    if (canDrawFromBoneyard()) {
+                        document.getElementById('draw-btn').classList.remove('hidden');
+                        document.getElementById('pass-btn').classList.add('hidden');
+                        showMessage("Sem peças válidas. Escolha no dorme!");
+                        openBoneyardModal();
+                    } else {
+                        document.getElementById('draw-btn').classList.add('hidden');
+                        document.getElementById('pass-btn').classList.remove('hidden');
+                        showMessage("Sem jogadas e sem peças disponíveis para compra. Passe a vez.");
+                    }
+                } else {
+                    document.getElementById('draw-btn').classList.add('hidden');
+                    document.getElementById('pass-btn').classList.add('hidden');
+                    showMessage("Sua vez. Selecione e toque no tabuleiro (ou arraste)!");
+                }
+            } else {
+                document.getElementById('draw-btn').classList.add('hidden');
+                document.getElementById('pass-btn').classList.add('hidden');
+                showMessage("Vez da IA...");
+                clearTimeout(aiTurnTimer);
+                aiTurnTimer = setTimeout(playAITurn, 900);
+            }
+        }
+
+        function playAITurn() {
+            // Evita que um temporizador antigo execute uma jogada fora da vez
+            // depois de reiniciar a rodada ou trocar de modo.
+            if (!gameState.roundActive || gameState.turn !== 'ai') return;
+
+            let validMoves = getAllValidMoves(gameState.aiHand);
+
+            while (validMoves.length === 0 && canDrawFromBoneyard()) {
+                // shift() retira do conjunto comprável e preserva as duas últimas
+                // peças reservadas no modo tradicional.
+                const drawn = gameState.boneyard.shift();
+                gameState.aiHand.push(drawn);
+                const drawnMesh = dominoMeshes.get(drawn.id);
+                if (drawnMesh) drawnMesh.visible = true;
+                playSound('select');
+                updateHandPositions();
+                updateUI();
+                validMoves = getAllValidMoves(gameState.aiHand);
+            }
+
+            if (validMoves.length > 0) {
+                const chosen = chooseAIMove(validMoves);
+                executeSnapMove(chosen.piece, chosen.side, 'ai');
+            } else {
+                showMessage("A IA passou a vez.");
+                gameState.consecutivePasses++;
+                if (checkRoundEnd('ai')) return;
+                gameState.turn = 'player';
+                clearTimeout(turnCheckTimer);
+                turnCheckTimer = setTimeout(checkTurnPossibleMoves, 700);
+            }
+        }
+
+        function chooseAIMove(moves) {
+            if (GAME_CONFIG.difficulty === 'easy') {
+                return moves[Math.floor(Math.random() * moves.length)];
+            }
+            // Estratégia: descarte de peças pesadas, preservando valores que
+            // aparecem com frequência na mão e preferindo jogadas com pontuação.
+            const valueFrequency = {};
+            gameState.aiHand.forEach(p => {
+                valueFrequency[p.v1] = (valueFrequency[p.v1] || 0) + 1;
+                valueFrequency[p.v2] = (valueFrequency[p.v2] || 0) + 1;
+            });
+            return moves.map(move => {
+                const p = move.piece;
+                const pipWeight = (p.v1 + p.v2) * 1.8;
+                const flexibility = (valueFrequency[p.v1] || 0) + (valueFrequency[p.v2] || 0);
+                const doubleBonus = p.isDouble ? 1.5 : 0;
+                const end = gameState.openEnds[move.side];
+                const resultingTotal = end ? activeEndTotalAfter(p, move.side) : p.v1 + p.v2;
+                const scoreChance = GAME_CONFIG.mode === 'fives' && resultingTotal % 5 === 0 ? 7 : 0;
+                return { ...move, heuristic: pipWeight - flexibility * 0.8 + doubleBonus + scoreChance + Math.random() * 0.25 };
+            }).sort((a, b) => b.heuristic - a.heuristic)[0];
+        }
+
+        function activeEndTotalAfter(piece, side) {
+            const end = gameState.openEnds[side];
+            if (!end) return piece.v1 + piece.v2;
+            let total = getAllFivesOpenEndTotal();
+
+            // Remove apenas a extremidade que está sendo substituída. Um stub
+            // do spinner não soma separadamente: o valor do spinner já é contado
+            // pelo motor enquanto seus dois lados ainda não foram cobertos.
+            if (!end.isSpinnerStub) {
+                total -= end.val * (end.isDoubleEnd ? 2 : 1);
+            }
+
+            if (end.isSpinnerStub && (side === 'left' || side === 'right')) {
+                const covered = { ...gameState.spinnerSidesCovered, [side]: true };
+                if (covered.left && covered.right && !gameState.spinnerBranchesOpen) {
+                    total -= 2 * gameState.spinnerValue;
+                }
+            }
+
+            const newValue = piece.isDouble ? end.val : (piece.v1 === end.val ? piece.v2 : piece.v1);
+            total += newValue * (piece.isDouble ? 2 : 1);
+            return total;
+        }
+
+        function playerPassTurn() {
+            if (gameState.turn !== 'player' || !gameState.roundActive) return;
+            if (getAllValidMoves(gameState.playerHand).length > 0 || canDrawFromBoneyard()) {
+                showMessage('Só é permitido passar quando o dorme estiver vazio e não houver encaixe.');
+                checkTurnPossibleMoves();
+                return;
+            }
+            playSound('pass');
+            showMessage("Você passou a vez.");
+            gameState.consecutivePasses++;
+            if (checkRoundEnd('player')) return;
+            gameState.turn = 'ai';
+            checkTurnPossibleMoves();
+        }
+
+        function handPipTotal(hand) {
+            return hand.reduce((total, piece) => total + piece.v1 + piece.v2, 0);
+        }
+
+        function roundToNearestFive(value) {
+            return Math.round(value / 5) * 5;
+        }
+
+        function checkRoundEnd(lastPlayerType) {
+            const playerEmpty = gameState.playerHand.length === 0;
+            const aiEmpty = gameState.aiHand.length === 0;
+            const noMoves = getAllValidMoves(gameState.playerHand).length === 0 && getAllValidMoves(gameState.aiHand).length === 0;
+            const isBlocked = !canDrawFromBoneyard() && noMoves && gameState.consecutivePasses >= 2;
+            if (!playerEmpty && !aiEmpty && !isBlocked) return false;
+
+            gameState.roundActive = false;
+            gameState.forcedDrawPieceId = null;
+            document.getElementById('draw-btn').classList.add('hidden');
+            document.getElementById('pass-btn').classList.add('hidden');
+
+            const playerPips = handPipTotal(gameState.playerHand);
+            const aiPips = handPipTotal(gameState.aiHand);
+            let winner = playerEmpty ? 'player' : (aiEmpty ? 'ai' : (playerPips < aiPips ? 'player' : (aiPips < playerPips ? 'ai' : 'draw')));
+            let points = 0;
+
+            if (winner !== 'draw') {
+                if (GAME_CONFIG.mode === 'fives') {
+                    // All Fives: vencedor recebe a soma das peças adversárias, arredondada
+                    // ao múltiplo de cinco mais próximo, tanto ao bater quanto no bloqueio.
+                    const losingPips = winner === 'player' ? aiPips : playerPips;
+                    points = roundToNearestFive(losingPips);
+                } else if (isBlocked) {
+                    // Tradicional: no bloqueio, o menor total vence e recebe a diferença.
+                    points = Math.abs(playerPips - aiPips);
+                } else {
+                    // Tradicional: quem bate recebe todos os pontos da mão adversária.
+                    points = winner === 'player' ? aiPips : playerPips;
+                }
+                gameState.scores[winner] += points;
+            }
+
+            gameState.roundWinner = winner;
+            gameState.roundPoints = points;
+            gameState.nextStarter = isBlocked || winner === 'draw' ? null : winner;
+            updateScoreUI();
+            clearTimeout(roundEndTimer);
+            roundEndTimer = setTimeout(() => showGameOverModal(winner, isBlocked), 700);
+            return true;
+        }
+
+        function showGameOverModal(winner, isBlocked = false) {
+            const modal = document.getElementById('game-over-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            title.innerText = winner === 'player' ? 'Vitória!' : (winner === 'ai' ? 'A IA venceu' : 'Rodada empatada');
+            const points = gameState.roundPoints || 0;
+            const reason = isBlocked ? 'Jogo bloqueado: venceu quem ficou com menos pontos nas peças.' : 'Um jogador baixou todas as peças.';
+            desc.innerText = winner === 'draw' ? `${reason} Empate: nenhum ponto foi somado.` : `${reason} ${points} pontos foram adicionados ao placar ${winner === 'player' ? 'do jogador' : 'da IA'}.`;
+            document.getElementById('modal-player-score').innerText = gameState.scores.player;
+            document.getElementById('modal-ai-score').innerText = gameState.scores.ai;
+            modal.classList.remove('hidden');
+        }
+
+        function nextRound() {
+            document.getElementById('game-over-modal').classList.add('hidden');
+            startNewRound();
+        }
+
+        function updateUI() {
+            document.getElementById('player-count-hud').innerText = gameState.playerHand.length;
+            document.getElementById('ai-count-hud').innerText = gameState.aiHand.length;
+            document.getElementById('boneyard-count').innerText = getDrawableBoneyardCount();
+        }
+
+        function updateScoreUI() {
+            document.getElementById('player-score-hud').innerText = gameState.scores.player;
+            document.getElementById('ai-score-hud').innerText = gameState.scores.ai;
+        }
+
+        function showMessage(text, duration = 2600) {
+            const container = document.getElementById('game-message-container');
+            const msg = document.getElementById('game-message');
+            if (!container || !msg) return;
+            msg.textContent = text;
+            container.style.opacity = '1';
+            container.style.transform = 'translateX(-50%) scale(1)';
+            clearTimeout(messageTimer);
+            messageTimer = setTimeout(() => {
+                container.style.opacity = '0';
+                container.style.transform = 'translateX(-50%) scale(0.97)';
+                messageTimer = null;
+            }, Math.max(1800, duration));
+        }
+
+        function onResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            indicatorMeshes.forEach(m => {
+                m.rotation.z += 0.025;
+            });
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Jogo de Damas Mágico 👑</title>
+  <!-- FontAwesome e Canvas Confetti -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    * {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+      color: #fff;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      margin: 0;
+    }
+
+    .font-pop {
+      font-family: 'Fredoka One', cursive;
+    }
+
+    /* Brilho e Textura do Tabuleiro Clássico */
+    .board-container {
+      background: linear-gradient(145deg, #2d1810, #1a0e0a);
+      box-shadow: 0 20px 35px rgba(0,0,0,0.7), inset 0 2px 5px rgba(255,255,255,0.25);
+      border: 6px solid #854d0e;
+      border-radius: 1.25rem;
+    }
+
+    /* Tabuleiro Expandido sem bordas laterais para aproveitar 100% da tela */
+    .board-container-expanded {
+      background: #1a0e0a;
+      border: none;
+      border-radius: 0;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      margin-right: calc(-50vw + 50%);
+    }
+
+    /* Tabuleiro 8x8 Tradicional */
+    .board-grid-trad {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 4 / 4.85;
+    }
+
+    /* Tabuleiro 8x12 Expandido (com 2 linhas vazias centrais) */
+    .board-grid-exp {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(12, 1fr);
+      width: 100vw;
+      height: 100%;
+      aspect-ratio: 8 / 13.5;
+    }
+
+    .cell-light {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+    }
+
+    .cell-dark {
+      background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
+    }
+
+    .cell-dark.valid-target {
+      position: relative;
+    }
+
+    .cell-dark.valid-target::after {
+      content: '';
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      max-width: 50%;
+      max-height: 50%;
+      background: radial-gradient(circle, #4ade80 0%, #16a34a 100%);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px #22c55e;
+      animation: pulse-target 0.8s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulse-target {
+      0% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.6; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; filter: drop-shadow(0 0 6px #86efac); }
+    }
+
+    /* Peças 3D Estilizadas Centralizadas */
+    .piece {
+      width: 82%;
+      aspect-ratio: 1 / 1;
+      max-height: 85%;
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.22s ease, filter 0.22s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      margin: auto;
+    }
+
+    .piece-red {
+      background: radial-gradient(circle at 35% 35%, #ff6b6b, #dc2626 60%, #881337 100%);
+      box-shadow: 0 5px 0 #7f1d1d, 0 8px 12px rgba(0,0,0,0.5), inset 0 3px 5px rgba(255,255,255,0.7);
+      border: 1.5px solid #fca5a5;
+    }
+
+    .piece-white {
+      background: radial-gradient(circle at 35% 35%, #ffffff, #e2e8f0 60%, #64748b 100%);
+      box-shadow: 0 5px 0 #475569, 0 8px 12px rgba(0,0,0,0.5), inset 0 3px 5px rgba(255,255,255,0.95);
+      border: 1.5px solid #f8fafc;
+    }
+
+    .piece.selected {
+      transform: scale(1.18) translateY(-5px) !important;
+      box-shadow: 0 10px 20px rgba(250, 204, 21, 0.7), 0 0 0 4px #facc15 !important;
+      z-index: 20;
+    }
+
+    /* Peça Soprável */
+    .piece.blowable {
+      animation: shake-blow 0.6s infinite alternate;
+      box-shadow: 0 0 0 4px #ef4444, 0 0 15px #ef4444 !important;
+    }
+
+    @keyframes shake-blow {
+      0% { transform: scale(1) rotate(-3deg); }
+      100% { transform: scale(1.08) rotate(3deg); }
+    }
+
+    /* Efeito e Anel Mágico da Dama */
+    .piece.king::before {
+      content: "\f521";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      color: #facc15;
+      font-size: 1.25rem;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+      animation: crown-glow 1.2s infinite alternate ease-in-out;
+      z-index: 2;
+    }
+
+    .piece.king::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px dashed #facc15;
+      animation: ring-rotate 6s linear infinite;
+      opacity: 0.8;
+    }
+
+    @keyframes ring-rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes crown-glow {
+      0% { filter: drop-shadow(0 0 3px #facc15); transform: scale(1); }
+      100% { filter: drop-shadow(0 0 8px #fef08a); transform: scale(1.15); }
+    }
+
+    /* Animação Pop de Captura */
+    .capture-pop {
+      animation: capturePuff 0.45s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+
+    @keyframes capturePuff {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4) rotate(15deg); opacity: 0.8; filter: brightness(2) drop-shadow(0 0 12px #f59e0b); }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* Botões Esféricos Glossy 3D (Cores Vivas da Imagem de Exemplo) */
+    .btn-glossy {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.6), inset 0 3px 6px rgba(255,255,255,0.8), inset 0 -4px 6px rgba(0,0,0,0.4);
+      transition: transform 0.15s ease, filter 0.15s ease, opacity 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-glossy::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 15%;
+      width: 70%;
+      height: 35%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 100%);
+      border-radius: 50% 50% 40% 40%;
+    }
+
+    /* Quatro Cores do Exemplo de Esferas */
+    .btn-glossy-red { background: radial-gradient(circle at 35% 35%, #ff4d4d, #e60000 70%, #990000 100%); }
+    .btn-glossy-yellow { background: radial-gradient(circle at 35% 35%, #fff176, #fbc02d 70%, #f57f17 100%); }
+    .btn-glossy-pink { background: radial-gradient(circle at 35% 35%, #ff80ab, #f50057 70%, #880e4f 100%); }
+    .btn-glossy-green { background: radial-gradient(circle at 35% 35%, #69f0ae, #00e676 70%, #1b5e20 100%); }
+
+    .btn-glossy:active { transform: scale(0.85); filter: brightness(1.25); }
+
+    /* Animação Magnífica de Explosão dos Botões de Desfazer */
+    @keyframes pop-particle {
+      0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0) rotate(360deg); opacity: 0; }
+    }
+
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 8px currentColor;
+      animation: pop-particle 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      z-index: 50;
+    }
+
+    /* Animação Botão Neon */
+    .btn-pop {
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.35);
+    }
+
+    .btn-pop:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 rgba(0,0,0,0.35);
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between items-center h-full w-full select-none overflow-hidden">
+
+  <!-- ==================== TELA INICIAL (SPLASH) ==================== -->
+  <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-between p-4 bg-gradient-to-b from-indigo-950 via-purple-950 to-slate-950 text-center overflow-y-auto">
+    
+    <div class="mt-2 flex flex-col items-center">
+      <div class="relative mb-1">
+        <span class="text-5xl animate-bounce inline-block">👑</span>
+        <div class="text-4xl font-pop text-yellow-400 drop-shadow-[0_4px_6px_rgba(0,0,0,0.9)]">
+          DAMAS MÁGICAS
+        </div>
+        <p class="text-indigo-200 text-xs font-bold mt-0.5">Edição Edutainment & Fantasia!</p>
+      </div>
+    </div>
+
+    <!-- Animação/Ícone Central -->
+    <div class="my-auto relative flex justify-center items-center py-1">
+      <div class="w-36 h-36 rounded-full bg-indigo-600/30 blur-2xl absolute"></div>
+      <div class="grid grid-cols-2 gap-3 relative z-10 p-3 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl">
+        <div class="w-14 h-14 piece piece-white flex items-center justify-center"></div>
+        <div class="w-14 h-14 piece piece-red king flex items-center justify-center"></div>
+      </div>
+    </div>
+
+    <!-- Seletor de Opções e Botão de Regras -->
+    <div class="w-full max-w-xs space-y-2.5 mb-2 text-left">
+      <!-- Seletor de Tamanho do Tabuleiro -->
+      <div class="bg-indigo-950/70 p-2 rounded-2xl border border-indigo-700/50">
+        <label class="block text-[11px] font-bold text-indigo-300 uppercase mb-1 text-center">Tamanho do Tabuleiro</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnBoardTrad" onclick="selectBoardType('trad')" class="py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-indigo-600 bg-indigo-800/80 text-white transition-all opacity-80 text-center">
+            📐 Clássico<br><span class="text-[10px] opacity-90 font-bold">(8x8 • 12 peças)</span>
+          </button>
+          <button id="btnBoardExp" onclick="selectBoardType('exp')" class="py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-yellow-400 bg-yellow-500 text-indigo-950 shadow transition-all text-center">
+            🚀 Expandido<br><span class="text-[10px] opacity-90 font-bold">(8x12 • 20 peças)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Seletor de Oponente -->
+      <div class="bg-indigo-950/70 p-2 rounded-2xl border border-indigo-700/50">
+        <label class="block text-[11px] font-bold text-indigo-300 uppercase mb-1 text-center">Oponente</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnVsPlayer" onclick="selectMode('pvp')" class="py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-yellow-400 bg-yellow-500 text-indigo-950 shadow transition-all text-center">
+            👥 2 Jogadores
+          </button>
+          <button id="btnVsAi" onclick="selectMode('ai')" class="py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-indigo-600 bg-indigo-800/80 text-white transition-all opacity-80 text-center">
+            🤖 Contra Robô
+          </button>
+        </div>
+      </div>
+
+      <!-- Botão Configurar Regras -->
+      <button onclick="openRulesModal()" class="w-full py-2 bg-indigo-900/90 hover:bg-indigo-800 text-yellow-300 font-extrabold text-xs rounded-xl border border-yellow-500/50 flex items-center justify-center gap-2 shadow">
+        <i class="fa-solid fa-gear text-sm"></i> Regras & Variantes Mundiais
+      </button>
+
+      <button id="btnStart" onclick="startGame()" class="btn-pop w-full py-3.5 bg-gradient-to-r from-green-400 to-emerald-500 text-slate-950 font-pop text-xl rounded-2xl border-b-4 border-green-700 active:border-b-0 uppercase tracking-wide flex items-center justify-center gap-2">
+        <i class="fa-solid fa-play text-xl"></i> JOGAR AGORA
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ==================== MODAL DE CONFIGURAÇÃO DE REGRAS ==================== -->
+  <div id="rulesModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-left overflow-y-auto">
+    <div class="bg-indigo-950 border-2 border-yellow-400 rounded-3xl p-5 w-full max-w-sm shadow-2xl my-auto">
+      <div class="flex items-center justify-between mb-3 border-b border-indigo-800/80 pb-2">
+        <h3 class="font-pop text-lg text-yellow-400 flex items-center gap-2">
+          <i class="fa-solid fa-book-open"></i> Regras da Partida
+        </h3>
+        <button onclick="closeRulesModal()" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-indigo-300 mb-1">Preset Rápido de Regras:</label>
+          <select id="rulePreset" onchange="applyRulePreset(this.value)" class="w-full bg-indigo-900 text-white p-2 rounded-xl border border-indigo-700 font-bold">
+            <option value="brazilian">🇧🇷 Regra Brasileira / Internacional (Oficial)</option>
+            <option value="american">🇺🇸 Regra Americana / Checkers (Passo Simples)</option>
+            <option value="custom">⚙️ Personalizado</option>
+          </select>
+        </div>
+
+        <div class="bg-indigo-900/50 p-2.5 rounded-xl border border-indigo-800 flex items-center justify-between">
+          <div>
+            <div class="font-bold text-slate-200">Dama Voadora</div>
+            <div class="text-[10px] text-slate-400">Dama anda e captura em longas distâncias</div>
+          </div>
+          <input type="checkbox" id="ruleFlyingKing" class="w-5 h-5 accent-yellow-400" checked onchange="setCustomRule()">
+        </div>
+
+        <div class="bg-indigo-900/50 p-2.5 rounded-xl border border-indigo-800 flex items-center justify-between">
+          <div>
+            <div class="font-bold text-slate-200">Captura para Trás</div>
+            <div class="text-[10px] text-slate-400">Peças comuns também capturam voltando</div>
+          </div>
+          <input type="checkbox" id="ruleBackwardCapture" class="w-5 h-5 accent-yellow-400" checked onchange="setCustomRule()">
+        </div>
+
+        <div class="bg-indigo-900/50 p-2.5 rounded-xl border border-indigo-800 flex items-center justify-between">
+          <div>
+            <div class="font-bold text-slate-200">Lei da Maioria</div>
+            <div class="text-[10px] text-slate-400">Obrigatório escolher caminho com mais capturas</div>
+          </div>
+          <input type="checkbox" id="ruleMajorityCapture" class="w-5 h-5 accent-yellow-400" checked onchange="setCustomRule()">
+        </div>
+
+        <div class="bg-indigo-900/50 p-2.5 rounded-xl border border-indigo-800 flex items-center justify-between">
+          <div>
+            <div class="font-bold text-slate-200">Regra do Sopro</div>
+            <div class="text-[10px] text-slate-400">Permite soprar peça adversária que deixou de comer</div>
+          </div>
+          <input type="checkbox" id="ruleBlow" class="w-5 h-5 accent-yellow-400" onchange="setCustomRule()">
+        </div>
+      </div>
+
+      <button onclick="closeRulesModal()" class="btn-pop w-full mt-4 py-2.5 bg-yellow-400 text-slate-950 font-pop text-sm rounded-xl border-b-2 border-yellow-600">
+        SALVAR REGRAS
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ==================== TELA DO JOGO (SLIM/ULTRA-COMPACTA) ==================== -->
+  <div id="gameScreen" class="hidden flex-col justify-between items-center w-full h-full max-w-md mx-auto p-1 relative">
+    
+    <!-- Topo Slim Compacto: Placar Oponente & Status + 4 Botões Glossy do Jogador A -->
+    <div class="w-full bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/10 flex items-center justify-between shadow-md text-xs">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full piece-white flex items-center justify-center text-slate-800 font-bold shadow text-xs">
+          <span id="iconOpponent">⚪</span>
+        </div>
+        <div>
+          <div id="labelOpponent" class="font-extrabold text-[11px] text-slate-200 leading-tight">Brancas</div>
+          <div class="text-[10px] text-slate-400">
+            Peças: <span id="countWhite" class="font-black text-yellow-400">20</span> | Capturas: <span id="capWhite" class="font-bold text-green-400">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Botões Esféricos Coloridos do Jogador A (Topo) -->
+      <div id="undoContainerWhite" class="flex gap-1 items-center mx-1"></div>
+
+      <div class="flex items-center gap-1.5">
+        <button id="btnBlow" onclick="handleBlowAction()" class="hidden px-2 py-1 bg-red-600 hover:bg-red-500 text-white font-extrabold text-[10px] rounded-lg shadow animate-bounce">
+          💨 SOPRAR!
+        </button>
+        <button onclick="toggleSound()" id="soundBtn" class="w-7 h-7 rounded-lg bg-indigo-900/80 border border-indigo-500/30 flex items-center justify-center text-yellow-400 active:scale-95 text-xs">
+          <i class="fa-solid fa-volume-high"></i>
+        </button>
+        <button onclick="requestFullscreenToggle()" class="w-7 h-7 rounded-lg bg-indigo-900/80 border border-indigo-500/30 flex items-center justify-center text-yellow-400 active:scale-95 text-xs">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Status Dinâmica de Turno -->
+    <div class="w-full flex items-center justify-center px-1 my-1 text-xs">
+      <div id="statusBanner" class="font-pop text-xs text-yellow-300 bg-indigo-950/90 px-4 py-1 rounded-full border border-yellow-500/40 shadow-inner text-center">
+        Vez das Vermelhas!
+      </div>
+    </div>
+
+    <!-- Tabuleiro Dinâmico -->
+    <div id="boardContainer" class="w-full board-container my-1 flex items-center justify-center p-0.5">
+      <div id="board" class="board-grid-exp rounded-lg overflow-hidden">
+        <!-- Renderizado dinamicamente pelo JS -->
+      </div>
+    </div>
+
+    <!-- Rodapé Slim Compacto: Placar Jogador Principal + 4 Botões Glossy do Jogador B -->
+    <div class="w-full bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/10 flex items-center justify-between shadow-md text-xs">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full piece-red flex items-center justify-center text-white font-bold shadow text-xs">
+          🔴
+        </div>
+        <div>
+          <div class="font-extrabold text-[11px] text-slate-200 leading-tight">Jogador 1 (Vermelhas)</div>
+          <div class="text-[10px] text-slate-400">
+            Peças: <span id="countRed" class="font-black text-yellow-400">20</span> | Capturas: <span id="capRed" class="font-bold text-green-400">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Botões Esféricos Coloridos do Jogador B (Base) -->
+      <div id="undoContainerRed" class="flex gap-1 items-center mx-1"></div>
+
+      <div id="turnRedIndicator" class="px-2 py-0.5 bg-yellow-400 text-slate-950 font-black text-[10px] rounded-full animate-pulse">
+        Sua Vez!
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== MODAL DE VITÓRIA / FIM DE JOGO ==================== -->
+  <div id="winModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+    <div class="bg-indigo-900 border-4 border-yellow-400 rounded-3xl p-6 w-full max-w-xs shadow-2xl animate-bounce-short">
+      <div class="text-6xl mb-2" id="winEmoji">🏆</div>
+      <h2 id="winTitle" class="font-pop text-3xl text-yellow-400 mb-2">VITÓRIA!</h2>
+      <p id="winMessage" class="text-indigo-200 text-sm mb-6">As Vermelhas venceram a partida!</p>
+      
+      <button onclick="resetGame()" class="btn-pop w-full py-3.5 bg-green-500 text-slate-950 font-pop text-xl rounded-2xl border-b-4 border-green-700 active:border-b-0">
+        JOGAR NOVAMENTE 🔄
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ==================== SCRIPT DE LÓGICA E ÁUDIO ==================== -->
+  <script>
+    /* --- EFEITOS SONOROS SINTETIZADOS ENRIQUECIDOS --- */
+    class SoundEffects {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playSelect() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(480, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(960, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      }
+
+      playMove() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(280, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      }
+
+      playCapture() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(440, this.ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.18);
+      }
+
+      playExplosion() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.35);
+      }
+
+      playBlow() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.25);
+      }
+
+      playKing() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.07);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.07 + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.07);
+          osc.stop(this.ctx.currentTime + idx * 0.07 + 0.15);
+        });
+      }
+
+      playWin() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const arpeggio = [440, 554.37, 659.25, 880, 1108.73];
+        arpeggio.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime + idx * 0.1);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.1);
+          osc.stop(this.ctx.currentTime + idx * 0.1 + 0.28);
+        });
+      }
+    }
+
+    const audio = new SoundEffects();
+
+    /* --- ESTADO DO JOGO --- */
+    const RED = 'R';
+    const WHITE = 'W';
+    const EMPTY = null;
+
+    let boardType = 'exp'; // Padrão Expandido (8x12)
+    let rowsCount = 12;
+    let piecesPerRow = 5;
+    
+    let boardState = [];
+    let currentPlayer = RED;
+    let gameMode = 'pvp';
+    let selectedCell = null;
+    let validMoves = [];
+    let undoHistory = [];
+    
+    // Lista de 4 cores vivas para os botões Glossy de cada jogador
+    const glossyColorClasses = ['btn-glossy-red', 'btn-glossy-yellow', 'btn-glossy-pink', 'btn-glossy-green'];
+    let undoButtonsRed = [0, 1, 2, 3];
+    let undoButtonsWhite = [0, 1, 2, 3];
+    let undoCountTradRed = 2;
+    let undoCountTradWhite = 2;
+
+    let isMultiJump = false;
+    let blowablePieces = [];
+
+    let rules = {
+      flyingKing: true,
+      backwardCapture: true,
+      majorityCapture: true,
+      allowBlow: false
+    };
+
+    // Elementos DOM
+    const boardEl = document.getElementById('board');
+    const boardContainerEl = document.getElementById('boardContainer');
+    const statusBanner = document.getElementById('statusBanner');
+    const countRedEl = document.getElementById('countRed');
+    const countWhiteEl = document.getElementById('countWhite');
+    const capRedEl = document.getElementById('capRed');
+    const capWhiteEl = document.getElementById('capWhite');
+    const turnRedIndicator = document.getElementById('turnRedIndicator');
+    const btnBlowEl = document.getElementById('btnBlow');
+
+    /* --- REGRAS --- */
+    function openRulesModal() { document.getElementById('rulesModal').classList.remove('hidden'); }
+    function closeRulesModal() { document.getElementById('rulesModal').classList.add('hidden'); }
+
+    function applyRulePreset(preset) {
+      if (preset === 'brazilian') {
+        document.getElementById('ruleFlyingKing').checked = true;
+        document.getElementById('ruleBackwardCapture').checked = true;
+        document.getElementById('ruleMajorityCapture').checked = true;
+        document.getElementById('ruleBlow').checked = false;
+      } else if (preset === 'american') {
+        document.getElementById('ruleFlyingKing').checked = false;
+        document.getElementById('ruleBackwardCapture').checked = false;
+        document.getElementById('ruleMajorityCapture').checked = false;
+        document.getElementById('ruleBlow').checked = false;
+      }
+      updateRulesFromInputs();
+    }
+
+    function setCustomRule() {
+      document.getElementById('rulePreset').value = 'custom';
+      updateRulesFromInputs();
+    }
+
+    function updateRulesFromInputs() {
+      rules.flyingKing = document.getElementById('ruleFlyingKing').checked;
+      rules.backwardCapture = document.getElementById('ruleBackwardCapture').checked;
+      rules.majorityCapture = document.getElementById('ruleMajorityCapture').checked;
+      rules.allowBlow = document.getElementById('ruleBlow').checked;
+    }
+
+    function selectBoardType(type) {
+      boardType = type;
+      const btnTrad = document.getElementById('btnBoardTrad');
+      const btnExp = document.getElementById('btnBoardExp');
+
+      if (type === 'trad') {
+        btnTrad.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-yellow-400 bg-yellow-500 text-indigo-950 shadow transition-all text-center";
+        btnExp.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-indigo-600 bg-indigo-800/80 text-white transition-all opacity-80 text-center";
+        rowsCount = 8;
+        piecesPerRow = 3;
+      } else {
+        btnExp.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-yellow-400 bg-yellow-500 text-indigo-950 shadow transition-all text-center";
+        btnTrad.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-indigo-600 bg-indigo-800/80 text-white transition-all opacity-80 text-center";
+        rowsCount = 12;
+        piecesPerRow = 5;
+      }
+    }
+
+    function selectMode(mode) {
+      gameMode = mode;
+      const btnPvp = document.getElementById('btnVsPlayer');
+      const btnAi = document.getElementById('btnVsAi');
+      const labelOpponent = document.getElementById('labelOpponent');
+      const iconOpponent = document.getElementById('iconOpponent');
+
+      if (mode === 'pvp') {
+        btnPvp.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-yellow-400 bg-yellow-500 text-indigo-950 shadow transition-all text-center";
+        btnAi.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-indigo-600 bg-indigo-800/80 text-white transition-all opacity-80 text-center";
+        labelOpponent.innerText = "Brancas";
+        iconOpponent.innerText = "⚪";
+      } else {
+        btnAi.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-yellow-400 bg-yellow-500 text-indigo-950 shadow transition-all text-center";
+        btnPvp.className = "py-2 px-2 rounded-xl font-extrabold text-xs border-2 border-indigo-600 bg-indigo-800/80 text-white transition-all opacity-80 text-center";
+        labelOpponent.innerText = "Robô 🤖";
+        iconOpponent.innerText = "🤖";
+      }
+    }
+
+    function startGame() {
+      audio.init();
+      requestFullscreenToggle();
+      
+      document.getElementById('splashScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+      document.getElementById('gameScreen').classList.add('flex');
+
+      if (boardType === 'exp') {
+        boardContainerEl.className = "w-full board-container-expanded my-1 flex items-center justify-center p-0";
+        boardEl.className = "board-grid-exp";
+      } else {
+        boardContainerEl.className = "w-full board-container my-1 flex items-center justify-center p-0.5";
+        boardEl.className = "board-grid-trad rounded-lg overflow-hidden";
+      }
+
+      initBoard();
+    }
+
+    function requestFullscreenToggle() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('portrait').catch(() => {});
+        }
+      }
+    }
+
+    function toggleSound() {
+      audio.muted = !audio.muted;
+      const btn = document.getElementById('soundBtn');
+      btn.innerHTML = audio.muted ? '<i class="fa-solid fa-volume-xmark text-red-400"></i>' : '<i class="fa-solid fa-volume-high"></i>';
+    }
+
+    /* --- LÓGICA DO TABULEIRO --- */
+    function initBoard() {
+      boardState = Array(rowsCount).fill(null).map(() => Array(8).fill(EMPTY));
+      
+      if (boardType === 'exp') {
+        for (let r = 0; r < 5; r++) {
+          for (let c = 0; c < 8; c++) {
+            if ((r + c) % 2 === 1) boardState[r][c] = { player: WHITE, isKing: false };
+          }
+        }
+        for (let r = 7; r < 12; r++) {
+          for (let c = 0; c < 8; c++) {
+            if ((r + c) % 2 === 1) boardState[r][c] = { player: RED, isKing: false };
+          }
+        }
+      } else {
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 8; c++) {
+            if ((r + c) % 2 === 1) boardState[r][c] = { player: WHITE, isKing: false };
+          }
+        }
+        for (let r = 5; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            if ((r + c) % 2 === 1) boardState[r][c] = { player: RED, isKing: false };
+          }
+        }
+      }
+
+      currentPlayer = RED;
+      undoHistory = [];
+      undoButtonsRed = [0, 1, 2, 3];
+      undoButtonsWhite = [0, 1, 2, 3];
+      undoCountTradRed = 2;
+      undoCountTradWhite = 2;
+      selectedCell = null;
+      validMoves = [];
+      isMultiJump = false;
+      blowablePieces = [];
+
+      renderBoard();
+      updateUI();
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+
+      for (let r = 0; r < rowsCount; r++) {
+        for (let c = 0; c < 8; c++) {
+          const cellEl = document.createElement('div');
+          const isDark = (r + c) % 2 === 1;
+          cellEl.className = `w-full h-full flex items-center justify-center ${isDark ? 'cell-dark' : 'cell-light'}`;
+          cellEl.dataset.row = r;
+          cellEl.dataset.col = c;
+
+          const isValidTarget = validMoves.some(m => m.r === r && m.c === c);
+          if (isValidTarget) {
+            cellEl.classList.add('valid-target');
+          }
+
+          cellEl.onclick = () => handleCellClick(r, c);
+
+          const piece = boardState[r][c];
+          if (piece) {
+            const pieceEl = document.createElement('div');
+            const isSelected = selectedCell && selectedCell.r === r && selectedCell.c === c;
+            const isBlowable = blowablePieces.some(b => b.r === r && b.c === c);
+
+            let pieceClass = `piece ${piece.player === RED ? 'piece-red' : 'piece-white'}`;
+            if (piece.isKing) pieceClass += ' king';
+            if (isSelected) pieceClass += ' selected';
+            if (isBlowable) pieceClass += ' blowable';
+
+            pieceEl.className = pieceClass;
+            cellEl.appendChild(pieceEl);
+          }
+
+          boardEl.appendChild(cellEl);
+        }
+      }
+    }
+
+    function handleCellClick(r, c) {
+      const piece = boardState[r][c];
+
+      if (gameMode === 'ai' && currentPlayer === WHITE) return;
+
+      if (isMultiJump) {
+        const move = validMoves.find(m => m.r === r && m.c === c);
+        if (move) {
+          executeMove(move);
+        }
+        return;
+      }
+
+      if (piece && piece.player === currentPlayer) {
+        const allCaptures = getAllCaptures(currentPlayer);
+
+        if (!rules.allowBlow && allCaptures.length > 0) {
+          const pieceCaptures = getValidMovesForPiece(r, c).filter(m => m.captured);
+
+          if (pieceCaptures.length === 0) {
+            statusBanner.innerText = "🚨 Captura Obrigatória!";
+            statusBanner.classList.add('animate-bounce');
+            setTimeout(() => statusBanner.classList.remove('animate-bounce'), 1000);
+            return;
+          }
+        }
+
+        selectedCell = { r, c };
+        validMoves = getValidMovesForPiece(r, c);
+
+        if (!rules.allowBlow && allCaptures.length > 0) {
+          validMoves = validMoves.filter(m => m.captured);
+        }
+
+        audio.playSelect();
+        renderBoard();
+        return;
+      }
+
+      if (selectedCell) {
+        const move = validMoves.find(m => m.r === r && m.c === c);
+        if (move) {
+          executeMove(move);
+        } else {
+          selectedCell = null;
+          validMoves = [];
+          renderBoard();
+        }
+      }
+    }
+
+    function getValidMovesForPiece(r, c) {
+      const piece = boardState[r][c];
+      if (!piece) return [];
+
+      const moves = [];
+
+      if (piece.isKing && rules.flyingKing) {
+        const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        dirs.forEach(([dr, dc]) => {
+          let step = 1;
+          let enemyFound = null;
+
+          while (true) {
+            const nr = r + dr * step;
+            const nc = c + dc * step;
+
+            if (!isValidPos(nr, nc)) break;
+
+            const target = boardState[nr][nc];
+            if (target === EMPTY) {
+              if (!enemyFound) {
+                if (!isMultiJump) moves.push({ r: nr, c: nc, captured: null });
+              } else {
+                moves.push({ r: nr, c: nc, captured: enemyFound });
+              }
+            } else if (target.player !== piece.player) {
+              if (enemyFound) break;
+              enemyFound = { r: nr, c: nc, piece: target };
+            } else {
+              break;
+            }
+
+            step++;
+          }
+        });
+      } else {
+        const dirs = piece.isKing
+          ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
+          : piece.player === RED 
+            ? [[-1, -1], [-1, 1]] 
+            : [[1, -1], [1, 1]];
+
+        if (!isMultiJump) {
+          dirs.forEach(([dr, dc]) => {
+            const nr = r + dr;
+            const nc = c + dc;
+            if (isValidPos(nr, nc) && boardState[nr][nc] === EMPTY) {
+              moves.push({ r: nr, c: nc, captured: null });
+            }
+          });
+        }
+
+        const captureDirs = (piece.isKing || rules.backwardCapture)
+          ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
+          : dirs;
+
+        captureDirs.forEach(([dr, dc]) => {
+          const capR = r + dr;
+          const capC = c + dc;
+          const landR = r + (dr * 2);
+          const landC = c + (dc * 2);
+
+          if (
+            isValidPos(landR, landC) &&
+            boardState[capR][capC] !== EMPTY &&
+            boardState[capR][capC].player !== piece.player &&
+            boardState[landR][landC] === EMPTY
+          ) {
+            moves.push({
+              r: landR,
+              c: landC,
+              captured: { r: capR, c: capC, piece: boardState[capR][capC] }
+            });
+          }
+        });
+      }
+
+      return moves;
+    }
+
+    function getAllCaptures(player) {
+      const captures = [];
+      for (let r = 0; r < rowsCount; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c] && boardState[r][c].player === player) {
+            const pieceCaptures = getValidMovesForPiece(r, c).filter(m => m.captured);
+            if (pieceCaptures.length > 0) {
+              captures.push({ r, c, moves: pieceCaptures });
+            }
+          }
+        }
+      }
+      return captures;
+    }
+
+    function executeMove(move) {
+      saveStateForUndo();
+
+      const { r: fromR, c: fromC } = selectedCell;
+      const piece = boardState[fromR][fromC];
+
+      const allCapturesBefore = getAllCaptures(currentPlayer);
+      let wasCapturingMove = false;
+
+      boardState[move.r][move.c] = piece;
+      boardState[fromR][fromC] = EMPTY;
+
+      if (move.captured) {
+        wasCapturingMove = true;
+        animateCaptureCell(move.captured.r, move.captured.c);
+        boardState[move.captured.r][move.captured.c] = EMPTY;
+        audio.playCapture();
+        triggerConfetti(move.c * 12.5 + 6, (move.r / rowsCount) * 100, ['#ef4444', '#f59e0b']);
+      } else {
+        audio.playMove();
+      }
+
+      if (rules.allowBlow && !wasCapturingMove && allCapturesBefore.length > 0) {
+        blowablePieces = allCapturesBefore.map(c => ({ r: c.r, c: c.c }));
+      } else {
+        blowablePieces = [];
+      }
+
+      let promoted = false;
+      if (!piece.isKing) {
+        if ((piece.player === RED && move.r === 0) || (piece.player === WHITE && move.r === rowsCount - 1)) {
+          piece.isKing = true;
+          promoted = true;
+          audio.playKing();
+          triggerConfetti(50, 50, ['#facc15', '#eab308']);
+        }
+      }
+
+      if (wasCapturingMove && !promoted) {
+        const nextCaptures = getValidMovesForPiece(move.r, move.c).filter(m => m.captured);
+        if (nextCaptures.length > 0) {
+          selectedCell = { r: move.r, c: move.c };
+          validMoves = nextCaptures;
+          isMultiJump = true;
+          renderBoard();
+          updateUI();
+
+          // Se for a IA e houver mais capturas na sequência, ela prossegue automaticamente
+          if (gameMode === 'ai' && currentPlayer === WHITE) {
+            setTimeout(() => {
+              const nextMove = nextCaptures[Math.floor(Math.random() * nextCaptures.length)];
+              executeMove(nextMove);
+            }, 400);
+          }
+          return;
+        }
+      }
+
+      isMultiJump = false;
+      selectedCell = null;
+      validMoves = [];
+      currentPlayer = currentPlayer === RED ? WHITE : RED;
+
+      renderBoard();
+      updateUI();
+      checkWinCondition();
+
+      if (gameMode === 'ai' && currentPlayer === WHITE) {
+        setTimeout(makeAiMove, 500);
+      }
+    }
+
+    function animateCaptureCell(r, c) {
+      const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+      if (cell && cell.firstChild) {
+        cell.firstChild.classList.add('capture-pop');
+      }
+    }
+
+    function handleBlowAction() {
+      if (blowablePieces.length === 0) return;
+
+      audio.playBlow();
+      blowablePieces.forEach(p => {
+        animateCaptureCell(p.r, p.c);
+        boardState[p.r][p.c] = EMPTY;
+      });
+
+      triggerConfetti(50, 20, ['#ef4444', '#dc2626']);
+      statusBanner.innerText = "💨 PEÇA SOPRADA!";
+      blowablePieces = [];
+
+      setTimeout(() => {
+        renderBoard();
+        updateUI();
+        checkWinCondition();
+      }, 400);
+    }
+
+    /* --- ALGORITMO DA IA CORRIGIDO (SEM TRAVAMENTOS COM MÚLTIPLAS CAPTURAS) --- */
+    function makeAiMove() {
+      if (currentPlayer !== WHITE) return;
+
+      const captures = getAllCaptures(WHITE);
+      let chosenMove = null;
+      let fromCell = null;
+
+      if (captures.length > 0) {
+        // Se houver opções de captura, a IA seleciona uma delas aleatoriamente sem travar
+        const randomCapOption = captures[Math.floor(Math.random() * captures.length)];
+        fromCell = { r: randomCapOption.r, c: randomCapOption.c };
+        chosenMove = randomCapOption.moves[Math.floor(Math.random() * randomCapOption.moves.length)];
+      } else {
+        const allMoves = [];
+        for (let r = 0; r < rowsCount; r++) {
+          for (let c = 0; c < 8; c++) {
+            if (boardState[r][c] && boardState[r][c].player === WHITE) {
+              const moves = getValidMovesForPiece(r, c);
+              if (moves.length > 0) {
+                allMoves.push({ r, c, moves });
+              }
+            }
+          }
+        }
+
+        if (allMoves.length > 0) {
+          const randomPieceOption = allMoves[Math.floor(Math.random() * allMoves.length)];
+          fromCell = { r: randomPieceOption.r, c: randomPieceOption.c };
+          chosenMove = randomPieceOption.moves[Math.floor(Math.random() * randomPieceOption.moves.length)];
+        }
+      }
+
+      if (chosenMove && fromCell) {
+        selectedCell = fromCell;
+        executeMove(chosenMove);
+      }
+    }
+
+    /* --- SISTEMA DE DESFAZER E EXPLOSÃO GLOSSY DE BOTÕES --- */
+    function saveStateForUndo() {
+      const boardCopy = JSON.parse(JSON.stringify(boardState));
+      undoHistory.push({
+        board: boardCopy,
+        player: currentPlayer
+      });
+
+      if (undoHistory.length > 10) undoHistory.shift();
+    }
+
+    function triggerExplosionEffect(element, colorClass) {
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+
+      audio.playExplosion();
+
+      for (let i = 0; i < 16; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle ' + colorClass;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 35 + Math.random() * 65;
+        p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+        p.style.left = (rect.left + rect.width / 2) + 'px';
+        p.style.top = (rect.top + rect.height / 2) + 'px';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 600);
+      }
+
+      element.style.transform = 'scale(0) rotate(45deg)';
+      element.style.opacity = '0';
+    }
+
+    function triggerUndoExpanded(btnIndex, player) {
+      if (undoHistory.length === 0) return;
+
+      if (player === RED && undoButtonsRed.includes(btnIndex)) {
+        undoButtonsRed = undoButtonsRed.filter(id => id !== btnIndex);
+        const btnEl = document.getElementById(`btnGlossyRed-${btnIndex}`);
+        triggerExplosionEffect(btnEl, 'bg-amber-300');
+      } else if (player === WHITE && undoButtonsWhite.includes(btnIndex)) {
+        undoButtonsWhite = undoButtonsWhite.filter(id => id !== btnIndex);
+        const btnEl = document.getElementById(`btnGlossyWhite-${btnIndex}`);
+        triggerExplosionEffect(btnEl, 'bg-pink-400');
+      } else {
+        return;
+      }
+
+      let stepsToUndo = (gameMode === 'ai' && currentPlayer === RED && undoHistory.length >= 2) ? 2 : 1;
+      let previousState = null;
+      for (let i = 0; i < stepsToUndo; i++) {
+        if (undoHistory.length > 0) {
+          previousState = undoHistory.pop();
+        }
+      }
+
+      if (previousState) {
+        boardState = previousState.board;
+        currentPlayer = previousState.player;
+        selectedCell = null;
+        validMoves = [];
+        isMultiJump = false;
+        blowablePieces = [];
+
+        setTimeout(() => {
+          renderBoard();
+          updateUI();
+          statusBanner.innerText = "💥 Desfeito com Sucesso!";
+        }, 200);
+      }
+    }
+
+    function undoMoveTrad() {
+      const currentUndoAvailable = currentPlayer === RED ? undoCountTradRed : undoCountTradWhite;
+      if (currentUndoAvailable <= 0 || undoHistory.length === 0) return;
+
+      if (currentPlayer === RED) undoCountTradRed--;
+      else undoCountTradWhite--;
+
+      let stepsToUndo = (gameMode === 'ai' && currentPlayer === RED && undoHistory.length >= 2) ? 2 : 1;
+      let previousState = null;
+      for (let i = 0; i < stepsToUndo; i++) {
+        if (undoHistory.length > 0) {
+          previousState = undoHistory.pop();
+        }
+      }
+
+      if (previousState) {
+        boardState = previousState.board;
+        currentPlayer = previousState.player;
+        selectedCell = null;
+        validMoves = [];
+        isMultiJump = false;
+        blowablePieces = [];
+
+        audio.playSelect();
+        renderBoard();
+        updateUI();
+        statusBanner.innerText = "⏪ Jogada Desfeita!";
+      }
+    }
+
+    /* --- UTILITÁRIOS E UI --- */
+    function isValidPos(r, c) {
+      return r >= 0 && r < rowsCount && c >= 0 && c < 8;
+    }
+
+    function updateUI() {
+      let redCount = 0;
+      let whiteCount = 0;
+      const totalPerPlayer = boardType === 'exp' ? 20 : 12;
+
+      for (let r = 0; r < rowsCount; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c]) {
+            if (boardState[r][c].player === RED) redCount++;
+            if (boardState[r][c].player === WHITE) whiteCount++;
+          }
+        }
+      }
+
+      countRedEl.innerText = redCount;
+      countWhiteEl.innerText = whiteCount;
+      capRedEl.innerText = totalPerPlayer - whiteCount;
+      capWhiteEl.innerText = totalPerPlayer - redCount;
+
+      const undoContainerRed = document.getElementById('undoContainerRed');
+      const undoContainerWhite = document.getElementById('undoContainerWhite');
+      undoContainerRed.innerHTML = '';
+      undoContainerWhite.innerHTML = '';
+
+      if (boardType === 'exp') {
+        // Renderizar 4 botões Glossy Coloridos do Jogador A (Topo)
+        undoButtonsWhite.forEach(idx => {
+          const btn = document.createElement('div');
+          btn.id = `btnGlossyWhite-${idx}`;
+          btn.className = `btn-glossy ${glossyColorClasses[idx % 4]}`;
+          btn.innerHTML = '<span class="text-xs font-black text-slate-900 z-10">↩</span>';
+          btn.onclick = () => triggerUndoExpanded(idx, WHITE);
+          undoContainerWhite.appendChild(btn);
+        });
+
+        // Renderizar 4 botões Glossy Coloridos do Jogador B (Base)
+        undoButtonsRed.forEach(idx => {
+          const btn = document.createElement('div');
+          btn.id = `btnGlossyRed-${idx}`;
+          btn.className = `btn-glossy ${glossyColorClasses[idx % 4]}`;
+          btn.innerHTML = '<span class="text-xs font-black text-slate-900 z-10">↩</span>';
+          btn.onclick = () => triggerUndoExpanded(idx, RED);
+          undoContainerRed.appendChild(btn);
+        });
+      } else {
+        const btnTrad = document.createElement('button');
+        btnTrad.className = 'btn-pop bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] px-2.5 py-1 rounded-lg border-b-2 border-amber-700 flex items-center gap-1 active:scale-95';
+        const currentLeft = currentPlayer === RED ? undoCountTradRed : undoCountTradWhite;
+        btnTrad.innerHTML = `<i class="fa-solid fa-rotate-left text-[10px]"></i> Desfazer (${currentLeft})`;
+        btnTrad.onclick = undoMoveTrad;
+        undoContainerRed.appendChild(btnTrad);
+      }
+
+      if (blowablePieces.length > 0 && rules.allowBlow) {
+        btnBlowEl.classList.remove('hidden');
+      } else {
+        btnBlowEl.classList.add('hidden');
+      }
+
+      if (currentPlayer === RED) {
+        statusBanner.innerText = "🔴 Vez das Vermelhas!";
+        turnRedIndicator.classList.remove('hidden');
+      } else {
+        statusBanner.innerText = gameMode === 'ai' ? "🤖 Robô pensando..." : "⚪ Vez das Brancas!";
+        turnRedIndicator.classList.add('hidden');
+      }
+    }
+
+    function checkWinCondition() {
+      let redCount = 0;
+      let whiteCount = 0;
+      let redHasMoves = false;
+      let whiteHasMoves = false;
+
+      for (let r = 0; r < rowsCount; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = boardState[r][c];
+          if (piece) {
+            if (piece.player === RED) {
+              redCount++;
+              if (getValidMovesForPiece(r, c).length > 0) redHasMoves = true;
+            } else {
+              whiteCount++;
+              if (getValidMovesForPiece(r, c).length > 0) whiteHasMoves = true;
+            }
+          }
+        }
+      }
+
+      if (whiteCount === 0 || (!whiteHasMoves && currentPlayer === WHITE)) {
+        showWinModal('Vermelhas');
+      } else if (redCount === 0 || (!redHasMoves && currentPlayer === RED)) {
+        showWinModal(gameMode === 'ai' ? 'Robô' : 'Brancas');
+      }
+    }
+
+    function showWinModal(winner) {
+      audio.playWin();
+      triggerConfetti(50, 50, ['#22c55e', '#facc15', '#3b82f6', '#ec4899']);
+
+      const modal = document.getElementById('winModal');
+      const winTitle = document.getElementById('winTitle');
+      const winMessage = document.getElementById('winMessage');
+      const winEmoji = document.getElementById('winEmoji');
+
+      if (winner === 'Vermelhas') {
+        winTitle.innerText = "PARABÉNS! 🎉";
+        winMessage.innerText = "As peças Vermelhas venceram o jogo!";
+        winEmoji.innerText = "🏆";
+      } else {
+        winTitle.innerText = winner === 'Robô' ? "OPS! 🤖" : "INCRÍVEL! ⚪";
+        winMessage.innerText = `${winner} venceu a partida!`;
+        winEmoji.innerText = winner === 'Robô' ? "🤖" : "👑";
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function resetGame() {
+      document.getElementById('winModal').classList.add('hidden');
+      initBoard();
+    }
+
+    function triggerConfetti(xPercent, yPercent, colors) {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 45,
+          spread: 70,
+          origin: { x: xPercent / 100, y: yPercent / 100 },
+          colors: colors || ['#facc15', '#ef4444', '#3b82f6']
+        });
+      }
+    }
+  </script>
+</body>
+</html>

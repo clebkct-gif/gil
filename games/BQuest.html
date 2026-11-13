@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Quiz App Interativo - Fantástico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap');
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+      background-color: #0b0f19;
+      overscroll-behavior: none;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      width: 100vw;
+      padding:
+        env(safe-area-inset-top)
+        env(safe-area-inset-right)
+        env(safe-area-inset-bottom)
+        env(safe-area-inset-left);
+    }
+
+    .bg-fantasy-space {
+      background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 40%, #020617 100%);
+      position: relative;
+    }
+    .bg-fantasy-space::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 80% 10%, rgba(236, 72, 153, 0.15), transparent 40%),
+        radial-gradient(circle at 10% 80%, rgba(56, 189, 248, 0.15), transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.1), transparent 60%);
+      pointer-events: none;
+    }
+
+    @keyframes blinkCount {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.2; transform: scale(1.18); }
+    }
+    .blinking-red {
+      animation: blinkCount 0.6s infinite ease-in-out;
+      color: #ff2a6d !important;
+      text-shadow: 0 0 12px rgba(255, 42, 109, 0.8);
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-8px, 5px); }
+      40% { transform: translate(8px, -5px); }
+      60% { transform: translate(-5px, 3px); }
+      80% { transform: translate(5px, -3px); }
+    }
+    .shake-screen {
+      animation: screenShake 0.4s ease-in-out;
+    }
+
+    .glass-card {
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.2);
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #38bdf8;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -6px;
+      box-shadow: 0 0 10px #38bdf8;
+    }
+
+    .list-row {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 20px;
+      font-weight: 700;
+      color: #f8fafc;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.2s ease;
+    }
+    .list-row:active {
+      background: rgba(56, 189, 248, 0.2);
+      transform: scale(0.99);
+    }
+
+    @media (orientation: portrait) {
+      #game-container { flex-direction: column; }
+      #game-main-area { width: 100%; }
+      #question-bar { width: 100%; min-height: auto; padding: 10px 14px; }
+      #options-container { width: 100%; padding: 6px; gap: 6px; }
+      #screen-game .btn-option { padding: 6px 10px; gap: 8px; border-radius: 12px; }
+      #sidebar-controls {
+        width: 100%;
+        height: auto;
+        min-height: 56px;
+        flex: 0 0 auto;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 6px 10px;
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      #sidebar-controls > div:first-child,
+      #sidebar-controls > div:last-child {
+        width: auto;
+        flex-direction: row;
+        gap: 6px;
+      }
+      #sidebar-center-scores {
+        flex: 1;
+        flex-direction: row;
+        justify-content: space-evenly;
+        gap: 6px;
+        margin: 0;
+      }
+      #sidebar-controls button { width: auto; min-width: 44px; padding: 6px 8px; font-size: 11px; }
+    }
+
+    @media (orientation: landscape) {
+      #game-container { flex-direction: row; }
+      #sidebar-controls { height: 100%; width: 100px; }
+      #options-container { padding: 6px 10px; gap: 6px; }
+      #options-container .btn-option {
+        flex: 1 1 0%;
+        min-height: 0;
+        padding: 6px 12px;
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body class="w-screen h-screen relative overflow-hidden bg-fantasy-space text-white select-none">
+
+  <!-- ================= 1. TELA DE MENU INICIAL (PROPORCIONAL E ELEGANTE) ================= -->
+  <div id="screen-start" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-3 md:p-6">
+    <div class="w-full max-w-lg h-full max-h-[640px] md:max-h-[680px] glass-card p-5 md:p-8 rounded-3xl border border-white/25 shadow-2xl flex flex-col justify-between items-center text-center relative overflow-hidden">
+      
+      <div class="absolute -top-12 -left-12 w-40 h-40 bg-pink-500/15 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-12 -right-12 w-40 h-40 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Ícone Superior Fiel ao Estilo da Imagem -->
+      <div class="w-16 h-16 md:w-20 md:h-20 bg-yellow-400 text-slate-950 rounded-2xl md:rounded-3xl flex items-center justify-center text-3xl md:text-4xl shadow-lg flex-shrink-0">
+        <i class="fa-solid fa-gamepad"></i>
+      </div>
+
+      <!-- Títulos -->
+      <div class="flex flex-col items-center gap-1.5 w-full flex-shrink-0">
+        <h1 class="text-2xl md:text-3xl font-black tracking-wider uppercase text-white">
+          QUIZ GAME
+        </h1>
+        <p class="text-slate-400 text-xs md:text-sm">
+          Escolha o nível de dificuldade para começar.
+        </p>
+      </div>
+
+      <!-- Grid de Botões Expandidos Proporcionalmente -->
+      <div class="grid grid-cols-2 gap-3 w-full flex-1 my-3 flex items-center">
+        <button data-level="N1" class="btn-start-level w-full h-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base md:text-lg rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center">
+          NÍVEL N1
+        </button>
+        <button data-level="N2" class="btn-start-level w-full h-full py-4 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center">
+          NÍVEL N2
+        </button>
+        <button data-level="N3" class="btn-start-level w-full h-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-base md:text-lg rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center">
+          NÍVEL N3
+        </button>
+        <button data-level="N4" class="btn-start-level w-full h-full py-4 bg-red-600 hover:bg-red-700 text-white font-black text-base md:text-lg rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center">
+          NÍVEL N4
+        </button>
+        <button data-level="CRIADOS" class="btn-start-level col-span-2 w-full h-full py-4 bg-white hover:bg-slate-100 border-2 border-slate-300 text-slate-950 font-black text-base md:text-lg rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center">
+          MINHAS QUESTÕES
+        </button>
+      </div>
+
+      <!-- Rodapé Opcional da Tela -->
+      <div class="text-[11px] text-slate-400 flex-shrink-0 opacity-70">
+        Toque em um nível para iniciar a diversão
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= 2. TELA DE SELEÇÃO DE LISTAS ================= -->
+  <div id="screen-list-select" class="hidden fixed inset-0 z-40 bg-fantasy-space flex flex-col">
+    <div class="glass-card px-4 py-3.5 flex items-center justify-between border-b border-white/10 shadow-lg">
+      <button id="btn-back-themes-select" class="px-4 py-2 glass-btn text-amber-300 font-bold rounded-xl text-sm flex items-center gap-2 active:scale-95">
+        <i class="fa-solid fa-layer-group"></i> TEMAS
+      </button>
+      <h2 id="list-select-header" class="text-lg font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400 uppercase">
+        Lista : N1
+      </h2>
+      <div class="w-16"></div>
+    </div>
+    <div id="lists-scroll-container" class="flex-1 overflow-y-auto"></div>
+  </div>
+
+  <!-- ================= 3. TELA PRINCIPAL DO JOGO ================= -->
+  <div id="screen-game" class="hidden fixed inset-0 z-30 transition-colors duration-300">
+    <div id="game-container" class="w-full h-full flex overflow-hidden relative">
+      
+      <div id="game-main-area" class="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        <div id="question-bar" class="w-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 flex-shrink-0 min-h-[65px] md:min-h-[80px] flex items-center justify-between px-4 py-2 relative shadow-lg z-10">
+          <div id="question-display" role="button" tabindex="0" aria-label="Toque para ouvir a questão"
+               class="flex-1 font-black text-lg md:text-2xl leading-tight pr-2 cursor-pointer drop-shadow-sm active:opacity-80 transition"
+               title="Toque na questão para ouvir">Carregando...</div>
+
+          <div id="slider-panel" class="hidden absolute top-full left-0 right-0 glass-card p-4 shadow-2xl border-b border-amber-400/30 z-50 flex flex-col gap-3 text-white">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+              <span class="text-xs font-black uppercase text-amber-300 tracking-wider">Ajuste de Fontes</span>
+              <button id="btn-close-sliders" class="text-slate-400 hover:text-white text-xs font-bold"><i class="fa-solid fa-xmark"></i> Fechar</button>
+            </div>
+            
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs font-bold">
+                <span class="text-amber-300">Alternativas</span>
+                <span id="label-font-options">18px</span>
+              </div>
+              <input type="range" id="slider-font-options" min="12" max="32" value="18" />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs font-bold">
+                <span class="text-cyan-300">Questão</span>
+                <span id="label-font-question">22px</span>
+              </div>
+              <input type="range" id="slider-font-question" min="14" max="38" value="22" />
+            </div>
+          </div>
+        </div>
+
+        <div id="options-container" class="flex-1 flex flex-col justify-stretch gap-1.5 p-2 md:p-3 w-full overflow-hidden">
+          
+          <button data-index="0" class="btn-option flex-1 w-full glass-card hover:bg-white/10 border border-white/15 rounded-xl p-2.5 text-left flex items-center gap-3 shadow-md active:scale-[0.99] transition-all">
+            <span class="opt-prefix font-black text-xl md:text-2xl text-rose-500 flex-shrink-0 leading-none">A )</span>
+            <span class="opt-text font-bold text-slate-100 text-base md:text-xl transition-all"></span>
+          </button>
+
+          <button data-index="1" class="btn-option flex-1 w-full glass-card hover:bg-white/10 border border-white/15 rounded-xl p-2.5 text-left flex items-center gap-3 shadow-md active:scale-[0.99] transition-all">
+            <span class="opt-prefix font-black text-xl md:text-2xl text-amber-400 flex-shrink-0 leading-none">B )</span>
+            <span class="opt-text font-bold text-slate-100 text-base md:text-xl transition-all"></span>
+          </button>
+
+          <button data-index="2" class="btn-option flex-1 w-full glass-card hover:bg-white/10 border border-white/15 rounded-xl p-2.5 text-left flex items-center gap-3 shadow-md active:scale-[0.99] transition-all">
+            <span class="opt-prefix font-black text-xl md:text-2xl text-cyan-400 flex-shrink-0 leading-none">C )</span>
+            <span class="opt-text font-bold text-slate-100 text-base md:text-xl transition-all"></span>
+          </button>
+
+          <button data-index="3" class="btn-option flex-1 w-full glass-card hover:bg-white/10 border border-white/15 rounded-xl p-2.5 text-left flex items-center gap-3 shadow-md active:scale-[0.99] transition-all">
+            <span class="opt-prefix font-black text-xl md:text-2xl text-pink-400 flex-shrink-0 leading-none">D )</span>
+            <span class="opt-text font-bold text-slate-100 text-base md:text-xl transition-all"></span>
+          </button>
+
+          <button data-index="4" class="btn-option flex-1 w-full glass-card hover:bg-white/10 border border-white/15 rounded-xl p-2.5 text-left flex items-center gap-3 shadow-md active:scale-[0.99] transition-all">
+            <span class="opt-prefix font-black text-xl md:text-2xl text-emerald-400 flex-shrink-0 leading-none">E )</span>
+            <span class="opt-text font-bold text-slate-100 text-base md:text-xl transition-all"></span>
+          </button>
+        </div>
+
+      </div>
+
+      <div id="sidebar-controls" class="w-20 md:w-24 glass-card border-l border-white/10 flex flex-col justify-between items-center py-2 px-1 shadow-2xl z-20 flex-shrink-0">
+        
+        <div class="w-full flex flex-col gap-1 flex-shrink-0">
+          <button id="btn-abrir" class="w-full py-1.5 bg-gradient-to-r from-rose-600 to-red-500 text-white font-black text-xs rounded-lg uppercase active:scale-95 shadow">
+            ABRIR
+          </button>
+          <button id="btn-meta" class="w-full py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs rounded-lg uppercase active:scale-95 shadow">
+            META
+          </button>
+        </div>
+
+        <div id="sidebar-center-scores" class="flex flex-col items-center justify-center gap-2 my-auto w-full py-1">
+          
+          <div class="flex flex-col items-center flex-shrink-0">
+            <span id="num-red-top" class="font-black text-xl md:text-3xl text-rose-500 drop-shadow leading-none">0</span>
+          </div>
+
+          <div class="flex flex-col items-center flex-shrink-0">
+            <span id="num-black-done" class="font-black text-xl md:text-3xl text-white drop-shadow leading-none">0</span>
+          </div>
+
+          <button id="btn-skip-green" title="Pular Questão" class="flex flex-col items-center glass-btn border border-emerald-400/30 rounded-xl p-1 w-full flex-shrink-0 active:scale-95 transition">
+            <span id="num-green-skips" class="font-black text-xl md:text-3xl text-emerald-400 leading-none">5</span>
+          </button>
+
+          <button id="btn-help-yellow" title="Eliminar 1 a 3 Alternativas" class="flex flex-col items-center glass-btn border border-amber-400/30 rounded-xl p-1 w-full flex-shrink-0 active:scale-95 transition">
+            <span id="num-yellow-helps" class="font-black text-xl md:text-3xl text-amber-400 leading-none">9</span>
+          </button>
+
+          <div class="flex flex-col items-center flex-shrink-0">
+            <span id="num-red-bottom" class="font-black text-xl md:text-3xl text-rose-500 drop-shadow leading-none">0</span>
+          </div>
+        </div>
+
+        <div class="w-full flex flex-col gap-1 flex-shrink-0">
+          <button id="btn-criar" class="w-full py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs rounded-lg uppercase active:scale-95 shadow">
+            CRIAR
+          </button>
+          <button id="btn-temas" class="w-full py-1.5 bg-gradient-to-r from-rose-600 to-red-500 text-white font-black text-xs rounded-lg uppercase active:scale-95 shadow">
+            TEMAS
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= 4. TELA DE CRIAÇÃO DE QUESTÕES ================= -->
+  <div id="screen-create" class="hidden fixed inset-0 z-50 bg-fantasy-space flex flex-col">
+    <div class="glass-card p-2.5 flex items-center justify-between border-b border-white/10 shadow-md">
+      <div class="flex items-center gap-2">
+        <button id="btn-create-add" class="px-3.5 py-1.5 bg-rose-600 text-white font-black rounded-lg text-xs uppercase active:scale-95 shadow">
+          ADD
+        </button>
+        <button id="btn-create-clear" class="px-3.5 py-1.5 glass-btn text-white font-black rounded-lg text-xs uppercase active:scale-95 shadow">
+          LIMPAR
+        </button>
+        <button id="btn-create-new-theme" class="px-3.5 py-1.5 bg-cyan-400 text-slate-950 font-black rounded-lg text-xs uppercase active:scale-95 shadow">
+          NOVO TEMA
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-create-back" class="px-3.5 py-1.5 glass-btn text-white font-black rounded-lg text-xs uppercase active:scale-95 shadow">
+          VOLTAR
+        </button>
+        <button id="btn-create-save" class="px-3.5 py-1.5 bg-rose-600 text-white font-black rounded-lg text-xs uppercase active:scale-95 shadow">
+          SALVAR
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 p-4 md:p-6 overflow-y-auto max-w-3xl mx-auto w-full flex flex-col gap-3 text-white">
+      <div class="flex items-center justify-between font-extrabold px-1">
+        <span class="text-base text-amber-300">Cadastrar Lista Personalizada</span>
+        <span id="badge-created-count" class="bg-cyan-500 text-slate-950 px-3 py-1 rounded-full text-xs font-black shadow-sm">0 Questões</span>
+      </div>
+      <input type="text" id="input-list-name" placeholder="Nome do Tema / Lista (ex: Minha Lista P1)" class="w-full p-3 glass-card rounded-xl text-white font-bold focus:outline-none border-white/20 focus:border-amber-400 shadow-sm" />
+      <textarea id="input-q-text" rows="2" placeholder="Digite a Pergunta..." class="w-full p-3 glass-card rounded-xl text-white font-bold focus:outline-none border-white/20 focus:border-amber-400 shadow-sm"></textarea>
+      <div class="flex flex-col gap-1">
+        <span class="text-xs font-black text-emerald-400 uppercase px-1">Resposta Correta (Alternativa A)</span>
+        <input type="text" id="input-opt-a" placeholder="Alternativa Correta (A)..." class="w-full p-3 glass-card border-2 border-emerald-500/50 rounded-xl text-white font-bold focus:outline-none shadow-sm" />
+      </div>
+      <input type="text" id="input-opt-b" placeholder="Alternativa B" class="w-full p-3 glass-card rounded-xl text-white font-bold focus:outline-none border-white/20 shadow-sm" />
+      <input type="text" id="input-opt-c" placeholder="Alternativa C" class="w-full p-3 glass-card rounded-xl text-white font-bold focus:outline-none border-white/20 shadow-sm" />
+      <input type="text" id="input-opt-d" placeholder="Alternativa D" class="w-full p-3 glass-card rounded-xl text-white font-bold focus:outline-none border-white/20 shadow-sm" />
+      <input type="text" id="input-opt-e" placeholder="Alternativa E -> (OPCIONAL)" class="w-full p-3 glass-card rounded-xl text-white font-bold focus:outline-none border-white/20 shadow-sm" />
+    </div>
+  </div>
+
+  <!-- ================= 5. MODAL DE TEMAS ================= -->
+  <div id="modal-themes" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-card rounded-3xl p-6 w-full max-w-xs shadow-2xl flex flex-col gap-3 border border-white/20 text-center">
+      <h3 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400 uppercase mb-2">Selecione o Tema</h3>
+      <button data-level="N1" class="btn-theme-choice py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-xl shadow active:scale-95">Nível N1</button>
+      <button data-level="N2" class="btn-theme-choice py-3.5 bg-cyan-400 hover:bg-cyan-500 text-slate-950 font-black text-lg rounded-xl shadow active:scale-95">Nível N2</button>
+      <button data-level="CRIADOS" class="btn-theme-choice py-3.5 bg-white hover:bg-slate-100 border-2 border-slate-300 text-slate-950 font-black text-lg rounded-xl shadow active:scale-95">Criadas pelo Usuário</button>
+      <button data-level="N3" class="btn-theme-choice py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-xl shadow active:scale-95">Nível N3</button>
+      <button data-level="N4" class="btn-theme-choice py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-lg rounded-xl shadow active:scale-95">Nível N4</button>
+      <button id="btn-close-modal-themes" class="mt-2 py-2 text-slate-400 hover:text-white text-xs font-bold uppercase tracking-wider">Fechar</button>
+    </div>
+  </div>
+
+  <script>
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    const SoundEffects = {
+      correct: () => {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0, now + idx * 0.08);
+          gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.08 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.25);
+        });
+      },
+      wrong: () => {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.3);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      },
+      eliminate: () => {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      },
+      skip: () => {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      },
+      click: () => {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    };
+
+    const BASE_QUESTIONS = [
+      "Quando os vulcões entram em erupção, expelem:@Lavas@Larvas@óleo@água@",
+      "Qual é o maior planeta do Sistema Solar?@Júpiter@Saturno@Marte@Vênus@",
+      "Qual elemento químico possui símbolo O?@Oxigênio@Ouro@Ozônio@Ósmio@",
+      "Quem pintou a Mona Lisa?@Leonardo da Vinci@Picasso@Van Gogh@Salvador Dalí@",
+      "Quantos lados tem um hexágono?@6@5@7@8@"
+    ];
+
+    let gameDatabase = {
+      N1: Array.from({ length: 30 }, (_, i) => ({ id: `A${i+1}`, name: `Lista : A${i+1}`, questions: [...BASE_QUESTIONS] })),
+      N2: Array.from({ length: 30 }, (_, i) => ({ id: `B${i+1}`, name: `Lista : B${i+1}`, questions: [...BASE_QUESTIONS] })),
+      N3: Array.from({ length: 30 }, (_, i) => ({ id: `C${i+1}`, name: `Lista : C${i+1}`, questions: [...BASE_QUESTIONS] })),
+      N4: Array.from({ length: 30 }, (_, i) => ({ id: `D${i+1}`, name: `Lista : D${i+1}`, questions: [...BASE_QUESTIONS] })),
+      CRIADOS: JSON.parse(localStorage.getItem('quiz_user_created_lists') || '[]')
+    };
+
+    if (gameDatabase.CRIADOS.length === 0) {
+      gameDatabase.CRIADOS = Array.from({ length: 30 }, (_, i) => ({ id: `P${i+1}`, name: `Lista : P${i+1}`, questions: [...BASE_QUESTIONS] }));
+    }
+
+    let activeLevel = 'N1';
+    let activeList = null;
+    let availableQuestions = [];
+    let currentQuestionData = null;
+
+    let redErrorsScore = 0;
+    let blackDoneCount = 0;
+    let greenSkipsLeft = 5;
+    let yellowHelpsLeft = 9;
+
+    let isEliminating = false;
+    let remainingEliminationsToClick = 0;
+    let currentShuffledAnswers = [];
+
+    let fontSizeQuestion = 22;
+    let fontSizeOptions = 18;
+
+    let currentDraftQuestions = [];
+
+    const screenStart = document.getElementById('screen-start');
+    const screenListSelect = document.getElementById('screen-list-select');
+    const screenGame = document.getElementById('screen-game');
+    const screenCreate = document.getElementById('screen-create');
+    const modalThemes = document.getElementById('modal-themes');
+
+    const questionDisplay = document.getElementById('question-display');
+    const optionButtons = document.querySelectorAll('.btn-option');
+
+    const numRedTop = document.getElementById('num-red-top');
+    const numBlackDone = document.getElementById('num-black-done');
+    const numGreenSkips = document.getElementById('num-green-skips');
+    const numYellowHelps = document.getElementById('num-yellow-helps');
+
+    const sliderPanel = document.getElementById('slider-panel');
+    const sliderFontQ = document.getElementById('slider-font-question');
+    const sliderFontA = document.getElementById('slider-font-options');
+    const labelFontQ = document.getElementById('label-font-question');
+    const labelFontA = document.getElementById('label-font-options');
+
+    async function enterGameMode() {
+      const root = document.documentElement;
+      try {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          if (root.requestFullscreen) await root.requestFullscreen().catch(() => {});
+          else if (root.webkitRequestFullscreen) root.webkitRequestFullscreen();
+        }
+      } catch (e) {}
+      return true;
+    }
+
+    document.querySelectorAll('.btn-start-level').forEach(button => {
+      button.addEventListener('click', async () => {
+        SoundEffects.click();
+        await enterGameMode();
+        const level = button.getAttribute('data-level');
+        screenStart.classList.add('hidden');
+        openLevelLists(level);
+      });
+    });
+
+    function openLevelLists(levelKey) {
+      activeLevel = levelKey;
+      screenStart.classList.add('hidden');
+      screenGame.classList.add('hidden');
+      screenCreate.classList.add('hidden');
+      modalThemes.classList.add('hidden');
+      screenListSelect.classList.remove('hidden');
+
+      document.getElementById('list-select-header').textContent = levelKey === 'CRIADOS' ? 'Lista : Criadas' : `Lista : Nível ${levelKey}`;
+
+      const container = document.getElementById('lists-scroll-container');
+      container.innerHTML = '';
+
+      const lists = gameDatabase[levelKey] || [];
+      lists.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'list-row';
+        row.innerHTML = `
+          <span>${item.name}</span>
+          <i class="fa-solid fa-chevron-right text-amber-400"></i>
+        `;
+        row.onclick = () => {
+          SoundEffects.click();
+          loadListAndStartGame(item);
+        };
+        container.appendChild(row);
+      });
+    }
+
+    document.getElementById('btn-back-themes-select').addEventListener('click', () => {
+      SoundEffects.click();
+      modalThemes.classList.remove('hidden');
+    });
+
+    function loadListAndStartGame(listObj) {
+      activeList = listObj;
+      availableQuestions = [...listObj.questions];
+      screenListSelect.classList.add('hidden');
+      screenGame.classList.remove('hidden');
+      renderNextQuestion();
+    }
+
+    function parseQuestionFormattedString(rawStr) {
+      const parts = rawStr.split('@').map(p => p.trim());
+      while (parts.length && parts[parts.length - 1] === '') parts.pop();
+      if (parts.length < 3 || !parts[0] || !parts[1]) return null;
+
+      const qText = parts[0];
+      const correctAns = parts[1];
+      const wrongAnsList = parts.slice(2).filter(Boolean);
+      if (wrongAnsList.length < 1) return null;
+
+      const all = [correctAns, ...wrongAnsList];
+      const shuffled = all.map((ans, i) => ({
+        text: ans,
+        isCorrect: i === 0,
+        eliminated: false
+      })).sort(() => Math.random() - 0.5);
+
+      return { question: qText, options: shuffled };
+    }
+
+    function renderNextQuestion() {
+      if (availableQuestions.length === 0) availableQuestions = [...activeList.questions];
+
+      const idx = Math.floor(Math.random() * availableQuestions.length);
+      const raw = availableQuestions.splice(idx, 1)[0];
+
+      currentQuestionData = parseQuestionFormattedString(raw);
+      if (!currentQuestionData) {
+        if (availableQuestions.length) renderNextQuestion();
+        return;
+      }
+
+      currentShuffledAnswers = currentQuestionData.options;
+      isEliminating = false;
+
+      screenGame.className = 'fixed inset-0 z-30 transition-colors duration-300';
+      numRedTop.classList.remove('blinking-red');
+      numRedTop.textContent = redErrorsScore;
+
+      updateQuestionAndOptionsUI();
+      speakQuestionText(currentQuestionData.question);
+    }
+
+    function updateQuestionAndOptionsUI() {
+      questionDisplay.textContent = currentQuestionData.question;
+      const prefixes = ['A )', 'B )', 'C )', 'D )', 'E )'];
+
+      optionButtons.forEach((btn, index) => {
+        const option = currentShuffledAnswers[index];
+        const prefixSpan = btn.querySelector('.opt-prefix');
+        const textSpan = btn.querySelector('.opt-text');
+
+        if (option) {
+          btn.style.display = 'flex';
+          prefixSpan.textContent = prefixes[index];
+
+          if (option.eliminated) {
+            textSpan.textContent = '';
+            btn.classList.add('opacity-30', 'pointer-events-none', 'scale-95');
+          } else {
+            textSpan.textContent = option.text;
+            btn.classList.remove('opacity-30', 'pointer-events-none', 'scale-95');
+          }
+        } else {
+          btn.style.display = 'none';
+        }
+      });
+
+      applyFontSizes();
+    }
+
+    function speakQuestionText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    questionDisplay.addEventListener('click', () => {
+      SoundEffects.click();
+      if (currentQuestionData) speakQuestionText(currentQuestionData.question);
+    });
+
+    optionButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.getAttribute('data-index'));
+        const chosenOption = currentShuffledAnswers[index];
+
+        if (!chosenOption || chosenOption.eliminated) return;
+
+        if (isEliminating) {
+          if (!chosenOption.isCorrect && remainingEliminationsToClick > 0) {
+            SoundEffects.eliminate();
+            chosenOption.eliminated = true;
+            remainingEliminationsToClick--;
+            numRedTop.textContent = remainingEliminationsToClick;
+
+            updateQuestionAndOptionsUI();
+
+            if (remainingEliminationsToClick <= 0) {
+              isEliminating = false;
+              screenGame.className = 'fixed inset-0 z-30 transition-colors duration-300';
+              numRedTop.classList.remove('blinking-red');
+              numRedTop.textContent = redErrorsScore;
+            }
+          }
+          return;
+        }
+
+        if (chosenOption.isCorrect) {
+          SoundEffects.correct();
+          blackDoneCount++;
+          numBlackDone.textContent = blackDoneCount;
+          screenGame.className = 'fixed inset-0 z-30 bg-emerald-600/40 backdrop-blur-md transition-colors duration-200';
+
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+
+          setTimeout(() => {
+            renderNextQuestion();
+          }, 750);
+        } else {
+          SoundEffects.wrong();
+          redErrorsScore += 10;
+          numRedTop.textContent = redErrorsScore;
+          screenGame.className = 'fixed inset-0 z-30 bg-rose-700/40 backdrop-blur-md shake-screen transition-colors duration-200';
+
+          setTimeout(() => {
+            screenGame.className = 'fixed inset-0 z-30 transition-colors duration-300';
+          }, 800);
+        }
+      });
+    });
+
+    document.getElementById('btn-skip-green').addEventListener('click', () => {
+      if (greenSkipsLeft > 0) {
+        SoundEffects.skip();
+        greenSkipsLeft--;
+        numGreenSkips.textContent = greenSkipsLeft;
+        renderNextQuestion();
+      }
+    });
+
+    document.getElementById('btn-help-yellow').addEventListener('click', () => {
+      if (yellowHelpsLeft <= 0 || isEliminating || !currentQuestionData) return;
+
+      const wrongAvailable = currentShuffledAnswers.filter(o => !o.isCorrect && !o.eliminated).length;
+      if (wrongAvailable === 0) return;
+
+      SoundEffects.eliminate();
+      const maxAvailable = Math.min(3, wrongAvailable);
+      remainingEliminationsToClick = Math.floor(Math.random() * maxAvailable) + 1;
+
+      yellowHelpsLeft--;
+      numYellowHelps.textContent = yellowHelpsLeft;
+      isEliminating = true;
+      screenGame.className = 'fixed inset-0 z-30 bg-cyan-600/40 backdrop-blur-md transition-colors duration-300';
+      numRedTop.textContent = remainingEliminationsToClick;
+      numRedTop.classList.add('blinking-red');
+    });
+
+    function applyFontSizes() {
+      questionDisplay.style.fontSize = `${fontSizeQuestion}px`;
+      labelFontQ.textContent = `${fontSizeQuestion}px`;
+
+      document.querySelectorAll('.opt-text, .opt-prefix').forEach(el => {
+        el.style.fontSize = `${fontSizeOptions}px`;
+      });
+      labelFontA.textContent = `${fontSizeOptions}px`;
+    }
+
+    function openSliderFor(control) {
+      SoundEffects.click();
+      const showOptions = control === 'abrir';
+      sliderFontA.parentElement.style.display = showOptions ? 'flex' : 'none';
+      sliderFontQ.parentElement.style.display = showOptions ? 'none' : 'flex';
+      sliderPanel.classList.remove('hidden');
+    }
+    document.getElementById('btn-abrir').addEventListener('click', () => openSliderFor('abrir'));
+    document.getElementById('btn-meta').addEventListener('click', () => openSliderFor('meta'));
+    document.getElementById('btn-close-sliders').addEventListener('click', () => {
+      SoundEffects.click();
+      sliderPanel.classList.add('hidden');
+    });
+
+    sliderFontQ.addEventListener('input', (e) => {
+      fontSizeQuestion = e.target.value;
+      applyFontSizes();
+    });
+
+    sliderFontA.addEventListener('input', (e) => {
+      fontSizeOptions = e.target.value;
+      applyFontSizes();
+    });
+
+    document.getElementById('btn-criar').addEventListener('click', () => {
+      SoundEffects.click();
+      screenCreate.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-create-back').addEventListener('click', () => {
+      SoundEffects.click();
+      screenCreate.classList.add('hidden');
+    });
+
+    document.getElementById('btn-create-add').addEventListener('click', () => {
+      SoundEffects.click();
+      const q = document.getElementById('input-q-text').value.trim();
+      const a = document.getElementById('input-opt-a').value.trim();
+      const b = document.getElementById('input-opt-b').value.trim();
+      const c = document.getElementById('input-opt-c').value.trim();
+      const d = document.getElementById('input-opt-d').value.trim();
+      const e = document.getElementById('input-opt-e').value.trim();
+
+      if (!q || !a || !b) return;
+
+      let formatted = `${q}@${a}@${b}@`;
+      if (c) formatted += `${c}@`;
+      if (d) formatted += `${d}@`;
+      if (e) formatted += `${e}@`;
+
+      currentDraftQuestions.push(formatted);
+      document.getElementById('badge-created-count').textContent = `${currentDraftQuestions.length} Questões`;
+
+      document.getElementById('input-q-text').value = '';
+      document.getElementById('input-opt-a').value = '';
+      document.getElementById('input-opt-b').value = '';
+      document.getElementById('input-opt-c').value = '';
+      document.getElementById('input-opt-d').value = '';
+      document.getElementById('input-opt-e').value = '';
+    });
+
+    document.getElementById('btn-create-clear').addEventListener('click', () => {
+      SoundEffects.click();
+      document.getElementById('input-list-name').value = '';
+      document.getElementById('input-q-text').value = '';
+      document.getElementById('input-opt-a').value = '';
+      document.getElementById('input-opt-b').value = '';
+      document.getElementById('input-opt-c').value = '';
+      document.getElementById('input-opt-d').value = '';
+      document.getElementById('input-opt-e').value = '';
+      currentDraftQuestions = [];
+      document.getElementById('badge-created-count').textContent = `0 Questões`;
+    });
+
+    document.getElementById('btn-create-new-theme').addEventListener('click', () => {
+      document.getElementById('btn-create-clear').click();
+    });
+
+    document.getElementById('btn-create-save').addEventListener('click', () => {
+      SoundEffects.click();
+      const listName = document.getElementById('input-list-name').value.trim() || `Lista P${gameDatabase.CRIADOS.length + 1}`;
+      if (currentDraftQuestions.length === 0) return;
+
+      const newList = {
+        id: `P${gameDatabase.CRIADOS.length + 1}`,
+        name: listName.startsWith('Lista :') ? listName : `Lista : ${listName}`,
+        questions: [...currentDraftQuestions]
+      };
+
+      gameDatabase.CRIADOS.push(newList);
+      localStorage.setItem('quiz_user_created_lists', JSON.stringify(gameDatabase.CRIADOS));
+
+      screenCreate.classList.add('hidden');
+      openLevelLists('CRIADOS');
+    });
+
+    document.getElementById('btn-temas').addEventListener('click', () => {
+      SoundFiles = null;
+      SoundEffects.click();
+      modalThemes.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-close-modal-themes').addEventListener('click', () => {
+      SoundEffects.click();
+      modalThemes.classList.add('hidden');
+    });
+
+    document.querySelectorAll('.btn-theme-choice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        SoundEffects.click();
+        const levelKey = btn.getAttribute('data-level');
+        openLevelLists(levelKey);
+      });
+    });
+
+    applyFontSizes();
+  </script>
+</body>
+</html>
